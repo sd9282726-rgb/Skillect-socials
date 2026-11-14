@@ -111,7 +111,7 @@ fun ComposerScreen(
         uploadJob?.cancel()
         videoStoragePath = null
         uploadJob = scope.launch {
-            mediaUploadManager.uploadMedia(uri, "media-quarantine", currentUserId).collect { state ->
+            mediaUploadManager.uploadMedia(uri, "post-media", currentUserId).collect { state ->
                 uploadState = state
                 if (state is UploadProgressState.Success) videoStoragePath = state.storagePath
             }
