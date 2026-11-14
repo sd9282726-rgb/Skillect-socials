@@ -1,3 +1,4 @@
+import java.util.Properties
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
 
 plugins {
@@ -27,11 +28,25 @@ android {
   // and updating Android apps in AI Studio.
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+      // Keep signing credentials local. Configure them in the ignored root
+      // keystore.properties file or provide the matching environment variables.
+      val signingFile = rootProject.file("keystore.properties")
+      val signingProperties = Properties().apply {
+        if (signingFile.exists()) {
+          signingFile.inputStream().use { load(it) }
+        }
+      }
+      val keystorePath = System.getenv("KEYSTORE_PATH")
+        ?: signingProperties.getProperty("storeFile")
+        ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
+        ?: signingProperties.getProperty("storePassword")
+      keyAlias = System.getenv("KEY_ALIAS")
+        ?: signingProperties.getProperty("keyAlias")
+        ?: "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
+        ?: signingProperties.getProperty("keyPassword")
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
