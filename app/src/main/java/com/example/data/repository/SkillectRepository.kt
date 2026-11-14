@@ -719,11 +719,32 @@ class SkillectRepository(
     }
 
     suspend fun fetchFollowCounts(userId: String): Result<Pair<Int, Int>> = guardConfigured {
-        val followers = postgrestApi.getFollows(followingIdEq = "eq.$userId")
-        if (!followers.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(followers.parseError()))
-        val following = postgrestApi.getFollows(followerIdEq = "eq.$userId")
-        if (!following.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(following.parseError()))
-        Result.success(followers.body().orEmpty().size to following.body().orEmpty().size)
+        val followers = postgrestApi.countFollowers(followingIdEq = "eq.$userId")
+        val following = postgrestApi.countFollowing(followerIdEq = "eq.$userId")
+        if (!followers.isSuccessful || !following.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException("Could not load network counts."))
+        }
+        fun exactCount(response: retrofit2.Response<Void>): Int? =
+            response.headers()["Content-Range"]?.substringAfterLast("/")?.toIntOrNull()
+        val followerCount = exactCount(followers)
+        val followingCount = exactCount(following)
+        if (followerCount == null || followingCount == null) {
+            val followerRows = postgrestApi.getFollows(followingIdEq = "eq.$userId")
+            val followingRows = postgrestApi.getFollows(followerIdEq = "eq.$userId")
+            if (!followerRows.isSuccessful || !followingRows.isSuccessful) {
+                return@guardConfigured Result.failure(IllegalStateException("Could not load network counts."))
+            }
+            return@guardConfigured Result.success(followerRows.body().orEmpty().size to followingRows.body().orEmpty().size)
+        }
+        Result.success(followerCount to followingCount)
+    }
+
+    suspend fun fetchPostCount(userId: String): Result<Int> = guardConfigured {
+        val response = postgrestApi.countPostsByAuthor(authorIdEq = "eq.$userId")
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        val count = response.headers()["Content-Range"]?.substringAfterLast("/")?.toIntOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Post count was not returned."))
+        Result.success(count)
     }
 
     suspend fun getFollowingIds(userId: String): Result<List<String>> = guardConfigured {
