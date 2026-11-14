@@ -73,7 +73,6 @@ data class ProfileDto(
     val website: String = "",
     @Json(name = "date_of_birth") val dateOfBirth: String? = null,
     @Json(name = "birth_date") val rawBirthDate: String? = null,
-    @Json(name = "allow_dms_from") val allowDmsFrom: String = "following_only",
     @Json(name = "is_private") val isPrivate: Boolean = false,
     @Json(name = "is_verified") val isVerified: Boolean = false,
     val onboarded: Boolean = true,
@@ -101,6 +100,9 @@ data class ProfileDto(
 
     val isMinorSafeDefaults: Boolean
         get() = birthDate?.let { com.example.core.config.AppConfig.isMinor16To17(it) } == true
+
+    val allowDmsFrom: String
+        get() = if (isMinorSafeDefaults) "following_only" else "everyone"
 }
 
 @JsonClass(generateAdapter = true)
