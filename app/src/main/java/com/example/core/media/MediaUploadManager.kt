@@ -7,12 +7,18 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.example.core.config.AppConfig
 import com.example.core.network.SupabaseStorageApi
+import com.example.core.network.SupabasePostgrestApi
+import com.example.core.network.ModerationGatewayResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import okhttp3.RequestBody
 import okio.BufferedSink
 import java.io.ByteArrayOutputStream
@@ -22,17 +28,18 @@ sealed class UploadProgressState {
     data object Idle : UploadProgressState()
     data class Validating(val fileName: String) : UploadProgressState()
     data class Uploading(val progress: Float, val fileName: String) : UploadProgressState()
-    data class Success(val publicUrl: String, val mediaType: String) : UploadProgressState()
+    data class Success(val publicUrl: String, val mediaType: String, val storagePath: String? = null) : UploadProgressState()
     data class Failed(val message: String) : UploadProgressState()
 }
 
 class MediaUploadManager(
     private val context: Context,
     private val storageApi: SupabaseStorageApi,
+    private val postgrestApi: SupabasePostgrestApi,
 ) {
     companion object {
-        const val MAX_IMAGE_BYTES = 15L * 1024L * 1024L // 15 MB
-        const val MAX_VIDEO_BYTES = 100L * 1024L * 1024L // 100 MB
+        const val MAX_IMAGE_BYTES = 12L * 1024L * 1024L // 12 MB moderation limit
+        const val MAX_VIDEO_BYTES = 50L * 1024L * 1024L // 50 MB quarantine bucket limit
         const val MAX_IMAGE_DIMENSION = 1920
     }
 
@@ -48,35 +55,35 @@ class MediaUploadManager(
 
         val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
         val isVideo = mimeType.startsWith("video/")
-        val isImage = mimeType.startsWith("image/")
-        if (!isImage && !isVideo) {
-            send(UploadProgressState.Failed("Unsupported media format: $mimeType"))
+        if (!isVideo) {
+            send(UploadProgressState.Failed("Images must use Skillect's secure image moderation flow."))
+            return@channelFlow
+        }
+        if (bucket != "media-quarantine") {
+            send(UploadProgressState.Failed("Videos must be uploaded to secure quarantine before publishing."))
             return@channelFlow
         }
 
         val fileName = resolveFileName(uri) ?: "upload_${UUID.randomUUID()}"
         send(UploadProgressState.Validating(fileName))
 
-        val payload = withContext(Dispatchers.IO) {
-            if (isImage) {
-                compressImage(uri)
-            } else {
-                readVideoBytesValidated(uri)
-            }
-        }
+        val payload = withContext(Dispatchers.IO) { readVideoBytesValidated(uri) }
 
         if (payload == null) {
             send(
                 UploadProgressState.Failed(
-                    if (isVideo) "Video exceeds the 100 MB limit or could not be read."
-                    else "Image exceeds 15 MB or could not be decoded.",
+                    "Video exceeds the 50 MB limit or could not be read.",
                 ),
             )
             return@channelFlow
         }
 
-        val ext = if (isVideo) "mp4" else "jpg"
-        val finalMime = if (isVideo) mimeType else "image/jpeg"
+        val ext = when (mimeType.lowercase()) {
+            "video/webm" -> "webm"
+            "video/quicktime" -> "mov"
+            else -> "mp4"
+        }
+        val finalMime = mimeType
         val objectPath = "$ownerId/${UUID.randomUUID()}.$ext"
 
         send(UploadProgressState.Uploading(0.05f, fileName))
@@ -97,12 +104,48 @@ class MediaUploadManager(
         )
 
         if (response.isSuccessful) {
-            val publicUrl = "${AppConfig.supabaseUrl}/storage/v1/object/public/$bucket/$objectPath"
-            send(UploadProgressState.Success(publicUrl, if (isVideo) "video" else "image"))
+            send(UploadProgressState.Success("", "video", objectPath))
         } else {
             val detail = response.errorBody()?.string()?.take(220).orEmpty()
             val suffix = detail.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
             send(UploadProgressState.Failed("Upload failed (HTTP ${response.code()})$suffix"))
+        }
+    }
+
+    suspend fun uploadImagePost(
+        uri: Uri,
+        content: String,
+        tags: List<String>,
+        category: String,
+        communityId: String?,
+    ): Result<ModerationGatewayResponse> = withContext(Dispatchers.IO) {
+        if (!AppConfig.isSupabaseConfigured) return@withContext Result.failure(IllegalStateException("Supabase is not configured."))
+        val mimeType = context.contentResolver.getType(uri).orEmpty()
+        if (!mimeType.startsWith("image/")) return@withContext Result.failure(IllegalArgumentException("Choose an image file."))
+        val fileName = resolveFileName(uri) ?: "skillect_image.jpg"
+        val bytes = compressImage(uri) ?: return@withContext Result.failure(IllegalArgumentException("This image could not be prepared. Try a JPG or PNG under 12 MB."))
+        if (bytes.size > MAX_IMAGE_BYTES) return@withContext Result.failure(IllegalArgumentException("Images must be 12 MB or smaller."))
+        val part = MultipartBody.Part.createFormData(
+            "file",
+            fileName.substringBeforeLast(".", fileName) + ".jpg",
+            bytes.toRequestBody("image/jpeg".toMediaType()),
+        )
+        val contentPart = content.toRequestBody("text/plain".toMediaType())
+        val tagsPart = JSONArray(tags).toString().toRequestBody("application/json".toMediaType())
+        val categoryPart = category.toRequestBody("text/plain".toMediaType())
+        val communityPart = communityId?.toRequestBody("text/plain".toMediaType())
+        try {
+            val response = postgrestApi.moderateMedia(part, contentPart, tagsPart, categoryPart, communityPart)
+            if (!response.isSuccessful) {
+                val detail = response.errorBody()?.string().orEmpty()
+                Result.failure(IllegalStateException(detail.ifBlank { "Image upload failed (HTTP ${response.code()})." }))
+            } else {
+                val result = response.body()
+                if (result?.postId.isNullOrBlank()) Result.failure(IllegalStateException(result?.message ?: "Image post could not be confirmed."))
+                else Result.success(result!!)
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
         }
     }
 
@@ -126,7 +169,7 @@ class MediaUploadManager(
                 sampleSize *= 2
             }
             val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-            val bitmap = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, decodeOpts) ?: return rawBytes
+            val bitmap = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, decodeOpts) ?: return null
             val out = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 84, out)
             bitmap.recycle()
