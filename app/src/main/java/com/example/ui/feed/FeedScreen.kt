@@ -924,11 +924,17 @@ fun CommentsBottomSheet(
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(onClick = {
-                        viewModel.submitComment(draftComment, replyToId)
-                        draftComment = ""
-                        replyToId = null
-                    }) {
+                    IconButton(
+                        enabled = draftComment.isNotBlank() && !uiState.isSubmittingComment,
+                        onClick = {
+                            viewModel.submitComment(draftComment, replyToId) { saved ->
+                                if (saved) {
+                                    draftComment = ""
+                                    replyToId = null
+                                }
+                            }
+                        },
+                    ) {
                         Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send comment")
                     }
                 }
