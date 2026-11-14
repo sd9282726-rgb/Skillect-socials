@@ -64,8 +64,13 @@ class MediaUploadManager(
             send(UploadProgressState.Failed("Choose a supported image or video file."))
             return@channelFlow
         }
-        if (bucket != "post-media" && bucket != "stories-media") {
-            send(UploadProgressState.Failed("This upload destination is not supported."))
+        if (bucket != "media-quarantine" || !isVideo) {
+            send(UploadProgressState.Failed("Only video uploads to the private moderation quarantine are supported here."))
+            return@channelFlow
+        }
+        val supportedVideoTypes = setOf("video/mp4", "video/webm", "video/quicktime")
+        if (mimeType.lowercase() !in supportedVideoTypes) {
+            send(UploadProgressState.Failed("Use an MP4, WebM, or MOV video."))
             return@channelFlow
         }
 
@@ -110,8 +115,9 @@ class MediaUploadManager(
         )
 
         if (response.isSuccessful) {
-            val publicUrl = "${AppConfig.supabaseUrl.trimEnd('/')}/storage/v1/object/public/$bucket/$objectPath"
-            send(UploadProgressState.Success(publicUrl, if (isVideo) "video" else "image", objectPath))
+            // media-quarantine is private; the upload is only a staging object.
+            // submit-video-post validates it and moves approved media into post-media.
+            send(UploadProgressState.Success("", "video", objectPath))
         } else {
             val detail = response.errorBody()?.string()?.take(220).orEmpty()
             val suffix = detail.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
