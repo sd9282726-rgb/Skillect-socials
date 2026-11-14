@@ -317,7 +317,7 @@ fun ProfileScreen(
                                 onClick = { showEditDialog = true },
                                 modifier = Modifier.testTag("edit_profile_button"),
                             )
-                        } else if (profile != null && profile.id != currentUserId) {
+                        } else if (profile != null && !isOwnProfile) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 SkillectOutlinedButton(
                                     text = "Message",
