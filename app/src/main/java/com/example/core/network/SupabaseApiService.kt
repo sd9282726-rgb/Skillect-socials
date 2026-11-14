@@ -300,7 +300,7 @@ interface SupabasePostgrestApi {
 
     @PATCH("rest/v1/notifications")
     suspend fun markNotificationsRead(
-        @Query("user_id") recipientIdEq: String,
+        @Query("recipient_id") recipientIdEq: String,
         @Query("id") idEq: String? = null,
         @Body updates: Map<String, Boolean>,
     ): Response<ResponseBody>
