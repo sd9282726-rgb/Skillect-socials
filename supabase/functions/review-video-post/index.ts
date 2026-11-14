@@ -28,14 +28,35 @@ Deno.serve(async (request: Request) => {
   const storedPath = String(asset.storage_path || "");
   const prefix = "media-quarantine/";
   if (!storedPath.startsWith(prefix)) return json(503, { error: "Private media file path is missing" });
-  const path = storedPath.slice(prefix.length).split("/").map(encodeURIComponent).join("/");
+  const rawPath = storedPath.slice(prefix.length);
+  if (rawPath.includes("..") || rawPath.startsWith("/")) return json(500, { error: "Invalid quarantine object path" });
+  const path = rawPath.split("/").map(encodeURIComponent).join("/");
+  const mediaLocation = String(asset.public_url || "");
+  let destinationBucket = "post-media";
+  let destinationObject = rawPath;
+  const privatePrefix = "private-community-media/";
+  const publicPrefix = base + "/storage/v1/object/public/post-media/";
+  if (mediaLocation.startsWith(privatePrefix)) {
+    destinationBucket = "private-community-media";
+    destinationObject = mediaLocation.slice(privatePrefix.length);
+    if (!destinationObject.endsWith("/" + rawPath) || destinationObject.includes("..")) {
+      return json(500, { error: "Invalid private community media destination" });
+    }
+  } else if (mediaLocation.startsWith(publicPrefix)) {
+    const publicObject = mediaLocation.slice(publicPrefix.length);
+    if (publicObject !== rawPath || publicObject.includes("..")) return json(500, { error: "Invalid public media destination" });
+  } else {
+    return json(500, { error: "Media destination is missing or unsupported" });
+  }
+  const encodedDestination = destinationObject.split("/").map(encodeURIComponent).join("/");
+  const storedDestination = destinationBucket + "/" + destinationObject;
 
   if (decision === "approve") {
     const privateFile = await fetch(base + "/storage/v1/object/media-quarantine/" + path, { headers: h(service) });
     if (!privateFile.ok) return json(503, { error: "Could not retrieve the private media file for review" });
     const bytes = await privateFile.arrayBuffer();
     if (!bytes.byteLength || bytes.byteLength > 50 * 1024 * 1024) return json(413, { error: "Media file is empty or exceeds the review size limit" });
-    const published = await fetch(base + "/storage/v1/object/post-media/" + path, {
+    const published = await fetch(base + "/storage/v1/object/" + destinationBucket + "/" + encodedDestination, {
       method: "POST",
       headers: { ...h(service), "Content-Type": asset.mime_type || (asset.media_type === "video" ? "video/mp4" : "image/jpeg"), "x-upsert": "true" },
       body: bytes,
@@ -49,24 +70,32 @@ Deno.serve(async (request: Request) => {
       body: JSON.stringify({ moderation_hidden: decision !== "approve" }),
     });
     if (!postPatch.ok) {
-      if (decision === "approve") await fetch(base + "/storage/v1/object/post-media/" + path, { method: "DELETE", headers: h(service) });
+      if (decision === "approve") await fetch(base + "/storage/v1/object/" + destinationBucket + "/" + encodedDestination, { method: "DELETE", headers: h(service) });
       return json(503, { error: "Could not update post visibility; review remains pending" });
     }
   }
 
   const patch = await fetch(base + "/rest/v1/media_assets?id=eq." + id + "&status=in.(pending,quarantined)", {
     method: "PATCH", headers: { ...h(service), "Content-Type": "application/json", Prefer: "return=minimal" },
-    body: JSON.stringify({ status: decision === "approve" ? "approved" : "rejected", reviewed_at: new Date().toISOString(), decision_reason: decision === "approve" ? "Approved by a Skillect moderator" : "Rejected by a Skillect moderator", callback_token: null }),
+    body: JSON.stringify({
+      status: decision === "approve" ? "approved" : "rejected",
+      ...(decision === "approve" ? { storage_path: storedDestination, public_url: destinationBucket === "private-community-media" ? storedDestination : publicPrefix + rawPath } : {}),
+      reviewed_at: new Date().toISOString(),
+      decision_reason: decision === "approve" ? "Approved by a Skillect moderator" : "Rejected by a Skillect moderator",
+      callback_token: null,
+    }),
   });
   if (!patch.ok) {
     if (asset.post_id && decision === "approve") {
       await fetch(base + "/rest/v1/posts?id=eq." + asset.post_id, { method: "PATCH", headers: { ...h(service), "Content-Type": "application/json" }, body: JSON.stringify({ moderation_hidden: true }) });
-      await fetch(base + "/storage/v1/object/post-media/" + path, { method: "DELETE", headers: h(service) });
+      await fetch(base + "/storage/v1/object/" + destinationBucket + "/" + encodedDestination, { method: "DELETE", headers: h(service) });
     }
     return json(503, { error: "Could not save moderation decision" });
   }
   if (decision === "reject") {
-    await fetch(base + "/storage/v1/object/post-media/" + path, { method: "DELETE", headers: h(service) });
+    await fetch(base + "/storage/v1/object/" + destinationBucket + "/" + encodedDestination, { method: "DELETE", headers: h(service) });
+    await fetch(base + "/storage/v1/object/media-quarantine/" + path, { method: "DELETE", headers: h(service) });
+  } else {
     await fetch(base + "/storage/v1/object/media-quarantine/" + path, { method: "DELETE", headers: h(service) });
   }
   return json(200, { status: decision === "approve" ? "approved" : "rejected", post_id: asset.post_id });
