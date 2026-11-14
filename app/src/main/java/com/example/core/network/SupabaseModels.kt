@@ -525,6 +525,7 @@ data class CreateAppealRequest(
 @JsonClass(generateAdapter = true)
 data class StartConversationRequest(
     @Json(name = "recipient_id") val recipientId: String,
+    @Json(name = "peer_id") val peerId: String = recipientId,
 )
 
 @JsonClass(generateAdapter = true)
