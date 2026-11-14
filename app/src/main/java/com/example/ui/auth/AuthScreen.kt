@@ -253,7 +253,7 @@ fun AuthScreen(
                         ) {
                             listOf(
                                 AuthMode.SIGN_IN to "Sign In",
-                                AuthMode.SIGN_UP to "Join 16+",
+                                AuthMode.SIGN_UP to "Sign Up",
                                 AuthMode.RECOVER to "Recover",
                             ).forEach { (mode, label) ->
                                 val selected = uiState.mode == mode
@@ -445,7 +445,7 @@ fun AuthScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "For ages 16+ worldwide. Safe by default with privacy-first account controls.",
+                    text = "A global community to learn, share your work, and grow together.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -567,7 +567,25 @@ fun OnboardingScreen(
                     }
                     Spacer(modifier = Modifier.width(6.dp))
                 } else {
-                    SkillectBrandBadge(size = 32.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SkillectBrandBadge(size = 32.dp)
+                        Spacer(modifier = Modifier.width(9.dp))
+                        Column {
+                            Text(
+                                text = "skillect",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = (-0.4).sp,
+                                ),
+                                color = MaterialTheme.colorScheme.onBackground,
+                            )
+                            Text(
+                                text = "YOUR NEXT CHAPTER",
+                                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.1.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                 }
 
