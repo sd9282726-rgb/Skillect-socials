@@ -250,6 +250,8 @@ class ExploreCommunitiesViewModel(
                 selectedCommunityId = communityId,
                 communityMembers = emptyList(),
                 communityPosts = emptyList(),
+                isLoading = AppConfig.isSupabaseConfigured,
+                errorMessage = null,
             )
         }
         if (!AppConfig.isSupabaseConfigured) return
@@ -268,6 +270,7 @@ class ExploreCommunitiesViewModel(
                     } ?: state.communities,
                     communityMembers = membersResult.getOrDefault(emptyList()),
                     communityPosts = postsResult.getOrDefault(emptyList()),
+                    isLoading = false,
                     errorMessage = membersResult.exceptionOrNull()?.message
                         ?: postsResult.exceptionOrNull()?.message
                         ?: state.errorMessage,
