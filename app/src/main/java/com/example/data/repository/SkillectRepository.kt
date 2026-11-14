@@ -278,7 +278,20 @@ class SkillectRepository(
     }
 
     suspend fun signOut(): Result<Unit> {
-        if (isConfiguredCheck()) {
+        val currentSession = sessionStore.currentSession()
+        if (isConfiguredCheck() && currentSession.userId.isNotBlank()) {
+            try {
+                val fcmToken = analyticsTracker.currentFcmTokenOrNull()
+                if (!fcmToken.isNullOrBlank()) {
+                    postgrestApi.deleteDeviceToken(
+                        userIdEq = "eq.${currentSession.userId}",
+                        platformEq = "eq.android",
+                        tokenEq = "eq.$fcmToken",
+                    )
+                }
+            } catch (_: Exception) {
+                // Token cleanup is best-effort; never block signing out.
+            }
             try {
                 authApi.signOut()
             } catch (_: Exception) {
