@@ -153,49 +153,8 @@ Deno.serve(async (request: Request) => {
     return json(503, { error: "Could not verify account status" });
   }
 
-  if (type !== "profile" && (!apiUser || !apiSecret)) return json(503, { error: "Text publishing moderation is not configured. Nothing was published." });
+  if (!apiUser || !apiSecret) return json(503, { error: "Text safety screening is not configured. Nothing was published." });
 
-  if (type === "profile") {
-    const displayName = String(input.display_name || "").trim().slice(0, 80);
-    const username = String(input.username || "").trim().replace(/^@+/, "").toLowerCase().slice(0, 30);
-    if (!displayName || !username) return json(400, { error: "Display name and username are required." });
-    if (!/^[a-z0-9_.]{3,30}$/.test(username)) return json(400, { error: "Username must be 3–30 characters and use letters, numbers, dots or underscores." });
-    const record: Record<string, unknown> = {
-      id: userId, display_name: displayName, username,
-      bio: String(input.bio || "").trim().slice(0, 300),
-      skills: Array.isArray(input.skills) ? input.skills.map((item: unknown) => String(item).trim().slice(0, 40)).filter(Boolean).slice(0, 20) : [],
-      onboarded: true,
-    };
-    if (Object.prototype.hasOwnProperty.call(input, "location")) record.location = String(input.location || "").trim().slice(0, 100);
-    if (Object.prototype.hasOwnProperty.call(input, "country")) record.country = String(input.country || "").trim().slice(0, 100);
-    if (Object.prototype.hasOwnProperty.call(input, "date_of_birth")) record.date_of_birth = String(input.date_of_birth || "");
-    if (Object.prototype.hasOwnProperty.call(input, "avatar_url")) {
-      const avatar = String(input.avatar_url || "");
-      const validPreset = ["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5"].includes(avatar);
-      const validPhoto = avatar.toLowerCase().startsWith("https://") && avatar.length <= 500;
-      if (!validPreset && !validPhoto) return json(400, { error: "Choose an available Skillect avatar or a secure profile photo URL." });
-      record.avatar_url = avatar;
-    }
-    try {
-      const response = await fetch(base + "/rest/v1/profiles?on_conflict=id&select=id,onboarded,display_name,username", {
-        method: "POST",
-        headers: { apikey: service, Authorization: "Bearer " + service, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=representation" },
-        body: JSON.stringify(record),
-      });
-      if (!response.ok) {
-        const details = await response.text();
-        console.error("Profile upsert failed", response.status, details.slice(0, 300));
-        if (response.status === 409) return json(409, { error: "That username is already taken. Choose another one." });
-        return json(503, { error: "Your profile could not be saved. Please try again." });
-      }
-      const saved = await response.json();
-      if (!Array.isArray(saved) || saved.length !== 1 || saved[0]?.id !== userId || saved[0]?.onboarded !== true) return json(503, { error: "Profile save could not be confirmed." });
-      return json(200, { status: "approved", profile_saved: true });
-    } catch (error) {
-      console.error("Profile save error", error);
-      return json(503, { error: "Your profile could not be saved. Please try again." });
-    }
-  }
 
   const communityId = type === "post" && input.community_id ? String(input.community_id) : null;
   if (communityId) {
@@ -293,6 +252,13 @@ Deno.serve(async (request: Request) => {
       const isSecurePhoto = avatar.toLowerCase().startsWith("https://") && avatar.length <= 500;
       if (!isPresetAvatar && !isSecurePhoto) return json(400, { error: "Choose one of the available Skillect avatars or a secure profile photo URL" });
       record.avatar_url = avatar;
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "cover_url")) {
+      const cover = String(input.cover_url || "");
+      if (cover && (!cover.toLowerCase().startsWith("https://") || cover.length > 500)) {
+        return json(400, { error: "Choose a secure profile background URL." });
+      }
+      record.cover_url = cover || null;
     }
     if (Object.prototype.hasOwnProperty.call(input, "is_private")) record.is_private = Boolean(input.is_private);
     if (Object.prototype.hasOwnProperty.call(input, "onboarded")) record.onboarded = Boolean(input.onboarded);
