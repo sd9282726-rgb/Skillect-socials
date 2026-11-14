@@ -262,7 +262,9 @@ fun CommunitiesScreen(
                     enabled = name.isNotBlank() && !uiState.isCreatingCommunity,
                     isLoading = uiState.isCreatingCommunity,
                     onClick = {
-                        viewModel.createCommunity(name, desc, category, isPrivate)
+                        viewModel.createCommunity(name, desc, category, isPrivate) { created ->
+                            if (created) showCreateDialog = false
+                        }
                     },
                 )
             },
