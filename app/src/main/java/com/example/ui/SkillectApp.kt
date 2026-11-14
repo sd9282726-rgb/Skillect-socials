@@ -480,6 +480,7 @@ fun SkillectApp(
                                     uiState = feedState,
                                     currentUserId = currentUserId,
                                     unreadNotificationCount = msgState.unreadNotificationsCount,
+                                    mediaUploadManager = container.mediaUploadManager,
                                     viewModel = feedVm,
                                     isDarkMode = isDarkActive,
                                     onToggleTheme = toggleTheme,
