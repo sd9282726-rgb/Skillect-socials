@@ -40,6 +40,7 @@ data class ProfileSettingsUiState(
     val moderationAppeals: List<ModerationAppealDto> = emptyList(),
     val preferences: UserPreferences = UserPreferences(),
     val isFollowing: Boolean = false,
+    val postsCount: Int? = null,
     val followersCount: Int? = null,
     val followingCount: Int? = null,
     val isLoading: Boolean = false,
@@ -96,6 +97,9 @@ class ProfileSettingsViewModel(
                 auditLogs = emptyList(),
                 moderationAppeals = emptyList(),
                 isFollowing = false,
+                postsCount = null,
+                followersCount = null,
+                followingCount = null,
                 statusMessage = null,
                 errorMessage = null,
             )
@@ -106,7 +110,7 @@ class ProfileSettingsViewModel(
         if (!AppConfig.isSupabaseConfigured) return
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isLoading = true, errorMessage = null, viewedProfile = null, posts = emptyList(), followersCount = null, followingCount = null)
+                it.copy(isLoading = true, errorMessage = null, viewedProfile = null, posts = emptyList(), postsCount = null, followersCount = null, followingCount = null)
             }
             val myId = repository.sessionStore.currentSession().userId
             val effectiveId = targetUserId?.takeIf { it.isNotBlank() } ?: myId
@@ -120,6 +124,7 @@ class ProfileSettingsViewModel(
             val experiences = repository.fetchExperiences(effectiveId).getOrDefault(emptyList())
             val achievements = repository.fetchAchievements(effectiveId).getOrDefault(emptyList())
             val followingIds = if (myId.isNotBlank()) repository.getFollowingIds(myId).getOrDefault(emptyList()) else emptyList()
+            val postCount = repository.fetchPostCount(effectiveId).getOrNull()
             val followCounts = repository.fetchFollowCounts(effectiveId).getOrNull()
 
             _uiState.update {
@@ -130,6 +135,7 @@ class ProfileSettingsViewModel(
                     experiences = experiences,
                     achievements = achievements,
                     isFollowing = effectiveId in followingIds,
+                    postsCount = postCount,
                     followersCount = followCounts?.first,
                     followingCount = followCounts?.second,
                     isLoading = false,
