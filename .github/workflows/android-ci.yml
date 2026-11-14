@@ -48,7 +48,8 @@ jobs:
             printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n' "$SUPABASE_URL" "$SUPABASE_ANON_KEY" > .env
             echo "Supabase client configuration supplied."
           else
-            echo "::warning::Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY repository secrets to enable live backend features."
+            echo "::error::Supabase secrets are missing. Add SUPABASE_URL and SUPABASE_ANON_KEY repository secrets."
+            exit 1
           fi
 
       - name: Run unit tests
