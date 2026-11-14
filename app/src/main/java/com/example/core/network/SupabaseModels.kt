@@ -174,19 +174,22 @@ data class PostDto(
 @JsonClass(generateAdapter = true)
 data class CreatePostRequest(
     @Json(name = "author_id") val authorId: String,
-    @Json(name = "post_type") val postType: String = "text",
+    @Transient val postType: String = "text",
     val content: String,
-    @Json(name = "media_urls") val mediaUrls: List<String> = emptyList(),
-    @Json(name = "media_types") val mediaTypes: List<String> = emptyList(),
-    @Json(name = "link_url") val linkUrl: String? = null,
-    @Json(name = "link_title") val linkTitle: String? = null,
-    val hashtags: List<String> = emptyList(),
-    val mentions: List<String> = emptyList(),
-    @Json(name = "skill_tags") val skillTags: List<String> = emptyList(),
-    @Json(name = "project_id") val projectId: String? = null,
+    @Transient val mediaUrls: List<String> = emptyList(),
+    @Transient val mediaTypes: List<String> = emptyList(),
+    @Transient val linkUrl: String? = null,
+    @Transient val linkTitle: String? = null,
+    @Transient val hashtags: List<String> = emptyList(),
+    @Transient val mentions: List<String> = emptyList(),
+    @Transient val skillTags: List<String> = emptyList(),
+    @Transient val projectId: String? = null,
     @Json(name = "community_id") val communityId: String? = null,
-    @Json(name = "reposted_post_id") val repostedPostId: String? = null,
-    @Json(name = "quoted_post_id") val quotedPostId: String? = null,
+    @Transient val repostedPostId: String? = null,
+    @Transient val quotedPostId: String? = null,
+    @Json(name = "image_url") val imageUrl: String? = mediaUrls.firstOrNull(),
+    val category: String? = postType,
+    val tags: List<String> = (skillTags + hashtags).distinct(),
 )
 
 @JsonClass(generateAdapter = true)
@@ -194,7 +197,7 @@ data class CommentDto(
     val id: String,
     @Json(name = "post_id") val postId: String,
     @Json(name = "author_id") val authorId: String,
-    @Json(name = "parent_comment_id") val parentCommentId: String? = null,
+    @Json(name = "parent_id") val parentCommentId: String? = null,
     val content: String,
     @Json(name = "moderation_status") val moderationStatus: String = "approved",
     @Json(name = "created_at") val createdAt: String = "",
@@ -205,7 +208,7 @@ data class CommentDto(
 data class CreateCommentRequest(
     @Json(name = "post_id") val postId: String,
     @Json(name = "author_id") val authorId: String,
-    @Json(name = "parent_comment_id") val parentCommentId: String? = null,
+    @Json(name = "parent_id") val parentCommentId: String? = null,
     val content: String,
 )
 
@@ -382,13 +385,13 @@ data class SendMessageRequest(
 @JsonClass(generateAdapter = true)
 data class NotificationDto(
     val id: String,
-    @Json(name = "recipient_id") val recipientId: String = "",
+    @Json(name = "user_id") val recipientId: String = "",
     @Json(name = "actor_id") val actorId: String? = null,
     val type: String = "activity",
     @Json(name = "entity_id") val entityId: String? = null,
     val title: String = "",
-    val body: String = "",
-    @Json(name = "is_read") val isRead: Boolean = false,
+    @Json(name = "message") val body: String = "",
+    @Json(name = "read") val isRead: Boolean = false,
     @Json(name = "created_at") val createdAt: String = "",
     val actor: ProfileDto? = null,
 )
