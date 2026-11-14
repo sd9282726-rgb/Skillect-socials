@@ -159,7 +159,13 @@ class ExploreCommunitiesViewModel(
         }
     }
 
-    fun createCommunity(name: String, description: String, category: String, isPrivate: Boolean) {
+    fun createCommunity(
+        name: String,
+        description: String,
+        category: String,
+        isPrivate: Boolean,
+        onComplete: (Boolean) -> Unit = {},
+    ) {
         if (_uiState.value.isCreatingCommunity) return
         _uiState.update { it.copy(isCreatingCommunity = true, statusMessage = null) }
         viewModelScope.launch {
@@ -173,11 +179,13 @@ class ExploreCommunitiesViewModel(
                             statusMessage = "Community '${created.name}' created.",
                         )
                     }
+                    onComplete(true)
                 },
                 onFailure = { err ->
                     _uiState.update {
                         it.copy(isCreatingCommunity = false, statusMessage = err.message)
                     }
+                    onComplete(false)
                     refreshExplore()
                 },
             )
