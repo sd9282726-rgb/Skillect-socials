@@ -1,6 +1,12 @@
 package com.example.ui
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,6 +35,7 @@ import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -41,6 +48,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +58,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -58,6 +67,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -133,6 +143,59 @@ fun SkillectApp(
     val profileVm: ProfileSettingsViewModel = viewModel(factory = factory)
 
     val authState by authVm.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { },
+    )
+    var showNotificationPermissionPrompt by remember { mutableStateOf(false) }
+
+    LaunchedEffect(authState.isAuthenticated) {
+        if (authState.isAuthenticated && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+            val preferences = context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
+            if (!granted && !preferences.getBoolean("notification_prompt_seen", false)) {
+                showNotificationPermissionPrompt = true
+            }
+        }
+    }
+
+    if (showNotificationPermissionPrompt) {
+        AlertDialog(
+            onDismissRequest = {
+                context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
+                    .edit().putBoolean("notification_prompt_seen", true).apply()
+                showNotificationPermissionPrompt = false
+            },
+            title = { Text("Stay updated on Skillect") },
+            text = {
+                Text("Allow notifications for messages, community activity and important account updates. You can change this anytime in Android settings.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
+                            .edit().putBoolean("notification_prompt_seen", true).apply()
+                        showNotificationPermissionPrompt = false
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    },
+                ) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
+                            .edit().putBoolean("notification_prompt_seen", true).apply()
+                        showNotificationPermissionPrompt = false
+                    },
+                ) { Text("Not now") }
+            },
+        )
+    }
+
     val feedState by feedVm.uiState.collectAsStateWithLifecycle()
     val exploreState by exploreVm.uiState.collectAsStateWithLifecycle()
     val msgState by msgVm.uiState.collectAsStateWithLifecycle()
