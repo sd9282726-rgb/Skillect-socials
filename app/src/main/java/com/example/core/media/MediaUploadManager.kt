@@ -59,8 +59,8 @@ class MediaUploadManager(
             send(UploadProgressState.Failed("Images must use Skillect's secure image moderation flow."))
             return@channelFlow
         }
-        if (bucket != "media-quarantine") {
-            send(UploadProgressState.Failed("Videos must be uploaded to secure quarantine before publishing."))
+        if (bucket != "post-media") {
+            send(UploadProgressState.Failed("Videos must use the post media storage bucket."))
             return@channelFlow
         }
 
