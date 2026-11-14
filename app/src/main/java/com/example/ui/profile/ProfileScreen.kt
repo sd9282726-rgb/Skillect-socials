@@ -128,7 +128,7 @@ fun ProfileScreen(
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) mediaScope.launch {
             mediaStatus = "Uploading profile photo..."
-            mediaUploadManager.uploadProfileImage(uri, currentUserId, "avatar").fold(
+            mediaUploadManager.uploadProfileImage(uri, viewModel.authenticatedUserId().ifBlank { currentUserId }, "avatar").fold(
                 onSuccess = { url -> avatarUrlForEdit = url; mediaStatus = "Profile photo ready to save." },
                 onFailure = { error -> mediaStatus = error.message ?: "Profile photo upload failed." },
             )
@@ -137,7 +137,7 @@ fun ProfileScreen(
     val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) mediaScope.launch {
             mediaStatus = "Uploading profile background..."
-            mediaUploadManager.uploadProfileImage(uri, currentUserId, "cover").fold(
+            mediaUploadManager.uploadProfileImage(uri, viewModel.authenticatedUserId().ifBlank { currentUserId }, "cover").fold(
                 onSuccess = { url -> coverUrlForEdit = url; mediaStatus = "Profile background ready to save." },
                 onFailure = { error -> mediaStatus = error.message ?: "Profile background upload failed." },
             )
