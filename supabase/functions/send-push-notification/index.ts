@@ -50,10 +50,10 @@ async function createGoogleAccessToken(serviceAccount: {
   const pem = serviceAccount.private_key
     .replaceAll("-----BEGIN PRIVATE KEY-----", "")
     .replaceAll("-----END PRIVATE KEY-----", "")
-    .replaceAll("\\n", "")
-    .replaceAll("\\r", "")
+    .replaceAll(String.fromCharCode(10), "")
+    .replaceAll(String.fromCharCode(13), "")
     .replaceAll(" ", "")
-    .replaceAll("\\t", "");
+    .replaceAll(String.fromCharCode(9), "");
   const keyBytes = Uint8Array.from(atob(pem), (char) => char.charCodeAt(0));
   const privateKey = await crypto.subtle.importKey(
     "pkcs8",
