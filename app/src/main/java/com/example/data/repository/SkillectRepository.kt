@@ -18,7 +18,7 @@ import com.example.core.network.CreatePostRequest
 import com.example.core.network.CreateProjectRequest
 import com.example.core.network.CreateReportRequest
 import com.example.core.network.CreateStoryRequest
-import com.example.core.network.DeviceTokenRpcParams
+import com.example.core.network.DeviceTokenUpsertDto
 import com.example.core.network.ExperienceDto
 import com.example.core.network.FollowRowDto
 import com.example.core.network.MessageDto
