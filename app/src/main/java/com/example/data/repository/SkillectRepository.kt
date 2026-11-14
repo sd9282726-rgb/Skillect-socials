@@ -41,6 +41,8 @@ import com.example.core.network.SavedPostDto
 import com.example.core.network.SendMessageRequest
 import com.example.core.network.SessionStore
 import com.example.core.network.SignUpRequest
+import com.example.core.network.StartConversationRequest
+import com.example.core.network.StartConversationResponse
 import com.example.core.network.SkillDto
 import com.example.core.network.StoryDto
 import com.example.core.network.SupabaseAuthApi
@@ -1072,7 +1074,7 @@ class SkillectRepository(
         try {
             // The live project stores Android tokens in public.device_tokens
             // (columns: user_id, platform, token), unique on (platform, token).
-            postgrestApi.upsertDeviceToken(DeviceTokenUpsertDto(userId = uid, fcmToken = token))
+            postgrestApi.upsertDeviceToken(body = DeviceTokenUpsertDto(userId = uid, fcmToken = token))
         } catch (_: Exception) {
             // Push registration is best-effort; never block sign-in if FCM is unavailable.
         }
