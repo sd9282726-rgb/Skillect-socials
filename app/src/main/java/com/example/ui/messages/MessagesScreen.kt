@@ -379,9 +379,11 @@ fun ChatDetailScreen(
                         .testTag("chat_message_input"),
                 )
                 IconButton(
+                    enabled = draft.isNotBlank() && !uiState.isSendingMessage,
                     onClick = {
-                        viewModel.sendMessage(conversationId, draft)
-                        draft = ""
+                        viewModel.sendMessage(conversationId, draft) { sent ->
+                            if (sent) draft = ""
+                        }
                     },
                     modifier = Modifier.testTag("chat_send_button"),
                 ) {
