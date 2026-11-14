@@ -105,7 +105,7 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val mediaScope = rememberCoroutineScope()
-    val effectiveCurrentUserId = viewModel.authenticatedUserId().ifBlank { currentUserId }
+    val effectiveCurrentUserId = currentUserId
     var mediaStatus by remember { mutableStateOf<String?>(null) }
     var isSavingProfile by remember { mutableStateOf(false) }
     val isGuestOwnProfile = targetUserId == null && effectiveCurrentUserId.isBlank()
@@ -130,7 +130,7 @@ fun ProfileScreen(
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) mediaScope.launch {
             mediaStatus = "Uploading profile photo..."
-            mediaUploadManager.uploadProfileImage(uri, viewModel.authenticatedUserId().ifBlank { currentUserId }, "avatar").fold(
+            mediaUploadManager.uploadProfileImage(uri, currentUserId, "avatar").fold(
                 onSuccess = { url -> avatarUrlForEdit = url; mediaStatus = "Profile photo ready to save." },
                 onFailure = { error -> mediaStatus = error.message ?: "Profile photo upload failed." },
             )
@@ -139,13 +139,13 @@ fun ProfileScreen(
     val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) mediaScope.launch {
             mediaStatus = "Uploading profile background..."
-            mediaUploadManager.uploadProfileImage(uri, viewModel.authenticatedUserId().ifBlank { currentUserId }, "cover").fold(
+            mediaUploadManager.uploadProfileImage(uri, currentUserId, "cover").fold(
                 onSuccess = { url -> coverUrlForEdit = url; mediaStatus = "Profile background ready to save." },
                 onFailure = { error -> mediaStatus = error.message ?: "Profile background upload failed." },
             )
         }
     }
-    val isOwnProfile = targetUserId == null || viewModel.isCurrentUser(profile?.id) || (effectiveCurrentUserId.isNotBlank() && profile?.id == effectiveCurrentUserId)
+    val isOwnProfile = targetUserId == null || (effectiveCurrentUserId.isNotBlank() && profile?.id == effectiveCurrentUserId)
     var selectedTab by remember { mutableIntStateOf(0) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showProjectDialog by remember { mutableStateOf(false) }
