@@ -51,6 +51,7 @@ import com.example.core.network.SupabaseRealtimeClient
 import com.example.core.network.UpdatePasswordRequest
 import com.example.core.notifications.AnalyticsTracker
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
@@ -84,6 +85,9 @@ class SkillectRepository(
         }
         return try {
             block()
+        } catch (cancelled: CancellationException) {
+            // Preserve structured cancellation so stale Explore/community requests cannot publish old results.
+            throw cancelled
         } catch (_: IOException) {
             Result.failure(IOException("Network connection error. Check your internet and try again."))
         } catch (e: Exception) {
