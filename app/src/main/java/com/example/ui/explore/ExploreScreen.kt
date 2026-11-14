@@ -401,14 +401,26 @@ fun ExploreScreen(
                                 .padding(horizontal = 16.dp, vertical = 6.dp),
                             onClick = { onOpenCommunity(comm.id) },
                         ) {
-                            Text(comm.name, style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                text = "${comm.category} · ${AppConfig.formatCompactCount(comm.membersCount)} members",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                SkillectAvatar(
+                                    avatarUrl = comm.avatarUrl,
+                                    contentDescription = "${comm.name} community avatar",
+                                    size = 48.dp,
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(comm.name, style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        text = "${comm.category} · ${AppConfig.formatCompactCount(comm.membersCount)} members",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
                             if (comm.description.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = comm.description,
                                     style = MaterialTheme.typography.bodySmall,
