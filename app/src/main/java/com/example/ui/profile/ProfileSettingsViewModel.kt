@@ -40,6 +40,8 @@ data class ProfileSettingsUiState(
     val moderationAppeals: List<ModerationAppealDto> = emptyList(),
     val preferences: UserPreferences = UserPreferences(),
     val isFollowing: Boolean = false,
+    val followersCount: Int? = null,
+    val followingCount: Int? = null,
     val isLoading: Boolean = false,
     val statusMessage: String? = null,
     val errorMessage: String? = null,
@@ -103,7 +105,9 @@ class ProfileSettingsViewModel(
     fun loadProfile(targetUserId: String?) {
         if (!AppConfig.isSupabaseConfigured) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update {
+                it.copy(isLoading = true, errorMessage = null, viewedProfile = null, posts = emptyList(), followersCount = null, followingCount = null)
+            }
             val myId = repository.sessionStore.currentSession().userId
             val effectiveId = targetUserId?.takeIf { it.isNotBlank() } ?: myId
             if (effectiveId.isBlank()) {
@@ -116,6 +120,7 @@ class ProfileSettingsViewModel(
             val experiences = repository.fetchExperiences(effectiveId).getOrDefault(emptyList())
             val achievements = repository.fetchAchievements(effectiveId).getOrDefault(emptyList())
             val followingIds = if (myId.isNotBlank()) repository.getFollowingIds(myId).getOrDefault(emptyList()) else emptyList()
+            val followCounts = repository.fetchFollowCounts(effectiveId).getOrNull()
 
             _uiState.update {
                 it.copy(
@@ -125,6 +130,8 @@ class ProfileSettingsViewModel(
                     experiences = experiences,
                     achievements = achievements,
                     isFollowing = effectiveId in followingIds,
+                    followersCount = followCounts?.first,
+                    followingCount = followCounts?.second,
                     isLoading = false,
                 )
             }
@@ -146,8 +153,9 @@ class ProfileSettingsViewModel(
             val interests = interestsCsv.split(",").map { it.trim() }.filter { it.isNotBlank() }
             val updates = mutableMapOf<String, Any?>(
                 "display_name" to displayName.trim(),
+                "headline" to headline.trim(),
                 "bio" to bio.trim(),
-                "location" to regionLabel.trim(),
+                "region_label" to regionLabel.trim(),
                 "interests" to interests,
             )
             if (avatarUrl != null) updates["avatar_url"] = avatarUrl
@@ -269,7 +277,13 @@ class ProfileSettingsViewModel(
         val current = _uiState.value.isFollowing
         viewModelScope.launch {
             repository.toggleFollow(targetUserId, current).onSuccess { nowFollowing ->
-                _uiState.update { it.copy(isFollowing = nowFollowing) }
+                _uiState.update { state ->
+                    val base = state.followersCount ?: state.viewedProfile?.followersCount ?: 0
+                    state.copy(
+                        isFollowing = nowFollowing,
+                        followersCount = (base + if (nowFollowing) 1 else -1).coerceAtLeast(0),
+                    )
+                }
             }
         }
     }
