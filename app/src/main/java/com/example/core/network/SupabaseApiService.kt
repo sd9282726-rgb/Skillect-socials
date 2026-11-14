@@ -408,6 +408,13 @@ interface SupabasePostgrestApi {
         @Body token: DeviceTokenUpsertDto,
     ): Response<ResponseBody>
 
+    @DELETE("rest/v1/device_tokens")
+    suspend fun deleteDeviceToken(
+        @Query("user_id") userIdEq: String,
+        @Query("platform") platformEq: String = "eq.android",
+        @Query("token") tokenEq: String,
+    ): Response<ResponseBody>
+
     @POST("rest/v1/rpc/request_account_deletion")
     suspend fun requestAccountDeletionRpc(): Response<ResponseBody>
 
