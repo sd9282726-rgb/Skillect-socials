@@ -420,12 +420,27 @@ fun CommunityDetailScreen(
             } else {
                 items(uiState.communityPosts, key = { it.id }) { post ->
                     SkillectCard(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "@${post.author?.username ?: "member"} · ${AppConfig.formatRelativeTimestamp(post.createdAt)}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SkillectAvatar(
+                                avatarUrl = post.author?.avatarUrl,
+                                contentDescription = "${post.author?.displayName ?: "Member"} avatar",
+                                size = 38.dp,
+                                onClick = { onOpenProfile(post.authorId) },
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = post.author?.displayName ?: "Skillect Member",
+                                    style = MaterialTheme.typography.titleSmall,
+                                )
+                                Text(
+                                    text = "@${post.author?.username ?: "member"} · ${AppConfig.formatRelativeTimestamp(post.createdAt)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(post.content, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
