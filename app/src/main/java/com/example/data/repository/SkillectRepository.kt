@@ -546,18 +546,10 @@ class SkillectRepository(
         } else {
             trimmedContent
         }
-        val mergedTags = (request.tags + request.skillTags + request.hashtags)
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .distinct()
-
         val resp = postgrestApi.createPost(
             request.copy(
                 authorId = uid,
                 content = finalContent,
-                imageUrl = request.imageUrl ?: request.mediaUrls.firstOrNull(),
-                category = request.category ?: request.postType,
-                tags = mergedTags,
             ),
         )
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
