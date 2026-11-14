@@ -39,6 +39,18 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
+      - name: Configure Supabase client credentials
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n' "$SUPABASE_URL" "$SUPABASE_ANON_KEY" > .env
+            echo "Supabase client configuration supplied."
+          else
+            echo "::warning::Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY repository secrets to enable live backend features."
+          fi
+
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest --stacktrace
 
