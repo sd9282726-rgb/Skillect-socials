@@ -174,22 +174,19 @@ data class PostDto(
 @JsonClass(generateAdapter = true)
 data class CreatePostRequest(
     @Json(name = "author_id") val authorId: String,
-    @Transient val postType: String = "text",
+    @Json(name = "post_type") val postType: String = "text",
     val content: String,
-    @Transient val mediaUrls: List<String> = emptyList(),
-    @Transient val mediaTypes: List<String> = emptyList(),
-    @Transient val linkUrl: String? = null,
-    @Transient val linkTitle: String? = null,
-    @Transient val hashtags: List<String> = emptyList(),
-    @Transient val mentions: List<String> = emptyList(),
-    @Transient val skillTags: List<String> = emptyList(),
-    @Transient val projectId: String? = null,
+    @Json(name = "media_urls") val mediaUrls: List<String> = emptyList(),
+    @Json(name = "media_types") val mediaTypes: List<String> = emptyList(),
+    @Json(name = "link_url") val linkUrl: String? = null,
+    @Json(name = "link_title") val linkTitle: String? = null,
+    val hashtags: List<String> = emptyList(),
+    val mentions: List<String> = emptyList(),
+    @Json(name = "skill_tags") val skillTags: List<String> = emptyList(),
+    @Json(name = "project_id") val projectId: String? = null,
     @Json(name = "community_id") val communityId: String? = null,
-    @Transient val repostedPostId: String? = null,
-    @Transient val quotedPostId: String? = null,
-    @Json(name = "image_url") val imageUrl: String? = mediaUrls.firstOrNull(),
-    val category: String? = postType,
-    val tags: List<String> = (skillTags + hashtags).distinct(),
+    @Json(name = "reposted_post_id") val repostedPostId: String? = null,
+    @Json(name = "quoted_post_id") val quotedPostId: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
