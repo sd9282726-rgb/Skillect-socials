@@ -274,6 +274,13 @@ fun CommunitiesScreen(
                         Checkbox(checked = isPrivate, onCheckedChange = { isPrivate = it })
                         Text("Private group (approval required)")
                     }
+                    if (!uiState.statusMessage.isNullOrBlank()) {
+                        Text(
+                            text = uiState.statusMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
             },
             confirmButton = {
