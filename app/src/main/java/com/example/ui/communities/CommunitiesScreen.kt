@@ -259,10 +259,10 @@ fun CommunitiesScreen(
             confirmButton = {
                 SkillectPrimaryButton(
                     text = "Create",
-                    enabled = name.isNotBlank(),
+                    enabled = name.isNotBlank() && !uiState.isCreatingCommunity,
+                    isLoading = uiState.isCreatingCommunity,
                     onClick = {
                         viewModel.createCommunity(name, desc, category, isPrivate)
-                        showCreateDialog = false
                     },
                 )
             },
