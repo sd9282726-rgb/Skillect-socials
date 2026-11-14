@@ -22,7 +22,7 @@ class AppContainer(application: Application) {
     val storageApi: SupabaseStorageApi = retrofit.create(SupabaseStorageApi::class.java)
 
     val realtimeClient = SupabaseRealtimeClient(okHttpClient, sessionStore)
-    val mediaUploadManager = MediaUploadManager(application, storageApi)
+    val mediaUploadManager = MediaUploadManager(application, storageApi, postgrestApi)
     val analyticsTracker = AnalyticsTracker(application)
 
     val repository = SkillectRepository(
