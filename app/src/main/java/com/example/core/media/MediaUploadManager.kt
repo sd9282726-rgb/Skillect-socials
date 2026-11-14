@@ -100,7 +100,9 @@ class MediaUploadManager(
             val publicUrl = "${AppConfig.supabaseUrl}/storage/v1/object/public/$bucket/$objectPath"
             send(UploadProgressState.Success(publicUrl, if (isVideo) "video" else "image"))
         } else {
-            send(UploadProgressState.Failed("Upload failed (HTTP ${response.code()})"))
+            val detail = response.errorBody()?.string()?.take(220).orEmpty()
+            val suffix = detail.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
+            send(UploadProgressState.Failed("Upload failed (HTTP ${response.code()})$suffix"))
         }
     }
 
