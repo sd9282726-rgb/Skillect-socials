@@ -81,7 +81,7 @@ jobs:
               exit 1
             fi
           done
-          gradle --no-daemon :app:assembleRelease
+          gradle --no-daemon --no-configuration-cache :app:assembleRelease
 
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
