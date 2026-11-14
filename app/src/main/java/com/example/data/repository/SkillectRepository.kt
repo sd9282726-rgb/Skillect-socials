@@ -370,14 +370,17 @@ class SkillectRepository(
             return@guardConfigured Result.failure(IllegalStateException("Profile save could not be confirmed by Skillect safety screening."))
         }
 
-        // The moderation function currently persists skills but not interests.
-        // Interests are a non-privileged profile field, so save them separately.
-        val interestsUpdate = postgrestApi.updateProfile(
-            idEq = "eq.$uid",
-            updates = mapOf("interests" to profile.interests),
-        )
-        if (!interestsUpdate.isSuccessful) {
-            return@guardConfigured Result.failure(IllegalStateException(interestsUpdate.parseError()))
+        if (profile.interests.isNotEmpty()) {
+            val interestsUpdate = postgrestApi.moderateText(
+                mapOf(
+                    "type" to "profile",
+                    "content" to profile.interests.joinToString(", "),
+                    "interests" to profile.interests,
+                ),
+            )
+            if (!interestsUpdate.isSuccessful || interestsUpdate.body()?.profileSaved != true) {
+                return@guardConfigured Result.failure(IllegalStateException(interestsUpdate.parseError().ifBlank { "Profile interests could not be saved." }))
+            }
         }
 
         val savedResponse = postgrestApi.getProfiles(idFilter = "eq.$uid", limit = 1)
@@ -391,44 +394,65 @@ class SkillectRepository(
 
     suspend fun updateProfileFields(userId: String, updates: Map<String, Any?>): Result<ProfileDto> = guardConfigured {
         val uid = requireUserId("edit your profile") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("edit your profile"))
+        if (userId != uid) return@guardConfigured Result.failure(IllegalArgumentException("You can only edit your own profile."))
+        if (updates.containsKey("cover_url")) {
+            return@guardConfigured Result.failure(IllegalStateException("Profile background upload needs the secure profile-media endpoint."))
+        }
+        val existingResponse = postgrestApi.getProfiles(idFilter = "eq.$uid", limit = 1)
+        if (!existingResponse.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(existingResponse.parseError()))
+        val existing = existingResponse.body()?.firstOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Your profile could not be found."))
         val sanitized = updates.toMutableMap()
         if (sanitized.containsKey("region_label") && !sanitized.containsKey("location")) {
-            sanitized["location"] = sanitized["region_label"]
+            sanitized["location"] = sanitized.remove("region_label")
         }
-        // Never allow client code to mutate privileged or non-existent profile columns directly
+        sanitized.remove("region_label")
+        sanitized.remove("headline")
         sanitized.remove("role")
         sanitized.remove("is_verified")
         sanitized.remove("account_status")
         sanitized.remove("followers_count")
         sanitized.remove("following_count")
         sanitized.remove("posts_count")
-        sanitized.remove("headline")
-        sanitized.remove("region_label")
         sanitized.remove("allow_dms_from")
-        val resp = postgrestApi.updateProfile(idEq = "eq.$uid", updates = sanitized)
-        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        val saved = resp.body()?.firstOrNull()
-            ?: return@guardConfigured Result.failure(IllegalStateException("Profile update returned empty body"))
+        val body = mutableMapOf<String, Any?>(
+            "type" to "profile",
+            "username" to existing.username,
+            "display_name" to existing.displayName,
+            "bio" to existing.bio,
+            "location" to existing.location,
+            "website" to existing.website,
+            "skills" to existing.skills,
+            "interests" to existing.interests,
+        )
+        existing.country?.let { body["country"] = it }
+        body.putAll(sanitized)
+        val content = listOf(
+            body["display_name"]?.toString(),
+            body["username"]?.toString(),
+            body["bio"]?.toString(),
+            body["location"]?.toString(),
+            body["website"]?.toString(),
+            (body["skills"] as? List<*>)?.joinToString(", "),
+            (body["interests"] as? List<*>)?.joinToString(", "),
+        ).filterNotNull().filter { it.isNotBlank() }.joinToString("\n")
+        body["content"] = content
+        val moderated = postgrestApi.moderateText(body)
+        if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
+        if (moderated.body()?.profileSaved != true) {
+            return@guardConfigured Result.failure(IllegalStateException("Profile update could not be confirmed by Skillect safety screening."))
+        }
+        val savedResponse = postgrestApi.getProfiles(idFilter = "eq.$uid", limit = 1)
+        if (!savedResponse.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(savedResponse.parseError()))
+        val saved = savedResponse.body()?.firstOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Profile update returned no profile."))
         Result.success(saved)
     }
 
     suspend fun syncUserSkills(skillNames: List<String>): Result<Unit> = guardConfigured {
         val uid = requireUserId("save skills") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("save skills"))
-        if (skillNames.isEmpty()) return@guardConfigured Result.success(Unit)
         val cleanSkills = skillNames.map { it.trim() }.filter { it.isNotBlank() }.distinct()
-        postgrestApi.updateProfile(idEq = "eq.$uid", updates = mapOf("skills" to cleanSkills))
-        val catalogResp = postgrestApi.getSkills(limit = 200)
-        if (!catalogResp.isSuccessful) return@guardConfigured Result.success(Unit)
-        val normalized = cleanSkills.map { it.lowercase() }.toSet()
-        val matchedIds = catalogResp.body().orEmpty()
-            .filter { it.name.trim().lowercase() in normalized }
-            .map { it.id }
-        if (matchedIds.isEmpty()) return@guardConfigured Result.success(Unit)
-        val rows = matchedIds.map { skillId ->
-            mapOf("user_id" to uid, "skill_id" to skillId, "proficiency" to "intermediate")
-        }
-        postgrestApi.upsertUserSkills(rows)
-        Result.success(Unit)
+        updateProfileFields(uid, mapOf("skills" to cleanSkills)).map { Unit }
     }
 
     private fun PostDto.normalizedForUi(): PostDto {
@@ -527,11 +551,14 @@ class SkillectRepository(
     ): Result<PostDto> = guardConfigured {
         val uid = requireUserId("create a post") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("create a post"))
         val trimmedContent = request.content.trim()
-        if (trimmedContent.isBlank() && request.mediaUrls.isEmpty() && request.repostedPostId == null) {
-            return@guardConfigured Result.failure(IllegalArgumentException("Post content or media is required."))
+        if (trimmedContent.isBlank() && request.repostedPostId == null) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Post content is required."))
         }
         if (trimmedContent.length > AppConfig.MAX_POST_LENGTH) {
             return@guardConfigured Result.failure(IllegalArgumentException("Post exceeds ${AppConfig.MAX_POST_LENGTH} character limit."))
+        }
+        if (!request.imageUrl.isNullOrBlank() || request.mediaUrls.isNotEmpty()) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Photo and video posts must use Skillect's secure media upload flow."))
         }
         val cleanLink = request.linkUrl?.trim()?.takeIf { it.isNotBlank() }
         if (cleanLink != null && !AppConfig.isValidHttpUrl(cleanLink)) {
@@ -541,40 +568,62 @@ class SkillectRepository(
         if (request.postType == "poll" && cleanPollOptions.size < 2) {
             return@guardConfigured Result.failure(IllegalArgumentException("Polls must include at least 2 options."))
         }
-
         val finalContent = if (cleanLink != null && !trimmedContent.contains(cleanLink)) {
             listOf(trimmedContent, cleanLink).filter { it.isNotBlank() }.joinToString("\n").take(AppConfig.MAX_POST_LENGTH)
-        } else {
-            trimmedContent
-        }
+        } else trimmedContent
         val mergedTags = (request.tags + request.skillTags + request.hashtags)
-            .map { it.trim() }
+            .map { it.trim().removePrefix("#") }
             .filter { it.isNotBlank() }
             .distinct()
-
-        val resp = postgrestApi.createPost(
-            request.copy(
-                authorId = uid,
-                content = finalContent,
-                imageUrl = request.imageUrl ?: request.mediaUrls.firstOrNull(),
-                category = request.category ?: request.postType,
-                tags = mergedTags,
-            ),
+            .take(10)
+        val body = mutableMapOf<String, Any?>(
+            "type" to "post",
+            "content" to finalContent,
+            "tags" to mergedTags,
+            "category" to (request.category ?: request.postType),
         )
-        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        val created = resp.body()?.firstOrNull()?.normalizedForUi()
-            ?: return@guardConfigured Result.failure(IllegalStateException("Post creation returned empty body"))
+        request.communityId?.let { body["community_id"] = it }
+        val moderated = postgrestApi.moderateText(body)
+        if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
+        val createdId = moderated.body()?.id
+            ?: return@guardConfigured Result.failure(IllegalStateException("Post could not be confirmed by Skillect safety screening."))
+        val postResponse = postgrestApi.getPosts(idFilter = "eq.$createdId", limit = 1)
+        if (!postResponse.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(postResponse.parseError()))
+        val created = postResponse.body()?.firstOrNull()?.normalizedForUi()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Published post could not be loaded."))
         if (cleanPollOptions.isNotEmpty()) {
-            val rows = cleanPollOptions.mapIndexed { idx, text ->
-                mapOf("post_id" to created.id, "option_text" to text.take(120), "sort_order" to idx)
+            val rows = cleanPollOptions.mapIndexed { idx, option ->
+                mapOf("post_id" to created.id, "option_text" to option.take(120), "sort_order" to idx)
             }
-            try {
-                postgrestApi.createPollOptions(rows)
-            } catch (_: Exception) {
-            }
+            try { postgrestApi.createPollOptions(rows) } catch (_: Exception) { }
         }
         analyticsTracker.logEvent("create_post", mapOf("post_type" to request.postType))
         Result.success(created)
+    }
+
+    suspend fun createVideoPost(
+        storagePath: String,
+        content: String,
+        tags: List<String>,
+        category: String,
+        communityId: String?,
+    ): Result<String> = guardConfigured {
+        val uid = requireUserId("publish a video") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("publish a video"))
+        if (!storagePath.startsWith("$uid/") || storagePath.contains("..")) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Invalid private video upload path."))
+        }
+        val body = mutableMapOf<String, Any?>(
+            "storage_path" to storagePath,
+            "content" to content.trim().take(AppConfig.MAX_POST_LENGTH),
+            "tags" to tags.map { it.trim().removePrefix("#") }.filter { it.isNotBlank() }.distinct().take(10),
+            "category" to category,
+        )
+        communityId?.let { body["community_id"] = it }
+        val response = postgrestApi.submitVideoPost(body)
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        val postId = response.body()?.postId
+            ?: return@guardConfigured Result.failure(IllegalStateException(response.body()?.message ?: "Video post could not be confirmed."))
+        Result.success(postId)
     }
 
     suspend fun editPost(postId: String, content: String): Result<PostDto> = guardConfigured {
@@ -624,21 +673,23 @@ class SkillectRepository(
 
     suspend fun addComment(postId: String, content: String, parentCommentId: String? = null): Result<CommentDto> =
         guardConfigured {
-            val uid = requireUserId("comment or reply") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("comment or reply"))
+            requireUserId("comment or reply") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("comment or reply"))
             val clean = content.trim()
-            if (clean.isBlank()) {
-                return@guardConfigured Result.failure(IllegalArgumentException("Comment cannot be blank."))
-            }
-            val resp = postgrestApi.createComment(
-                CreateCommentRequest(
-                    postId = postId,
-                    authorId = uid,
-                    parentCommentId = parentCommentId,
-                    content = clean.take(AppConfig.MAX_COMMENT_LENGTH),
+            if (clean.isBlank()) return@guardConfigured Result.failure(IllegalArgumentException("Comment cannot be blank."))
+            val moderated = postgrestApi.moderateText(
+                mapOf(
+                    "type" to "comment",
+                    "content" to clean.take(AppConfig.MAX_COMMENT_LENGTH),
+                    "post_id" to postId,
+                    "parent_id" to parentCommentId,
                 ),
             )
-            if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-            Result.success(resp.body()!!.first())
+            if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
+            val commentId = moderated.body()?.id
+                ?: return@guardConfigured Result.failure(IllegalStateException("Comment could not be confirmed by Skillect safety screening."))
+            val saved = postgrestApi.getComments(postIdEq = "eq.$postId", idEq = "eq.$commentId")
+            if (!saved.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(saved.parseError()))
+            Result.success(saved.body()?.firstOrNull() ?: return@guardConfigured Result.failure(IllegalStateException("Comment was saved but could not be loaded.")))
         }
 
     suspend fun fetchActiveStories(): Result<List<StoryDto>> = guardConfigured {
@@ -659,6 +710,14 @@ class SkillectRepository(
         requireUserId("delete stories") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete stories"))
         val resp = postgrestApi.deleteStory("eq.$storyId")
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun fetchFollowCounts(userId: String): Result<Pair<Int, Int>> = guardConfigured {
+        val followers = postgrestApi.getFollows(followingIdEq = "eq.$userId")
+        if (!followers.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(followers.parseError()))
+        val following = postgrestApi.getFollows(followerIdEq = "eq.$userId")
+        if (!following.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(following.parseError()))
+        Result.success(followers.body().orEmpty().size to following.body().orEmpty().size)
     }
 
     suspend fun getFollowingIds(userId: String): Result<List<String>> = guardConfigured {
@@ -928,21 +987,25 @@ class SkillectRepository(
 
     suspend fun sendMessage(conversationId: String, content: String, mediaUrl: String? = null): Result<MessageDto> =
         guardConfigured {
-            val uid = requireUserId("send private messages") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("send private messages"))
+            requireUserId("send private messages") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("send private messages"))
             val clean = content.trim()
-            if (clean.isBlank() && mediaUrl.isNullOrBlank()) {
-                return@guardConfigured Result.failure(IllegalArgumentException("Message content or media is required."))
+            if (clean.isBlank()) return@guardConfigured Result.failure(IllegalArgumentException("Message content is required."))
+            if (!mediaUrl.isNullOrBlank()) {
+                return@guardConfigured Result.failure(IllegalArgumentException("Media attachments are not enabled for private messages yet."))
             }
-            val resp = postgrestApi.sendMessage(
-                SendMessageRequest(
-                    conversationId = conversationId,
-                    senderId = uid,
-                    content = clean.take(AppConfig.MAX_MESSAGE_LENGTH),
-                    mediaUrl = mediaUrl,
+            val moderated = postgrestApi.moderateText(
+                mapOf(
+                    "type" to "message",
+                    "content" to clean.take(AppConfig.MAX_MESSAGE_LENGTH),
+                    "conversation_id" to conversationId,
                 ),
             )
-            if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-            Result.success(resp.body()!!.first())
+            if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
+            val messageId = moderated.body()?.id
+                ?: return@guardConfigured Result.failure(IllegalStateException("Message could not be confirmed by Skillect safety screening."))
+            val saved = postgrestApi.getMessages(conversationIdEq = "eq.$conversationId", idEq = "eq.$messageId")
+            if (!saved.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(saved.parseError()))
+            Result.success(saved.body()?.firstOrNull() ?: return@guardConfigured Result.failure(IllegalStateException("Message was sent but could not be loaded.")))
         }
 
     suspend fun fetchNotifications(): Result<List<NotificationDto>> = guardConfigured {
