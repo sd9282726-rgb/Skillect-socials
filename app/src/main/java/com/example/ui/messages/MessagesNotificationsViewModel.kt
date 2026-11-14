@@ -69,7 +69,7 @@ class MessagesNotificationsViewModel(
     }
 
     fun loadMessages(conversationId: String) {
-        _uiState.update { it.copy(activeConversationId = conversationId) }
+        _uiState.update { it.copy(activeConversationId = conversationId, statusMessage = null, isSendingMessage = false) }
         if (!AppConfig.isSupabaseConfigured) return
         viewModelScope.launch {
             repository.fetchMessages(conversationId).fold(
