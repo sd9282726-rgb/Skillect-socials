@@ -169,7 +169,7 @@ class MediaUploadManager(
                 Result.failure(IllegalStateException(detail.ifBlank { "Image upload failed (HTTP ${response.code()})." }))
             } else {
                 val result = response.body()
-                if (result?.postId.isNullOrBlank()) Result.failure(IllegalStateException(result?.message ?: "Image post could not be confirmed."))
+                if ((result?.postId ?: result?.id).isNullOrBlank()) Result.failure(IllegalStateException(result?.message ?: "Image post could not be confirmed."))
                 else Result.success(result!!)
             }
         } catch (error: Exception) {
