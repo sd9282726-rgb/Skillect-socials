@@ -1,0 +1,10 @@
+project_id = "chohswyxsckpwyzlbzav"
+
+[functions.send-push]
+verify_jwt = false
+
+[functions.moderate-text]
+verify_jwt = false
+
+[functions.media-moderation-callback]
+verify_jwt = false
