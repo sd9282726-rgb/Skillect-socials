@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.core.config.AppConfig
 import com.example.core.designsystem.SkillChip
+import com.example.core.designsystem.SkillectAvatar
+import com.example.core.designsystem.SkillectBrandBadge
 import com.example.core.designsystem.SkillectCard
 import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
@@ -167,10 +169,19 @@ fun ComposerScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
-                    Text(
-                        text = if (communityId != null) "Community Post" else "Create on Skillect",
-                        style = MaterialTheme.typography.titleLarge,
-                    )
+                    SkillectBrandBadge(size = 30.dp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = if (communityId != null) "Create in community" else "Create a post",
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                        Text(
+                            text = if (communityId != null) "Share with your community" else "Share ideas, work and moments",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 val isUploadBusy = uploadState is UploadProgressState.Validating || uploadState is UploadProgressState.Uploading
                 SkillectPrimaryButton(
@@ -255,6 +266,8 @@ fun ComposerScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            Text("Choose a format", style = MaterialTheme.typography.titleSmall)
+            Spacer(modifier = Modifier.height(8.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -271,10 +284,27 @@ fun ComposerScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             SkillectCard(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SkillectAvatar(
+                        avatarUrl = null,
+                        contentDescription = "Your profile",
+                        size = 42.dp,
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("Your post", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            text = "Make it useful, personal or inspiring",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(14.dp))
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    placeholder = { Text("Share a thought, visual showcase, project milestone, #hashtag or @mention...") },
+                    placeholder = { Text("What would you like to share?") },
                     minLines = 5,
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -288,8 +318,21 @@ fun ComposerScreen(
                         .testTag("composer_content_input"),
                 )
 
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Text(
+                        text = "${content.length}/${AppConfig.MAX_POST_LENGTH}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Spacer(modifier = Modifier.height(12.dp))
-
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Add to your post", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = skillInput,
                     onValueChange = { skillInput = it },
