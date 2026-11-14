@@ -30,14 +30,12 @@ object AuthDeepLinkParser {
         if (uri.scheme != "skillect" || uri.host != "auth-callback") return null
 
         val params = mutableMapOf<String, String>()
-        // Parse fragment (#access_token=...&type=recovery)
         uri.fragment?.split("&")?.forEach { pair ->
             val parts = pair.split("=", limit = 2)
             if (parts.size == 2) {
                 params[Uri.decode(parts[0])] = Uri.decode(parts[1])
             }
         }
-        // Parse query (?error=...&type=recovery)
         uri.queryParameterNames.forEach { key ->
             uri.getQueryParameter(key)?.let { value -> params[key] = value }
         }
@@ -68,7 +66,6 @@ data class AuthUiState(
     val currentProfile: ProfileDto? = null,
     val authSheetOpen: Boolean = false,
     val authPromptReason: String? = null,
-    // Onboarding fields
     val displayName: String = "",
     val username: String = "",
     val usernameAvailable: Boolean? = null,
@@ -257,11 +254,19 @@ class AuthViewModel(
             _uiState.update { it.copy(errorMessage = "Password must be at least 8 characters.") }
             return
         }
-        if (state.mode == AuthMode.SIGN_UP && !AppConfig.isEligibleAge16Plus(state.birthDateIso)) {
-            _uiState.update {
-                it.copy(errorMessage = "Skillect requires users to be aged 16 or older (enter YYYY-MM-DD).")
+        if (state.mode == AuthMode.SIGN_UP) {
+            if (state.birthDateIso.isBlank()) {
+                _uiState.update {
+                    it.copy(errorMessage = "Select your date of birth (day, month and year). You must be 16 or older.")
+                }
+                return
             }
-            return
+            if (!AppConfig.isEligibleAge16Plus(state.birthDateIso)) {
+                _uiState.update {
+                    it.copy(errorMessage = "Skillect requires users to be aged 16 or older.")
+                }
+                return
+            }
         }
 
         viewModelScope.launch {
