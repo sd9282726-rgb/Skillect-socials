@@ -543,7 +543,6 @@ fun SkillectApp(
                                     currentUserId = currentUserId,
                                     uiState = profileState,
                                     viewModel = profileVm,
-                                    mediaUploadManager = container.mediaUploadManager,
                                     onOpenSettings = { navController.navigate(SkillectRoute.Settings) },
                                     onOpenConversation = { cid, peerName ->
                                         navController.navigate(SkillectRoute.ChatDetail(cid, peerName))
