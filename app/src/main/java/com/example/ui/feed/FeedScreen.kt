@@ -77,6 +77,7 @@ import com.example.core.designsystem.ErrorRetryCard
 import com.example.core.designsystem.SkeletonFeedCard
 import com.example.core.designsystem.SkillectAvatar
 import com.example.core.designsystem.SkillectBrandBadge
+import com.example.core.designsystem.SkillectHorizontalBrandGradient
 import com.example.core.designsystem.SkillectCard
 import com.example.core.designsystem.SkillectCrimson
 import com.example.core.designsystem.SkillectOutlinedButton
