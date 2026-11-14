@@ -955,7 +955,7 @@ class SkillectRepository(
     suspend fun markNotificationRead(id: String): Result<Unit> = guardConfigured {
         val uid = sessionStore.currentSession().userId
         if (uid.isBlank()) return@guardConfigured Result.success(Unit)
-        val resp = postgrestApi.markNotificationsRead("eq.$uid", "eq.$id", mapOf("read" to true))
+        val resp = postgrestApi.markNotificationsRead("eq.$uid", "eq.$id", mapOf("is_read" to true))
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
     }
 
