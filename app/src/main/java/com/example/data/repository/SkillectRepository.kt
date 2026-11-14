@@ -19,7 +19,6 @@ import com.example.core.network.CreateProjectRequest
 import com.example.core.network.CreateReportRequest
 import com.example.core.network.CreateStoryRequest
 import com.example.core.network.DeviceTokenRpcParams
-import com.example.core.network.DeviceTokenUpsertDto
 import com.example.core.network.ExperienceDto
 import com.example.core.network.FollowRowDto
 import com.example.core.network.MessageDto
@@ -1198,7 +1197,7 @@ class SkillectRepository(
         try {
             // The live project stores Android tokens in public.device_tokens
             // (columns: user_id, platform, token), unique on (platform, token).
-            postgrestApi.upsertDeviceToken(body = DeviceTokenUpsertDto(userId = uid, fcmToken = token))
+            postgrestApi.upsertMyDeviceToken(DeviceTokenRpcParams(fcmToken = token))
         } catch (_: Exception) {
             // Push registration is best-effort; never block sign-in if FCM is unavailable.
         }
