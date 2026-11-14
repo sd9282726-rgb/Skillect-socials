@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.core.config.AppConfig
@@ -83,6 +84,7 @@ fun ComposerScreen(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val postTypes = listOf(
         "text" to "Post",
         "long_discussion" to "Discussion",
@@ -99,40 +101,33 @@ fun ComposerScreen(
 
     val pollOptions = remember { mutableStateListOf("", "") }
     val selectedUris = remember { mutableStateListOf<Uri>() }
-    val uploadedUrls = remember { mutableStateListOf<Pair<String, String>>() }
+    var videoStoragePath by remember { mutableStateOf<String?>(null) }
     var uploadState by remember { mutableStateOf<UploadProgressState>(UploadProgressState.Idle) }
     var uploadJob by remember { mutableStateOf<Job?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     fun startUploadForUris(uris: List<Uri>) {
-        if (uris.isEmpty()) return
+        val uri = uris.firstOrNull() ?: return
         uploadJob?.cancel()
+        videoStoragePath = null
         uploadJob = scope.launch {
-            uploadedUrls.clear()
-            val owner = currentUserId.ifBlank { "drafts" }
-            for (uri in uris) {
-                var failed = false
-                mediaUploadManager.uploadMedia(uri, "post-media", owner).collect { state ->
-                    uploadState = state
-                    when (state) {
-                        is UploadProgressState.Success -> uploadedUrls.add(state.publicUrl to state.mediaType)
-                        is UploadProgressState.Failed -> failed = true
-                        else -> Unit
-                    }
-                }
-                if (failed) break
+            mediaUploadManager.uploadMedia(uri, "media-quarantine", currentUserId).collect { state ->
+                uploadState = state
+                if (state is UploadProgressState.Success) videoStoragePath = state.storagePath
             }
         }
     }
 
-    val multiPhotoPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickMultipleVisualMedia(maxItems = 6),
-    ) { uris ->
-        if (uris.isNotEmpty()) {
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            uploadJob?.cancel()
             selectedUris.clear()
-            selectedUris.addAll(uris)
-            startUploadForUris(uris)
+            selectedUris.add(uri)
+            videoStoragePath = null
+            uploadState = UploadProgressState.Idle
         }
     }
 
@@ -188,7 +183,7 @@ fun ComposerScreen(
                     text = if (isUploadBusy) "Uploading..." else "Publish",
                     isLoading = isSubmitting,
                     shape = RoundedCornerShape(50),
-                    enabled = !isUploadBusy && (content.isNotBlank() || uploadedUrls.isNotEmpty()),
+                    enabled = !isUploadBusy && (content.isNotBlank() || selectedUris.isNotEmpty()),
                     modifier = Modifier.testTag("publish_post_button"),
                     onClick = {
                         if (currentUserId.isBlank()) {
@@ -355,7 +350,7 @@ fun ComposerScreen(
                         text = "Photos",
                         leadingIcon = Icons.Rounded.Collections,
                         onClick = {
-                            multiPhotoPicker.launch(
+                            photoPicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                             )
                         },
@@ -409,7 +404,7 @@ fun ComposerScreen(
                             IconButton(onClick = {
                                 uploadJob?.cancel()
                                 selectedUris.clear()
-                                uploadedUrls.clear()
+                                videoStoragePath = null
                                 uploadState = UploadProgressState.Idle
                             }) {
                                 Icon(Icons.Rounded.Cancel, contentDescription = "Cancel upload")
@@ -433,7 +428,7 @@ fun ComposerScreen(
                     is UploadProgressState.Success -> {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "${uploadedUrls.size} media file(s) ready.",
+                            text = "Video uploaded securely. Ready to publish.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary,
                         )
