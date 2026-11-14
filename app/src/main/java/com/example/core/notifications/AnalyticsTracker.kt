@@ -8,6 +8,8 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.perf.FirebasePerformance
 import com.google.firebase.perf.metrics.Trace
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 class AnalyticsTracker(private val context: Context) {
     val isFirebaseInitialized: Boolean
@@ -66,6 +68,23 @@ class AnalyticsTracker(private val context: Context) {
         try {
             trace.stop()
         } catch (_: Exception) {
+        }
+    }
+
+    suspend fun currentFcmTokenOrNull(): String? {
+        if (!isFirebaseInitialized) return null
+        return try {
+            suspendCancellableCoroutine { continuation ->
+                FirebaseMessaging.getInstance().token
+                    .addOnSuccessListener { token ->
+                        if (continuation.isActive) continuation.resume(token)
+                    }
+                    .addOnFailureListener {
+                        if (continuation.isActive) continuation.resume(null)
+                    }
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 
