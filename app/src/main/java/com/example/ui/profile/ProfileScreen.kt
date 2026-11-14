@@ -240,7 +240,7 @@ fun ProfileScreen(
                                             leadingIcon = { Icon(Icons.Rounded.Block, contentDescription = null) },
                                             onClick = {
                                                 menuExpanded = false
-                                                if (currentUserId.isBlank()) {
+                                                if (effectiveCurrentUserId.isBlank()) {
                                                     onRequireAuth(false, "Sign in to block accounts.")
                                                 } else {
                                                     profile?.id?.let(viewModel::blockUser)
@@ -252,7 +252,7 @@ fun ProfileScreen(
                                             leadingIcon = { Icon(Icons.Rounded.Flag, contentDescription = null) },
                                             onClick = {
                                                 menuExpanded = false
-                                                if (currentUserId.isBlank()) {
+                                                if (effectiveCurrentUserId.isBlank()) {
                                                     onRequireAuth(false, "Sign in to submit safety reports.")
                                                 } else {
                                                     showReportDialog = true
@@ -323,7 +323,7 @@ fun ProfileScreen(
                                 SkillectOutlinedButton(
                                     text = "Message",
                                     onClick = {
-                                        if (currentUserId.isBlank()) {
+                                        if (effectiveCurrentUserId.isBlank()) {
                                             onRequireAuth(false, "Sign in to send direct messages.")
                                         } else {
                                             viewModel.startDirectConversation(profile.id) { conversationId ->
@@ -336,7 +336,7 @@ fun ProfileScreen(
                                 SkillectPrimaryButton(
                                     text = if (uiState.isFollowing) "Following" else "Follow",
                                     onClick = {
-                                        if (currentUserId.isBlank()) {
+                                        if (effectiveCurrentUserId.isBlank()) {
                                             onRequireAuth(false, "Sign in to follow creators and build your network.")
                                         } else {
                                             viewModel.toggleFollow(profile.id)
