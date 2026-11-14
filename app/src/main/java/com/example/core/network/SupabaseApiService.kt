@@ -23,6 +23,7 @@ import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HEAD
 import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
@@ -186,6 +187,27 @@ interface SupabasePostgrestApi {
 
     @DELETE("rest/v1/stories")
     suspend fun deleteStory(@Query("id") idEq: String): Response<ResponseBody>
+
+    @Headers("Prefer: count=exact")
+    @HEAD("rest/v1/posts")
+    suspend fun countPostsByAuthor(
+        @Query("select") select: String = "id",
+        @Query("author_id") authorIdEq: String,
+    ): Response<Void>
+
+    @Headers("Prefer: count=exact")
+    @HEAD("rest/v1/follows")
+    suspend fun countFollowers(
+        @Query("select") select: String = "id",
+        @Query("following_id") followingIdEq: String,
+    ): Response<Void>
+
+    @Headers("Prefer: count=exact")
+    @HEAD("rest/v1/follows")
+    suspend fun countFollowing(
+        @Query("select") select: String = "id",
+        @Query("follower_id") followerIdEq: String,
+    ): Response<Void>
 
     @GET("rest/v1/follows")
     suspend fun getFollows(
