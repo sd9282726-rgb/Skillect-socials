@@ -72,6 +72,11 @@ interface SupabasePostgrestApi {
     @POST("rest/v1/profiles")
     suspend fun upsertProfile(@Body profile: ProfileUpsertDto): Response<List<ProfileDto>>
 
+    @POST("functions/v1/moderate-text")
+    suspend fun moderateText(
+        @Body request: Map<String, @JvmSuppressWildcards Any?>,
+    ): Response<ModerationGatewayResponse>
+
     @Headers("Prefer: return=representation")
     @PATCH("rest/v1/profiles")
     suspend fun updateProfile(

@@ -102,6 +102,13 @@ data class ProfileDto(
 }
 
 @JsonClass(generateAdapter = true)
+data class ModerationGatewayResponse(
+    val status: String = "",
+    @Json(name = "profile_saved") val profileSaved: Boolean? = null,
+    val id: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
 data class ProfileUpsertDto(
     val id: String,
     val username: String,

@@ -324,7 +324,8 @@ class SkillectRepository(
     }
 
     suspend fun upsertProfile(profile: ProfileUpsertDto): Result<ProfileDto> = guardConfigured {
-        val uid = requireUserId("create or edit a profile") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("create or edit a profile"))
+        val uid = requireUserId("create or edit a profile")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("create or edit a profile"))
         val cleanUsername = profile.username.trim().lowercase()
         if (!cleanUsername.matches(Regex("^[a-z0-9_.]{3,30}$"))) {
             return@guardConfigured Result.failure(IllegalArgumentException("Username must be 3–30 characters (letters, numbers, _ or .)."))
@@ -332,26 +333,56 @@ class SkillectRepository(
         if (profile.displayName.isBlank()) {
             return@guardConfigured Result.failure(IllegalArgumentException("Display name is required."))
         }
-        val birth = profile.birthDate
-        if (!birth.isNullOrBlank() && !AppConfig.isEligibleAge16Plus(birth)) {
-            return@guardConfigured Result.failure(IllegalArgumentException("You must be at least 16 years old."))
+        val birth = profile.birthDate?.trim().orEmpty()
+        if (birth.isBlank() || !AppConfig.isEligibleAge16Plus(birth)) {
+            return@guardConfigured Result.failure(IllegalArgumentException("A valid date of birth proving you are at least 16 is required."))
         }
         val safeLinks = profile.portfolioLinks.filter { AppConfig.isValidHttpUrl(it.url) }
         val resolvedWebsite = profile.website.trim().ifBlank { safeLinks.firstOrNull()?.url.orEmpty() }
-        val resp = postgrestApi.upsertProfile(
-            profile.copy(
-                id = uid,
-                username = cleanUsername,
-                displayName = profile.displayName.trim().take(80),
-                bio = profile.bio.trim().take(AppConfig.MAX_BIO_LENGTH),
-                website = resolvedWebsite,
-                onboarded = true,
-                portfolioLinks = safeLinks,
-            ),
+        val countryName = profile.regionLabel.trim().ifBlank { profile.countryCode.trim() }
+
+        // The live database requires moderated profile writes to pass through this
+        // server-side gateway; direct authenticated profile upserts are rejected.
+        val moderationBody = mutableMapOf<String, Any?>(
+            "type" to "profile",
+            "display_name" to profile.displayName.trim().take(80),
+            "username" to cleanUsername,
+            "bio" to profile.bio.trim().take(AppConfig.MAX_BIO_LENGTH),
+            "skills" to profile.skills,
+            "interests" to profile.interests,
+            "country" to countryName,
+            "location" to countryName,
+            "website" to resolvedWebsite,
+            "date_of_birth" to birth,
+            "is_private" to profile.isPrivate,
+            "onboarded" to true,
         )
-        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        val saved = resp.body()?.firstOrNull()
-            ?: return@guardConfigured Result.failure(IllegalStateException("Profile save returned empty body"))
+        profile.avatarUrl?.takeIf { it.isNotBlank() }?.let { moderationBody["avatar_url"] = it }
+
+        val moderated = postgrestApi.moderateText(moderationBody)
+        if (!moderated.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
+        }
+        if (moderated.body()?.profileSaved != true) {
+            return@guardConfigured Result.failure(IllegalStateException("Profile save could not be confirmed by Skillect safety screening."))
+        }
+
+        // The moderation function currently persists skills but not interests.
+        // Interests are a non-privileged profile field, so save them separately.
+        val interestsUpdate = postgrestApi.updateProfile(
+            idEq = "eq.$uid",
+            updates = mapOf("interests" to profile.interests),
+        )
+        if (!interestsUpdate.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(interestsUpdate.parseError()))
+        }
+
+        val savedResponse = postgrestApi.getProfiles(idFilter = "eq.$uid", limit = 1)
+        if (!savedResponse.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(savedResponse.parseError()))
+        }
+        val saved = savedResponse.body()?.firstOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Profile save returned no profile."))
         Result.success(saved)
     }
 
