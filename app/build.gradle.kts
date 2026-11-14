@@ -24,8 +24,8 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  // Do not remove or modify these signingConfigs. They are necessary for building, installing,
-  // and updating Android apps in AI Studio.
+  // Do not remove or modify these signingConfigs. They are necessary for building,
+  // installing, and updating Android apps in AI Studio.
   signingConfigs {
     create("release") {
       // Keep signing credentials local. Configure them in the ignored root
@@ -38,8 +38,9 @@ android {
       }
       val keystorePath = System.getenv("KEYSTORE_PATH")
         ?: signingProperties.getProperty("storeFile")
-        ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
+        ?: "my-upload-key.jks"
+      // Resolve relative paths from the repository root, not the app module.
+      storeFile = rootProject.file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
         ?: signingProperties.getProperty("storePassword")
       keyAlias = System.getenv("KEY_ALIAS")
@@ -97,7 +98,6 @@ secrets {
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
 // Some unused dependencies are commented out below instead of being removed.
-// This makes it easy to add them back in the future if needed.
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
   implementation(platform(libs.firebase.bom))
