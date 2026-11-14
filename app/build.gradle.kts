@@ -95,7 +95,7 @@ secrets {
   ignoreList.add("FIREBASE_APPCHECK_DEBUG_TOKEN")
 }
 
-googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
+googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.ERROR }
 
 // Some unused dependencies are commented out below instead of being removed.
 dependencies {
@@ -164,4 +164,30 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   // "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
+}
+
+// A release must never silently package the placeholder Supabase values from .env.example.
+// CI writes the real client configuration to the ignored root .env file from Actions secrets.
+tasks.configureEach {
+  if (name == "preReleaseBuild") {
+    doFirst {
+      val configFile = rootProject.file(".env")
+      check(configFile.isFile) {
+        "Release build requires the ignored root .env file with SUPABASE_URL and SUPABASE_ANON_KEY."
+      }
+      val config = Properties().apply {
+        configFile.inputStream().use { load(it) }
+      }
+      val supabaseUrl = config.getProperty("SUPABASE_URL").orEmpty()
+      val supabaseKey = config.getProperty("SUPABASE_ANON_KEY").orEmpty()
+      check(
+        supabaseUrl.startsWith("https://") &&
+          !supabaseUrl.contains("YOUR_PROJECT_REF") &&
+          supabaseKey.isNotBlank() &&
+          !supabaseKey.contains("YOUR_SUPABASE_ANON_KEY"),
+      ) {
+        "Release build requires valid SUPABASE_URL and SUPABASE_ANON_KEY values in .env."
+      }
+    }
+  }
 }
