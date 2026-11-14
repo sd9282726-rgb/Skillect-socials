@@ -265,6 +265,8 @@ fun SkillectApp(
                     mode = AuthMode.SIGN_UP,
                     reason = "Create an account or sign in to publish posts, stories, and short videos.",
                 )
+            } else if (item.route == SkillectRoute.Messages && currentUserId.isBlank()) {
+                requireAuth(false, "Sign in or create an account to view your messages.")
             } else {
                 navController.navigate(item.route) {
                     launchSingleTop = true
@@ -409,7 +411,13 @@ fun SkillectApp(
                                     onToggleTheme = toggleTheme,
                                     onOpenShorts = { navController.navigate(SkillectRoute.Shorts) },
                                     onOpenCommunities = { navController.navigate(SkillectRoute.Communities) },
-                                    onOpenNotifications = { navController.navigate(SkillectRoute.Notifications) },
+                                    onOpenNotifications = {
+                                        if (currentUserId.isBlank()) {
+                                            requireAuth(false, "Sign in or create an account to view notifications.")
+                                        } else {
+                                            navController.navigate(SkillectRoute.Notifications)
+                                        }
+                                    },
                                     onOpenSettings = { navController.navigate(SkillectRoute.Settings) },
                                     onOpenComposer = {
                                         if (currentUserId.isBlank()) {
@@ -507,7 +515,11 @@ fun SkillectApp(
                                     currentUserId = currentUserId,
                                     viewModel = msgVm,
                                     onOpenConversation = { cid, peerName ->
-                                        navController.navigate(SkillectRoute.ChatDetail(cid, peerName))
+                                        if (currentUserId.isBlank()) {
+                                            requireAuth(false, "Sign in or create an account to send and receive messages.")
+                                        } else {
+                                            navController.navigate(SkillectRoute.ChatDetail(cid, peerName))
+                                        }
                                     },
                                     onRequireAuth = requireAuth,
                                 )
