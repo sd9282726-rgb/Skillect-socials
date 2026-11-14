@@ -128,6 +128,26 @@ fun CommunitiesScreen(
                 if (!AppConfig.isSupabaseConfigured) {
                     item { BackendConfigBanner() }
                 }
+                if (!uiState.errorMessage.isNullOrBlank()) {
+                    item {
+                        Text(
+                            text = uiState.errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                        )
+                    }
+                }
+                if (!uiState.statusMessage.isNullOrBlank()) {
+                    item {
+                        Text(
+                            text = uiState.statusMessage,
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                        )
+                    }
+                }
 
                 if (uiState.isLoading && uiState.communities.isEmpty()) {
                     item {
@@ -315,6 +335,25 @@ fun CommunityDetailScreen(
                 }
             }
 
+            if (uiState.isLoading && comm == null) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator()
+                    }
+                }
+            }
+            if (!uiState.errorMessage.isNullOrBlank()) {
+                item {
+                    Text(
+                        text = uiState.errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
             item {
                 Box(
                     modifier = Modifier
