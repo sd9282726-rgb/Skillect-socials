@@ -565,8 +565,9 @@ class SkillectRepository(
         if (trimmedContent.length > AppConfig.MAX_POST_LENGTH) {
             return@guardConfigured Result.failure(IllegalArgumentException("Post exceeds ${AppConfig.MAX_POST_LENGTH} character limit."))
         }
-        if (!request.imageUrl.isNullOrBlank() || request.mediaUrls.isNotEmpty()) {
-            return@guardConfigured Result.failure(IllegalArgumentException("Photo and video posts must use Skillect's secure media upload flow."))
+        val isRepost = request.repostedPostId != null || request.quotedPostId != null
+        if (!isRepost && (!request.imageUrl.isNullOrBlank() || request.mediaUrls.isNotEmpty())) {
+            return@guardConfigured Result.failure(IllegalArgumentException("New photo and video posts must use Skillect's secure media upload flow."))
         }
         val cleanLink = request.linkUrl?.trim()?.takeIf { it.isNotBlank() }
         if (cleanLink != null && !AppConfig.isValidHttpUrl(cleanLink)) {
@@ -587,9 +588,20 @@ class SkillectRepository(
         val body = mutableMapOf<String, Any?>(
             "type" to "post",
             "content" to finalContent,
+            "post_type" to request.postType,
             "tags" to mergedTags,
+            "hashtags" to request.hashtags,
+            "mentions" to request.mentions,
+            "skill_tags" to request.skillTags,
+            "media_urls" to (request.mediaUrls.ifEmpty { listOfNotNull(request.imageUrl) }),
+            "media_types" to request.mediaTypes,
             "category" to (request.category ?: request.postType),
         )
+        cleanLink?.let { body["link_url"] = it }
+        request.linkTitle?.takeIf { it.isNotBlank() }?.let { body["link_title"] = it.trim().take(160) }
+        request.projectId?.let { body["project_id"] = it }
+        request.repostedPostId?.let { body["reposted_post_id"] = it }
+        request.quotedPostId?.let { body["quoted_post_id"] = it }
         request.communityId?.let { body["community_id"] = it }
         val moderated = postgrestApi.moderateText(body)
         if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
