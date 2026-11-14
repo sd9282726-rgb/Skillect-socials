@@ -588,7 +588,7 @@ class SkillectRepository(
         request.communityId?.let { body["community_id"] = it }
         val moderated = postgrestApi.moderateText(body)
         if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
-        val createdId = moderated.body()?.id
+        val createdId = moderated.body()?.id ?: moderated.body()?.postId
             ?: return@guardConfigured Result.failure(IllegalStateException("Post could not be confirmed by Skillect safety screening."))
         val postResponse = postgrestApi.getPosts(idFilter = "eq.$createdId", limit = 1)
         if (!postResponse.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(postResponse.parseError()))
@@ -624,7 +624,7 @@ class SkillectRepository(
         communityId?.let { body["community_id"] = it }
         val response = postgrestApi.submitVideoPost(body)
         if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
-        val postId = response.body()?.postId
+        val postId = response.body()?.postId ?: response.body()?.id
             ?: return@guardConfigured Result.failure(IllegalStateException(response.body()?.message ?: "Video post could not be confirmed."))
         Result.success(postId)
     }
@@ -688,7 +688,7 @@ class SkillectRepository(
                 ),
             )
             if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
-            val commentId = moderated.body()?.id
+            val commentId = moderated.body()?.commentId ?: moderated.body()?.id
                 ?: return@guardConfigured Result.failure(IllegalStateException("Comment could not be confirmed by Skillect safety screening."))
             val saved = postgrestApi.getComments(postIdEq = "eq.$postId", idEq = "eq.$commentId")
             if (!saved.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(saved.parseError()))
@@ -1022,7 +1022,7 @@ class SkillectRepository(
                 ),
             )
             if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
-            val messageId = moderated.body()?.id
+            val messageId = moderated.body()?.messageId ?: moderated.body()?.id
                 ?: return@guardConfigured Result.failure(IllegalStateException("Message could not be confirmed by Skillect safety screening."))
             val saved = postgrestApi.getMessages(conversationIdEq = "eq.$conversationId", idEq = "eq.$messageId")
             if (!saved.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(saved.parseError()))
