@@ -1,41 +1,33 @@
-# AuthScreen integration (Create Account)
+# AuthScreen onboarding integration
 
-## Status on branch `fix/onboarding`
+## Status on `fix/onboarding`
 
-### Done
-- `OnboardingValidation.kt` — compose Day/Month/Year → ISO date, age 16+ errors, flag emoji helper, interest/goal catalogs
-- `SignUpDobCountrySection.kt` — Day/Month/Year dropdowns + searchable country list with flags
-- `AuthViewModel.kt` — clearer blank vs under-16 DOB errors on sign-up
-- `AgeValidationTest.kt` — unit tests for `AppConfig` age helpers
+### Committed
+- `SignUpDobCountrySection.kt` — Day/Month/Year + searchable flagged countries
+- `OnboardingValidation.kt` — DOB composition, age errors, catalogs
+- `AuthViewModel.kt` — DOB validation, `loadOnboardingSuggestions`, follow/join, **16–17 privacy defaults unchanged** on `completeOnboarding`
+- `AgeValidationTest.kt` — unit tests for age helpers
 
-### Required AuthScreen.kt change (one block)
+### AuthScreen.kt
+Full updated source is in the local build tree / agent artifacts as `AuthScreen_onboarding.kt`.
 
-Replace the free-text DOB field and country menu inside `if (uiState.mode == AuthMode.SIGN_UP)` with:
+Apply the committed patch:
 
-```kotlin
-if (uiState.mode == AuthMode.SIGN_UP) {
-    Spacer(modifier = Modifier.height(12.dp))
-    SignUpDobCountrySection(
-        birthDateIso = uiState.birthDateIso,
-        selectedCountry = uiState.selectedCountry,
-        onBirthDateIsoChange = viewModel::updateBirthDate,
-        onCountryChange = viewModel::updateCountry,
-    )
-    Spacer(modifier = Modifier.height(12.dp))
-    // … keep any fields that followed the old country dropdown
-}
+```bash
+git checkout fix/onboarding
+git apply docs/AuthScreen.onboarding.patch
+# or replace AuthScreen.kt with the full file from the PR description artifacts
 ```
 
-Remove the local `countryMenuOpen` state if it becomes unused.
+After apply, SIGN_UP uses:
 
-### Onboarding flow already in repo
-`OnboardingScreen` already implements a multi-step flow after sign-up:
-1. Profile (display name, username + availability, avatar, bio)
-2. Skills
-3. Goals / interests
-4. Completion → `completeOnboarding()` → Supabase profile upsert with minor-safe defaults for ages 16–17
+```kotlin
+SignUpDobCountrySection(
+    birthDateIso = uiState.birthDateIso,
+    selectedCountry = uiState.selectedCountry,
+    onBirthDateIsoChange = viewModel::updateBirthDate,
+    onCountryChange = viewModel::updateCountry,
+)
+```
 
-### Not claimed verified
-- Full Gradle assemble / APK on this agent host (1.2 GiB RAM)
-- Live Supabase register against production project from this environment
-- Interrupted onboarding resume on a physical device
+Onboarding steps: 1 profile → 2 skills → 3 goals → 4 optional live suggestions (Skip) → 5 complete.

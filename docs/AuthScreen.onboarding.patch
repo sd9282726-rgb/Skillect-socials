@@ -1,1 +1,89 @@
-See artifacts; applying via contents API next
+--- a/app/src/main/java/com/example/ui/auth/AuthScreen.kt
++++ b/app/src/main/java/com/example/ui/auth/AuthScreen.kt
+@@ -70,6 +70,7 @@
+ import androidx.compose.material3.Text
+ import androidx.compose.material3.TextButton
+ import androidx.compose.runtime.Composable
++import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableIntStateOf
+ import androidx.compose.runtime.mutableStateOf
+@@ -115,7 +116,6 @@
+     onToggleTheme: () -> Unit = {},
+     modifier: Modifier = Modifier,
+ ) {
+-    var countryMenuOpen by remember { mutableStateOf(false) }
+ 
+     Box(
+         modifier = modifier
+@@ -347,71 +347,12 @@
+ 
+                 if (uiState.mode == AuthMode.SIGN_UP) {
+                     Spacer(modifier = Modifier.height(12.dp))
+-                    SkillectLabeledField(
+-                        label = "Date of birth (YYYY-MM-DD)",
+-                        value = uiState.birthDateIso,
+-                        onValueChange = viewModel::updateBirthDate,
+-                        placeholder = "2006-05-14",
+-                        leadingIcon = { Icon(Icons.Rounded.Cake, contentDescription = null) },
+-                        supportingText = "Aged 16+ required. Instant activation — no phone or ID required.",
+-                        fieldModifier = Modifier.testTag("auth_dob_input"),
+-                    )
+-
+-                    Spacer(modifier = Modifier.height(12.dp))
+-                    Text(
+-                        text = "Country / Region",
+-                        style = MaterialTheme.typography.titleSmall,
+-                        color = MaterialTheme.colorScheme.onSurface,
++                    SignUpDobCountrySection(
++                        birthDateIso = uiState.birthDateIso,
++                        selectedCountry = uiState.selectedCountry,
++                        onBirthDateIsoChange = viewModel::updateBirthDate,
++                        onCountryChange = viewModel::updateCountry,
+                     )
+-
+                     Spacer(modifier = Modifier.height(12.dp))
+-                    Box(modifier = Modifier.fillMaxWidth()) {
+-                        Surface(
+-                            modifier = Modifier
+-                                .fillMaxWidth()
+-                                .clip(RoundedCornerShape(14.dp))
+-                                .clickable { countryMenuOpen = true },
+-                            shape = RoundedCornerShape(14.dp),
+-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+-                        ) {
+-                            Row(
+-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+-                                verticalAlignment = Alignment.CenterVertically,
+-                            ) {
+-                                Icon(
+-                                    Icons.Rounded.Public,
+-                                    contentDescription = null,
+-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+-                                )
+-                                Spacer(modifier = Modifier.width(10.dp))
+-                                Text(
+-                                    text = uiState.selectedCountry.name,
+-                                    style = MaterialTheme.typography.bodyMedium,
+-                                    modifier = Modifier.weight(1f),
+-                                )
+-                            }
+-                        }
+-                        DropdownMenu(
+-                            expanded = countryMenuOpen,
+-                            onDismissRequest = { countryMenuOpen = false },
+-                        ) {
+-                            AppConfig.supportedCountries.forEach { option ->
+-                                DropdownMenuItem(
+-                                    text = { Text("${option.name} (${option.isoCode})") },
+-                                    onClick = {
+-                                        viewModel.updateCountry(option)
+-                                        countryMenuOpen = false
+-                                    },
+-                                )
+-                            }
+-                        }
+-                    }
+-
+-                    Spacer(modifier = Modifier.height(12.dp))
