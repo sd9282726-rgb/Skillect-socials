@@ -689,6 +689,7 @@ class SkillectRepository(
                     "content" to clean.take(AppConfig.MAX_COMMENT_LENGTH),
                     "post_id" to postId,
                     "parent_id" to parentCommentId,
+                    "parent_comment_id" to parentCommentId,
                 ),
             )
             if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
