@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import coil.compose.AsyncImage
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.core.config.AppConfig
@@ -160,8 +161,13 @@ fun CommunitiesScreen(
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
+                                SkillectAvatar(
+                                    avatarUrl = comm.avatarUrl,
+                                    contentDescription = "${comm.name} community avatar",
+                                    size = 56.dp,
+                                )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(comm.name, style = MaterialTheme.typography.titleMedium)
                                     Text(
@@ -314,10 +320,12 @@ fun CommunityDetailScreen(
                         .height(150.dp)
                         .clip(RoundedCornerShape(20.dp)),
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.img_community_banner),
-                        contentDescription = "Community banner artwork",
+                    AsyncImage(
+                        model = comm?.bannerUrl?.takeIf { it.isNotBlank() } ?: R.drawable.img_community_banner,
+                        contentDescription = "${comm?.name ?: "Community"} banner",
                         contentScale = ContentScale.Crop,
+                        placeholder = painterResource(id = R.drawable.img_community_banner),
+                        error = painterResource(id = R.drawable.img_community_banner),
                         modifier = Modifier.fillMaxSize(),
                     )
                     Box(
