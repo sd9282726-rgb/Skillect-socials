@@ -984,6 +984,9 @@ class SkillectRepository(
         }
         val result = response.body()
             ?: return@guardConfigured Result.failure(IllegalStateException("Messaging service returned an empty response."))
+        if (!result.recipientId.isNullOrBlank() && result.recipientId != peerUserId) {
+            return@guardConfigured Result.failure(IllegalStateException("The messaging service returned a different recipient. Please reopen the member's profile and try again."))
+        }
         when (result.status) {
             "created", "existing" -> {
                 val conversationId = result.conversationId.orEmpty()
