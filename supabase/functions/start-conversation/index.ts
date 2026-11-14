@@ -86,15 +86,6 @@ Deno.serve(async (request: Request) => {
     const blocked = await rest(base, service, "blocks?select=id&or=(and(blocker_id.eq." + senderId + ",blocked_id.eq." + recipientId + "),and(blocker_id.eq." + recipientId + ",blocked_id.eq." + senderId + "))&limit=1");
     if (Array.isArray(blocked) && blocked.length) return json(403, { error: "Messaging is unavailable because one account has blocked the other" });
 
-    const ownRows = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + senderId);
-    const existingIds = [...new Set((ownRows || []).map((row: any) => row.conversation_id))];
-    if (existingIds.length) {
-      const matches = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + recipientId + "&conversation_id=in.(" + existingIds.join(",") + ")&limit=1");
-      if (Array.isArray(matches) && matches.length) {
-        return json(200, { status: "existing", conversation_id: matches[0].conversation_id });
-      }
-    }
-
     const targetFollowsSender = await rest(base, service, "follows?select=id&follower_id=eq." + recipientId + "&following_id=eq." + senderId + "&limit=1");
     const senderFollowsTarget = await rest(base, service, "follows?select=id&follower_id=eq." + senderId + "&following_id=eq." + recipientId + "&limit=1");
     if (is16To17(recipient.date_of_birth) && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
@@ -108,6 +99,15 @@ Deno.serve(async (request: Request) => {
     if (!allowRequests && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
       return json(403, { error: "This creator is not accepting new message requests" });
     }
+    const ownRows = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + senderId);
+    const existingIds = [...new Set((ownRows || []).map((row: any) => row.conversation_id))];
+    if (existingIds.length) {
+      const matches = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + recipientId + "&conversation_id=in.(" + existingIds.join(",") + ")&limit=1");
+      if (Array.isArray(matches) && matches.length) {
+        return json(200, { status: "existing", conversation_id: matches[0].conversation_id });
+      }
+    }
+
     if (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length) {
       const pending = await rest(base, service, "message_requests?select=id&sender_id=eq." + senderId + "&recipient_id=eq." + recipientId + "&status=eq.pending&limit=1");
       if (Array.isArray(pending) && pending.length) return json(200, { status: "request_pending", request_id: pending[0].id });
