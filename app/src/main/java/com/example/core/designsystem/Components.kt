@@ -260,20 +260,14 @@ fun SkillectAvatar(
 
         Box(modifier = frameModifier, contentAlignment = Alignment.Center) {
             if (avatarUrl.isNullOrBlank()) {
-                Box(
+                Image(
+                    painter = painterResource(id = R.drawable.img_avatar_placeholder),
+                    contentDescription = contentDescription,
                     modifier = Modifier
                         .size(size)
-                        .clip(CircleShape)
-                        .background(SkillectBrandGradient),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Person,
-                        contentDescription = contentDescription,
-                        tint = Color.White,
-                        modifier = Modifier.size(size * 0.58f),
-                    )
-                }
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                )
             } else {
                 AsyncImage(
                     model = avatarUrl,
