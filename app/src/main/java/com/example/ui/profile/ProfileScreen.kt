@@ -1,6 +1,9 @@
 package com.example.ui.profile
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +74,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.core.config.AppConfig
+import com.example.core.media.MediaUploadManager
+import com.example.core.media.UploadProgressState
 import com.example.core.designsystem.BackendConfigBanner
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.MinorSafeBadge
@@ -82,6 +88,7 @@ import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.core.designsystem.VerifiedCreatorBadge
 import com.example.ui.feed.ReportContentDialog
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +97,7 @@ fun ProfileScreen(
     currentUserId: String,
     uiState: ProfileSettingsUiState,
     viewModel: ProfileSettingsViewModel,
+    mediaUploadManager: MediaUploadManager,
     onOpenSettings: () -> Unit,
     onOpenConversation: (conversationId: String, peerName: String) -> Unit = { _, _ -> },
     onRequireAuth: (createAccount: Boolean, reason: String) -> Unit = { _, _ -> },
@@ -113,7 +121,7 @@ fun ProfileScreen(
         viewModel.loadProfile(targetUserId)
     }
 
-    val profile = uiState.viewedProfile ?: uiState.myProfile
+    val profile = if (targetUserId == null) uiState.myProfile ?: uiState.viewedProfile else uiState.viewedProfile
     val isOwnProfile = targetUserId == null || (currentUserId.isNotBlank() && targetUserId == currentUserId)
     var selectedTab by remember { mutableIntStateOf(0) }
     var showEditDialog by remember { mutableStateOf(false) }
@@ -123,6 +131,59 @@ fun ProfileScreen(
     var showCollectionDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
+
+    val mediaScope = rememberCoroutineScope()
+    var profileMediaStatus by remember { mutableStateOf<String?>(null) }
+    val avatarPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null && currentUserId.isNotBlank()) {
+            mediaScope.launch {
+                mediaUploadManager.uploadMedia(uri, "avatars", currentUserId).collect { state ->
+                    when (state) {
+                        is UploadProgressState.Success -> {
+                            viewModel.updateProfile(
+                                profile?.displayName.orEmpty(),
+                                profile?.headline.orEmpty(),
+                                profile?.bio.orEmpty(),
+                                profile?.regionLabel.orEmpty(),
+                                profile?.interests?.joinToString(", ").orEmpty(),
+                                avatarUrl = state.publicUrl,
+                            )
+                            profileMediaStatus = "Profile photo updated."
+                        }
+                        is UploadProgressState.Failed -> profileMediaStatus = state.message
+                        else -> Unit
+                    }
+                }
+            }
+        }
+    }
+    val coverPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null && currentUserId.isNotBlank()) {
+            mediaScope.launch {
+                mediaUploadManager.uploadMedia(uri, "avatars", currentUserId).collect { state ->
+                    when (state) {
+                        is UploadProgressState.Success -> {
+                            viewModel.updateProfile(
+                                profile?.displayName.orEmpty(),
+                                profile?.headline.orEmpty(),
+                                profile?.bio.orEmpty(),
+                                profile?.regionLabel.orEmpty(),
+                                profile?.interests?.joinToString(", ").orEmpty(),
+                                coverUrl = state.publicUrl,
+                            )
+                            profileMediaStatus = "Profile background updated."
+                        }
+                        is UploadProgressState.Failed -> profileMediaStatus = state.message
+                        else -> Unit
+                    }
+                }
+            }
+        }
+    }
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -369,9 +430,9 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                        StatCounter(profile?.postsCount ?: uiState.posts.size, "Posts")
-                        StatCounter(profile?.followersCount ?: 0, "Followers")
-                        StatCounter(profile?.followingCount ?: 0, "Following")
+                        StatCounter(maxOf(profile?.postsCount ?: 0, uiState.posts.size), "Posts")
+                        StatCounter(uiState.followersCount ?: profile?.followersCount ?: 0, "Networks")
+                        StatCounter(uiState.followingCount ?: profile?.followingCount ?: 0, "Following")
                     }
 
                     if (profile?.interests?.isNotEmpty() == true) {
@@ -659,6 +720,19 @@ fun ProfileScreen(
                     OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, minLines = 2)
                     OutlinedTextField(value = region, onValueChange = { region = it }, label = { Text("Country / Region (privacy-safe)") })
                     OutlinedTextField(value = interests, onValueChange = { interests = it }, label = { Text("Interests (comma-separated)") })
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SkillectOutlinedButton(
+                            text = "Change photo",
+                            leadingIcon = Icons.Rounded.Person,
+                            onClick = { avatarPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        )
+                        SkillectOutlinedButton(
+                            text = "Change background",
+                            leadingIcon = Icons.Rounded.Edit,
+                            onClick = { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        )
+                    }
+                    profileMediaStatus?.let { Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall) }
                 }
             },
             confirmButton = {
