@@ -370,17 +370,23 @@ class SkillectRepository(
             return@guardConfigured Result.failure(IllegalStateException("Profile save could not be confirmed by Skillect safety screening."))
         }
 
-        if (profile.interests.isNotEmpty()) {
-            val interestsUpdate = postgrestApi.moderateText(
-                mapOf(
-                    "type" to "profile",
-                    "content" to profile.interests.joinToString(", "),
-                    "interests" to profile.interests,
-                ),
-            )
-            if (!interestsUpdate.isSuccessful || interestsUpdate.body()?.profileSaved != true) {
-                return@guardConfigured Result.failure(IllegalStateException(interestsUpdate.parseError().ifBlank { "Profile interests could not be saved." }))
-            }
+        val followUpFields = mutableMapOf<String, Any?>(
+            "type" to "profile",
+            "display_name" to profile.displayName.trim().take(80),
+            "username" to cleanUsername,
+            "bio" to profile.bio.trim().take(AppConfig.MAX_BIO_LENGTH),
+            "location" to countryName,
+            "website" to resolvedWebsite,
+            "skills" to profile.skills,
+            "interests" to profile.interests,
+            "country" to countryCode,
+            "is_private" to profile.isPrivate,
+            "content" to listOf(profile.displayName, cleanUsername, profile.bio, countryName, resolvedWebsite, profile.skills.joinToString(", "), profile.interests.joinToString(", ")).filter { it.isNotBlank() }.joinToString("\n"),
+        )
+        profile.avatarUrl?.takeIf { it.isNotBlank() }?.let { followUpFields["avatar_url"] = it }
+        val followUp = postgrestApi.moderateText(followUpFields)
+        if (!followUp.isSuccessful || followUp.body()?.profileSaved != true) {
+            return@guardConfigured Result.failure(IllegalStateException(followUp.parseError().ifBlank { "Profile details could not be saved." }))
         }
 
         val savedResponse = postgrestApi.getProfiles(idFilter = "eq.$uid", limit = 1)
