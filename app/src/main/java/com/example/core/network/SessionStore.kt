@@ -27,7 +27,7 @@ private object SessionTokenCipher {
     private const val ENC_PREFIX = "enc_v1:"
     private const val IV_SIZE = 12
 
-    private fun getOrCreateKey(): SecretKey? {
+    private fun getOrCreateKey(): SecretKey {
         return try {
             val ks = KeyStore.getInstance(KEYSTORE_PROVIDER).apply { load(null) }
             val existing = ks.getKey(KEY_ALIAS, null) as? SecretKey
@@ -43,15 +43,15 @@ private object SessionTokenCipher {
                 .build()
             keyGenerator.init(spec)
             keyGenerator.generateKey()
-        } catch (_: Throwable) {
-            null
+        } catch (error: Exception) {
+            throw IllegalStateException("Android Keystore is unavailable; session tokens cannot be stored securely.", error)
         }
     }
 
     fun encrypt(plainText: String): String {
         if (plainText.isBlank()) return ""
-        val key = getOrCreateKey() ?: return plainText
         return try {
+            val key = getOrCreateKey()
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.ENCRYPT_MODE, key)
             val iv = cipher.iv
@@ -60,16 +60,16 @@ private object SessionTokenCipher {
             System.arraycopy(iv, 0, combined, 0, iv.size)
             System.arraycopy(encrypted, 0, combined, iv.size, encrypted.size)
             ENC_PREFIX + Base64.encodeToString(combined, Base64.NO_WRAP)
-        } catch (_: Throwable) {
-            plainText
+        } catch (error: Exception) {
+            throw IllegalStateException("Session tokens could not be encrypted; refusing to store them as plain text.", error)
         }
     }
 
     fun decrypt(stored: String): String {
         if (stored.isBlank()) return ""
         if (!stored.startsWith(ENC_PREFIX)) return stored
-        val key = getOrCreateKey() ?: return ""
         return try {
+            val key = getOrCreateKey()
             val combined = Base64.decode(stored.removePrefix(ENC_PREFIX), Base64.NO_WRAP)
             if (combined.size <= IV_SIZE) return ""
             val iv = combined.copyOfRange(0, IV_SIZE)
@@ -77,7 +77,7 @@ private object SessionTokenCipher {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(128, iv))
             String(cipher.doFinal(ciphertext), Charsets.UTF_8)
-        } catch (_: Throwable) {
+        } catch (_: Exception) {
             ""
         }
     }
