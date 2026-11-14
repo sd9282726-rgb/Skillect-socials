@@ -292,6 +292,15 @@ fun ChatDetailScreen(
 
             HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
+            if (!uiState.statusMessage.isNullOrBlank()) {
+                Text(
+                    text = uiState.statusMessage.orEmpty(),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                )
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
