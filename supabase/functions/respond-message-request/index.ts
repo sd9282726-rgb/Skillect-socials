@@ -18,6 +18,18 @@ function isAtLeast16(value: unknown): boolean {
   if (now.getUTCMonth() < mo - 1 || (now.getUTCMonth() === mo - 1 && now.getUTCDate() < d)) age--;
   return age >= 16 && birth.getTime() <= now.getTime();
 }
+
+function is16To17(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]), birth = new Date(Date.UTC(y, mo - 1, d));
+  if (birth.getUTCFullYear() !== y || birth.getUTCMonth() !== mo - 1 || birth.getUTCDate() !== d) return false;
+  const now = new Date();
+  let age = now.getUTCFullYear() - y;
+  if (now.getUTCMonth() < mo - 1 || (now.getUTCMonth() === mo - 1 && now.getUTCDate() < d)) age--;
+  return age >= 16 && age <= 17;
+}
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -46,6 +58,13 @@ Deno.serve(async (request: Request) => {
     const ids = [row.sender_id, row.recipient_id].sort();
     const profiles = await rest(base, service, "profiles?select=id,onboarded,date_of_birth&id=in.(" + ids.join(",") + ")");
     if (!Array.isArray(profiles) || profiles.length !== 2 || profiles.some((p: any) => !p.onboarded || !isAtLeast16(p.date_of_birth))) return json(403, { error: "Both accounts must remain eligible to message" });
+    const recipientProfile = profiles.find((p: any) => p.id === recipientId);
+    if (recipientProfile && is16To17(recipientProfile.date_of_birth)) {
+      const recipientFollowsSender = await rest(base, service, "follows?select=id&follower_id=eq." + recipientId + "&following_id=eq." + row.sender_id + "&limit=1");
+      if (!Array.isArray(recipientFollowsSender) || !recipientFollowsSender.length) {
+        return json(403, { error: "This 16–17 account can only accept messages from people it follows" });
+      }
+    }
     const restrictions = await rest(base, service, "account_enforcements?select=user_id&user_id=in.(" + ids.join(",") + ")");
     if (Array.isArray(restrictions) && restrictions.length) return json(403, { error: "Messaging is unavailable for a restricted account" });
     const blocks = await rest(base, service, "blocks?select=id&or=(and(blocker_id.eq." + row.sender_id + ",blocked_id.eq." + row.recipient_id + "),and(blocker_id.eq." + row.recipient_id + ",blocked_id.eq." + row.sender_id + "))&limit=1");
