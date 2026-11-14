@@ -47,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,6 +64,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import kotlinx.coroutines.launch
 import com.example.AppContainer
 import com.example.core.config.ThemeMode
 import com.example.core.designsystem.SkillectBrandBadge
@@ -138,6 +140,7 @@ fun SkillectApp(
 
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
+    val firebaseSyncScope = rememberCoroutineScope()
 
     val currentUserId = if (authState.isAuthenticated) {
         authState.currentProfile?.id ?: profileState.myProfile?.id ?: ""
@@ -163,8 +166,19 @@ fun SkillectApp(
         }
     }
 
-    // Smooth Guest <-> Account transitions without restarting the app
+    // Keep Firebase identity and push-token registration aligned with Supabase auth.
+    // Token retrieval also runs on sign-in, not only when Firebase rotates the token.
     LaunchedEffect(currentUserId, authState.isAuthenticated) {
+        container.analyticsTracker.setUserId(currentUserId.takeIf { it.isNotBlank() })
+        if (currentUserId.isNotBlank()) {
+            container.analyticsTracker.fetchFcmToken { token ->
+                firebaseSyncScope.launch {
+                    container.repository.syncFcmToken(token)
+                }
+            }
+        }
+
+        // Smooth Guest <-> Account transitions without restarting the app.
         if (previousUserId == null) {
             previousUserId = currentUserId
             return@LaunchedEffect
