@@ -34,6 +34,7 @@ data class ExploreUiState(
     val skills: List<SkillDto> = emptyList(),
     val joinedCommunityIds: Set<String> = emptySet(),
     val communityActionsInProgress: Set<String> = emptySet(),
+    val isCreatingCommunity: Boolean = false,
     val selectedCommunity: CommunityDto? = null,
     val selectedCommunityId: String? = null,
     val communityMembers: List<CommunityMemberDto> = emptyList(),
@@ -125,11 +126,18 @@ class ExploreCommunitiesViewModel(
     }
 
     fun clearPrivateState() {
+        searchJob?.cancel()
+        exploreJob?.cancel()
         communityDetailJob?.cancel()
+        searchJob = null
+        exploreJob = null
+        communityDetailJob = null
         _uiState.update {
             it.copy(
                 joinedCommunityIds = emptySet(),
                 communityActionsInProgress = emptySet(),
+                isCreatingCommunity = false,
+                isLoading = false,
                 selectedCommunity = null,
                 selectedCommunityId = null,
                 communityMembers = emptyList(),
@@ -152,6 +160,8 @@ class ExploreCommunitiesViewModel(
     }
 
     fun createCommunity(name: String, description: String, category: String, isPrivate: Boolean) {
+        if (_uiState.value.isCreatingCommunity) return
+        _uiState.update { it.copy(isCreatingCommunity = true, statusMessage = null) }
         viewModelScope.launch {
             repository.createCommunity(name, description, category, isPrivate).fold(
                 onSuccess = { created ->
@@ -159,11 +169,17 @@ class ExploreCommunitiesViewModel(
                         state.copy(
                             communities = listOf(created) + state.communities,
                             joinedCommunityIds = state.joinedCommunityIds + created.id,
+                            isCreatingCommunity = false,
                             statusMessage = "Community '${created.name}' created.",
                         )
                     }
                 },
-                onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(isCreatingCommunity = false, statusMessage = err.message)
+                    }
+                    refreshExplore()
+                },
             )
         }
     }
