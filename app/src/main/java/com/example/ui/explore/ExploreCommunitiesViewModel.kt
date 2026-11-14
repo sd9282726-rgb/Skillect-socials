@@ -115,10 +115,15 @@ class ExploreCommunitiesViewModel(
     }
 
     fun clearPrivateState() {
+        communityDetailJob?.cancel()
         _uiState.update {
             it.copy(
                 joinedCommunityIds = emptySet(),
                 communityActionsInProgress = emptySet(),
+                selectedCommunity = null,
+                selectedCommunityId = null,
+                communityMembers = emptyList(),
+                communityPosts = emptyList(),
                 statusMessage = null,
             )
         }
