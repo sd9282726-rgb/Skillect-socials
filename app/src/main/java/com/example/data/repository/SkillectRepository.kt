@@ -633,7 +633,9 @@ class SkillectRepository(
             return@guardConfigured Result.failure(IllegalArgumentException("Invalid private video upload path."))
         }
         val body = mutableMapOf<String, Any?>(
+            "bucket" to "post-media",
             "storage_path" to storagePath,
+            "post_type" to "video",
             "content" to content.trim().take(AppConfig.MAX_POST_LENGTH),
             "tags" to tags.map { it.trim().removePrefix("#") }.filter { it.isNotBlank() }.distinct().take(10),
             "category" to category,
