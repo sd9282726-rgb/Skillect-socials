@@ -10,7 +10,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +38,7 @@ import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Verified
@@ -260,14 +260,20 @@ fun SkillectAvatar(
 
         Box(modifier = frameModifier, contentAlignment = Alignment.Center) {
             if (avatarUrl.isNullOrBlank()) {
-                Image(
-                    painter = painterResource(id = R.drawable.img_avatar_placeholder),
-                    contentDescription = contentDescription,
+                Box(
                     modifier = Modifier
                         .size(size)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                )
+                        .clip(CircleShape)
+                        .background(SkillectBrandGradient),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Person,
+                        contentDescription = contentDescription,
+                        tint = Color.White,
+                        modifier = Modifier.size(size * 0.58f),
+                    )
+                }
             } else {
                 AsyncImage(
                     model = avatarUrl,
