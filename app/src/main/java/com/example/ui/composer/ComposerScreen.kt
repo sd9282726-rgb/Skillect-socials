@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,11 +54,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.R
 import com.example.core.config.AppConfig
 import com.example.core.designsystem.SkillChip
 import com.example.core.designsystem.SkillectAvatar
@@ -126,6 +131,7 @@ fun ComposerScreen(
             uploadJob?.cancel()
             selectedUris.clear()
             selectedUris.add(uri)
+            selectedType = "text"
             videoStoragePath = null
             uploadState = UploadProgressState.Idle
         }
@@ -137,6 +143,7 @@ fun ComposerScreen(
         if (uri != null) {
             selectedUris.clear()
             selectedUris.add(uri)
+            selectedType = "text"
             startUploadForUris(listOf(uri))
         }
     }
@@ -183,7 +190,7 @@ fun ComposerScreen(
                     text = if (isUploadBusy) "Uploading..." else "Publish",
                     isLoading = isSubmitting,
                     shape = RoundedCornerShape(50),
-                    enabled = !isUploadBusy && (content.isNotBlank() || selectedUris.isNotEmpty()),
+                    enabled = !isUploadBusy && !isSubmitting && (content.isNotBlank() || selectedUris.isNotEmpty()),
                     modifier = Modifier.testTag("publish_post_button"),
                     onClick = {
                         if (currentUserId.isBlank()) {
@@ -288,8 +295,48 @@ fun ComposerScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(132.dp)
+                    .clip(RoundedCornerShape(20.dp)),
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.img_community_banner),
+                    contentDescription = "Skillect creative workspace",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color.Black.copy(alpha = 0.78f), Color.Black.copy(alpha = 0.08f)),
+                            ),
+                        ),
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
+                ) {
+                    Text(
+                        "CREATE SOMETHING MEANINGFUL",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                        color = Color.White.copy(alpha = 0.9f),
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Your next idea starts here.",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                        color = Color.White,
+                    )
+                }
+            }
 
+            Spacer(modifier = Modifier.height(18.dp))
             Text("Choose a format", style = MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(
