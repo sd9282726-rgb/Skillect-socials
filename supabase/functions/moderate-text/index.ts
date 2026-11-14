@@ -26,6 +26,19 @@ async function rest(base: string, key: string, path: string, method = "GET", bod
 }
 
 
+function is16To17(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  const birth = new Date(Date.UTC(year, month - 1, day));
+  if (birth.getUTCFullYear() !== year || birth.getUTCMonth() !== month - 1 || birth.getUTCDate() !== day) return false;
+  const now = new Date();
+  let age = now.getUTCFullYear() - year;
+  if (now.getUTCMonth() < month - 1 || (now.getUTCMonth() === month - 1 && now.getUTCDate() < day)) age--;
+  return age >= 16 && age <= 17;
+}
+
 function isAtLeast16(value: unknown): boolean {
   if (typeof value !== "string") return false;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -257,6 +270,17 @@ Deno.serve(async (request: Request) => {
           const filter = "or=(and(blocker_id.eq." + userId + ",blocked_id.eq." + other + "),and(blocker_id.eq." + other + ",blocked_id.eq." + userId + "))";
           const blocks = await rest(base, service, "blocks?select=id&" + filter + "&limit=1");
           if (Array.isArray(blocks) && blocks.length > 0) return json(403, { error: "Messaging is unavailable because one account has blocked the other" });
+        }
+        if (others.length) {
+          const profiles = await rest(base, service, "profiles?select=id,date_of_birth&id=in.(" + others.join(",") + ")");
+          if (!Array.isArray(profiles) || profiles.length !== others.length) return json(503, { error: "Could not verify messaging safety settings" });
+          for (const otherProfile of profiles) {
+            if (!is16To17(otherProfile.date_of_birth)) continue;
+            const follows = await rest(base, service, "follows?select=id&follower_id=eq." + otherProfile.id + "&following_id=eq." + userId + "&limit=1");
+            if (!Array.isArray(follows) || !follows.length) {
+              return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
+            }
+          }
         }
       } catch { return json(503, { error: "Could not verify conversation permissions" }); }
     }
