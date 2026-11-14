@@ -688,6 +688,34 @@ fun ProfileScreen(
                     OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, minLines = 2)
                     OutlinedTextField(value = region, onValueChange = { region = it }, label = { Text("Country / Region (privacy-safe)") })
                     OutlinedTextField(value = interests, onValueChange = { interests = it }, label = { Text("Interests (comma-separated)") })
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        SkillectAvatar(
+                            avatarUrl = avatarUrlForEdit,
+                            contentDescription = "Selected profile photo",
+                            size = 58.dp,
+                        )
+                        if (!coverUrlForEdit.isNullOrBlank()) {
+                            AsyncImage(
+                                model = coverUrlForEdit,
+                                contentDescription = "Selected profile background",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(58.dp)
+                                    .clip(MaterialTheme.shapes.small),
+                            )
+                        } else {
+                            Text(
+                                "No custom background selected",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SkillectOutlinedButton(
                             text = "Choose photo",
@@ -706,6 +734,7 @@ fun ProfileScreen(
             confirmButton = {
                 SkillectPrimaryButton(
                     text = "Save",
+                    enabled = mediaStatus?.startsWith("Uploading") != true,
                     onClick = {
                         viewModel.updateProfile(displayName, website, bio, region, interests, avatarUrlForEdit, coverUrlForEdit)
                         showEditDialog = false
