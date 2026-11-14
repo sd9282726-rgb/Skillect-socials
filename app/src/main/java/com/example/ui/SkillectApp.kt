@@ -520,7 +520,6 @@ fun SkillectApp(
                                     currentUserId = currentUserId,
                                     uiState = msgState,
                                     viewModel = msgVm,
-                                    mediaUploadManager = container.mediaUploadManager,
                                     onBack = { navController.popBackStack() },
                                 )
                             }
