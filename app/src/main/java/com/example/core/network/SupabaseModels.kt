@@ -106,6 +106,8 @@ data class ModerationGatewayResponse(
     val status: String = "",
     @Json(name = "profile_saved") val profileSaved: Boolean? = null,
     val id: String? = null,
+    @Json(name = "post_id") val postId: String? = null,
+    val message: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
