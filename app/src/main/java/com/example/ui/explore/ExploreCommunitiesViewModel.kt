@@ -14,6 +14,8 @@ import com.example.data.repository.SkillectRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -46,6 +48,8 @@ class ExploreCommunitiesViewModel(
 
     private val _uiState = MutableStateFlow(ExploreUiState())
     val uiState: StateFlow<ExploreUiState> = _uiState.asStateFlow()
+    private var searchJob: Job? = null
+    private var exploreJob: Job? = null
 
     init {
         refreshExplore()
@@ -53,6 +57,12 @@ class ExploreCommunitiesViewModel(
 
     fun updateQuery(q: String) {
         _uiState.update { it.copy(query = q) }
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            // Debounce typing so Explore searches once the user pauses, not on every keystroke.
+            delay(350)
+            refreshExplore()
+        }
     }
 
     fun setFilter(filter: ExploreFilter) {
@@ -75,7 +85,8 @@ class ExploreCommunitiesViewModel(
         val state = _uiState.value
         val sortParam = if (state.sort == ExploreSort.TRENDING) "likes_count.desc,created_at.desc" else "created_at.desc"
 
-        viewModelScope.launch {
+        exploreJob?.cancel()
+        exploreJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val peopleRes = repository.searchProfiles(state.query)
             val postsRes = repository.searchPosts(state.query, sortParam)
