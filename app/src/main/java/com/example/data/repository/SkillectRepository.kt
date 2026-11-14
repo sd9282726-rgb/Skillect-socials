@@ -1,0 +1,1052 @@
+package com.example.data.repository
+
+import com.example.core.config.AppConfig
+import com.example.core.network.AchievementDto
+import com.example.core.network.BlockRowDto
+import com.example.core.network.CommentDto
+import com.example.core.network.CommunityDto
+import com.example.core.network.CommunityMemberDto
+import com.example.core.network.ConversationDto
+import com.example.core.network.CreateAchievementRequest
+import com.example.core.network.CreateAppealRequest
+import com.example.core.network.CreateAuditLogRequest
+import com.example.core.network.CreateCommentRequest
+import com.example.core.network.CreateCommunityRequest
+import com.example.core.network.CreateDirectConversationParams
+import com.example.core.network.CreateExperienceRequest
+import com.example.core.network.CreatePostRequest
+import com.example.core.network.CreateProjectRequest
+import com.example.core.network.CreateReportRequest
+import com.example.core.network.CreateStoryRequest
+import com.example.core.network.DeviceTokenRpcParams
+import com.example.core.network.DeviceTokenUpsertDto
+import com.example.core.network.ExperienceDto
+import com.example.core.network.FollowRowDto
+import com.example.core.network.MessageDto
+import com.example.core.network.ModerationAppealDto
+import com.example.core.network.ModerationAuditLogDto
+import com.example.core.network.MuteRowDto
+import com.example.core.network.NotificationDto
+import com.example.core.network.PasswordSignInRequest
+import com.example.core.network.PersistedSession
+import com.example.core.network.PostDto
+import com.example.core.network.ProfileDto
+import com.example.core.network.ProfileUpsertDto
+import com.example.core.network.ProjectDto
+import com.example.core.network.RecoverPasswordRequest
+import com.example.core.network.RefreshTokenRequest
+import com.example.core.network.ReportDto
+import com.example.core.network.SavedCollectionDto
+import com.example.core.network.SavedPostDto
+import com.example.core.network.SendMessageRequest
+import com.example.core.network.SessionStore
+import com.example.core.network.SignUpRequest
+import com.example.core.network.SkillDto
+import com.example.core.network.StoryDto
+import com.example.core.network.SupabaseAuthApi
+import com.example.core.network.SupabasePostgrestApi
+import com.example.core.network.SupabaseRealtimeClient
+import com.example.core.network.UpdatePasswordRequest
+import com.example.core.notifications.AnalyticsTracker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import retrofit2.Response
+import java.io.IOException
+
+class BackendNotConfiguredException :
+    IllegalStateException("Supabase project credentials are not configured in AI Studio Secrets.")
+
+class AuthenticationRequiredException(action: String = "perform this action") :
+    IllegalStateException("Sign in or create an account to $action.")
+
+enum class FeedTab { FOLLOWING, RECOMMENDED, DISCOVER }
+
+class SkillectRepository(
+    val sessionStore: SessionStore,
+    private val authApi: SupabaseAuthApi,
+    private val postgrestApi: SupabasePostgrestApi,
+    val realtimeClient: SupabaseRealtimeClient,
+    private val analyticsTracker: AnalyticsTracker,
+    private val isConfiguredCheck: () -> Boolean = { AppConfig.isSupabaseConfigured },
+) {
+    val sessionFlow: Flow<PersistedSession> = sessionStore.sessionFlow
+    private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private inline fun <T> guardConfigured(block: () -> Result<T>): Result<T> {
+        if (!isConfiguredCheck()) {
+            return Result.failure(BackendNotConfiguredException())
+        }
+        return try {
+            block()
+        } catch (_: IOException) {
+            Result.failure(IOException("Network connection error. Check your internet and try again."))
+        } catch (e: Exception) {
+            analyticsTracker.recordNonFatal(e)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun requireUserId(action: String): String? {
+        val uid = sessionStore.currentSession().userId
+        return uid.takeIf { it.isNotBlank() }
+    }
+
+    private fun <T> Response<T>.parseError(): String {
+        val raw = errorBody()?.string().orEmpty()
+        val extracted = try {
+            val json = JSONObject(raw)
+            json.optString("msg").ifBlank {
+                json.optString("message").ifBlank {
+                    json.optString("error_description").ifBlank {
+                        json.optString("error_code").ifBlank { "HTTP ${code()}" }
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            raw.ifBlank { "HTTP ${code()}" }
+        }
+        return mapFriendlyAuthMessage(extracted)
+    }
+
+    private fun mapFriendlyAuthMessage(message: String): String {
+        val lower = message.lowercase()
+        return when {
+            "already registered" in lower || "user_already_exists" in lower ->
+                "An account with this email already exists. Try signing in or resetting your password."
+            "invalid login credentials" in lower || "invalid_credentials" in lower ->
+                "Incorrect email or password. Please check your credentials and try again."
+            "weak_password" in lower || "password should be at least" in lower ->
+                "Password is too weak. Use at least 8 characters with letters and numbers."
+            "email not confirmed" in lower ->
+                "Email confirmation is currently enabled on your Supabase Auth project. Disable 'Confirm email' in Supabase Auth settings for instant registration."
+            "expired" in lower || "otp_expired" in lower ->
+                "This recovery link has expired or already been used. Please request a new reset email."
+            else -> message
+        }
+    }
+
+    suspend fun signUp(
+        email: String,
+        password: String,
+        birthDateIso: String,
+        countryCode: String,
+    ): Result<PersistedSession> = guardConfigured {
+        val trimmedEmail = email.trim()
+        if (!trimmedEmail.contains("@") || !trimmedEmail.contains(".")) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Please enter a valid email address."))
+        }
+        if (password.length < 8) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Password must be at least 8 characters."))
+        }
+        if (!AppConfig.isEligibleAge16Plus(birthDateIso)) {
+            return@guardConfigured Result.failure(
+                IllegalArgumentException("You must be at least 16 years old to join Skillect."),
+            )
+        }
+        val response = authApi.signUp(
+            SignUpRequest(
+                email = trimmedEmail,
+                password = password,
+                data = mapOf(
+                    "birth_date" to birthDateIso.trim(),
+                    "country_code" to countryCode,
+                ),
+            ),
+        )
+        if (!response.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        }
+        val body = response.body()
+        val userId = body?.user?.id.orEmpty()
+        val accessToken = body?.accessToken.orEmpty()
+        val session = PersistedSession(
+            accessToken = accessToken,
+            refreshToken = body?.refreshToken.orEmpty(),
+            userId = userId,
+            email = trimmedEmail,
+        )
+        if (accessToken.isNotBlank() && userId.isNotBlank()) {
+            sessionStore.saveSession(session)
+            realtimeClient.connect(userId)
+            syncTelemetryAndPushToken(userId)
+        }
+        analyticsTracker.logEvent("sign_up", mapOf("country" to countryCode))
+        Result.success(session)
+    }
+
+    suspend fun signIn(email: String, password: String): Result<PersistedSession> = guardConfigured {
+        val response = authApi.signInWithPassword(
+            PasswordSignInRequest(email = email.trim(), password = password),
+        )
+        if (!response.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        }
+        val body = response.body() ?: return@guardConfigured Result.failure(IllegalStateException("Empty auth response"))
+        val session = PersistedSession(
+            accessToken = body.accessToken.orEmpty(),
+            refreshToken = body.refreshToken.orEmpty(),
+            userId = body.user?.id.orEmpty(),
+            email = body.user?.email ?: email.trim(),
+        )
+        sessionStore.saveSession(session)
+        if (session.userId.isNotBlank()) {
+            realtimeClient.connect(session.userId)
+            syncTelemetryAndPushToken(session.userId)
+        }
+        analyticsTracker.logEvent("login")
+        Result.success(session)
+    }
+
+    fun syncTelemetryAndPushToken(userId: String) {
+        if (userId.isBlank()) return
+        analyticsTracker.setUserId(userId)
+        analyticsTracker.fetchFcmToken { token -> syncFcmTokenAsync(token) }
+    }
+
+    suspend fun fetchCurrentAuthUserMetadata(): Map<String, Any?> {
+        if (!isConfiguredCheck()) return emptyMap()
+        return try {
+            val resp = authApi.getCurrentUser()
+            if (resp.isSuccessful) resp.body()?.userMetadata.orEmpty() else emptyMap()
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    suspend fun recoverPassword(email: String): Result<Unit> = guardConfigured {
+        val clean = email.trim()
+        if (clean.isBlank() || !clean.contains("@")) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Please enter a valid email address."))
+        }
+        val resp = authApi.recoverPassword(
+            RecoverPasswordRequest(
+                email = clean,
+                redirectTo = "skillect://auth-callback",
+            ),
+        )
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun completePasswordRecovery(recoveryAccessToken: String, newPassword: String): Result<Unit> =
+        guardConfigured {
+            if (recoveryAccessToken.isBlank()) {
+                return@guardConfigured Result.failure(
+                    IllegalArgumentException("Invalid or expired password recovery token."),
+                )
+            }
+            if (newPassword.length < 8) {
+                return@guardConfigured Result.failure(
+                    IllegalArgumentException("New password must be at least 8 characters."),
+                )
+            }
+            val resp = authApi.updateUserPassword(
+                bearerToken = "Bearer $recoveryAccessToken",
+                request = UpdatePasswordRequest(password = newPassword),
+            )
+            if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+        }
+
+    suspend fun refreshSessionIfNeeded(): Result<PersistedSession?> = guardConfigured {
+        val current = sessionStore.currentSession()
+        if (!current.isAuthenticated || current.refreshToken.isBlank()) {
+            return@guardConfigured Result.success(null)
+        }
+        val resp = authApi.refreshToken(RefreshTokenRequest(current.refreshToken))
+        if (!resp.isSuccessful) {
+            if (resp.code() == 400 || resp.code() == 401) {
+                sessionStore.clearSession()
+                return@guardConfigured Result.success(null)
+            }
+            return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        }
+        val body = resp.body() ?: return@guardConfigured Result.success(current)
+        val refreshed = current.copy(
+            accessToken = body.accessToken.orEmpty().ifBlank { current.accessToken },
+            refreshToken = body.refreshToken.orEmpty().ifBlank { current.refreshToken },
+        )
+        sessionStore.saveSession(refreshed)
+        Result.success(refreshed)
+    }
+
+    suspend fun signOut(): Result<Unit> {
+        if (isConfiguredCheck()) {
+            try {
+                authApi.signOut()
+            } catch (_: Exception) {
+            }
+        }
+        realtimeClient.disconnect()
+        analyticsTracker.setUserId(null)
+        sessionStore.clearSession()
+        return Result.success(Unit)
+    }
+
+    suspend fun requestAccountDeletion(): Result<Unit> = guardConfigured {
+        requireUserId("delete your account") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete your account"))
+        val resp = postgrestApi.requestAccountDeletion()
+        if (resp.isSuccessful) {
+            signOut()
+            Result.success(Unit)
+        } else {
+            val rpcResp = postgrestApi.requestAccountDeletionRpc()
+            if (rpcResp.isSuccessful) {
+                signOut()
+                Result.success(Unit)
+            } else {
+                Result.failure(IllegalStateException(resp.parseError()))
+            }
+        }
+    }
+
+    suspend fun checkUsernameAvailable(username: String): Result<Boolean> = guardConfigured {
+        val clean = username.trim().lowercase()
+        val resp = postgrestApi.getProfiles(select = "id", usernameFilter = "eq.$clean", limit = 1)
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().isEmpty())
+    }
+
+    suspend fun fetchMyProfile(): Result<ProfileDto?> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(null)
+        val resp = postgrestApi.getProfiles(idFilter = "eq.$uid", limit = 1)
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body()?.firstOrNull())
+    }
+
+    suspend fun fetchProfileById(userId: String): Result<ProfileDto?> = guardConfigured {
+        val resp = postgrestApi.getProfiles(idFilter = "eq.$userId", limit = 1)
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body()?.firstOrNull())
+    }
+
+    suspend fun upsertProfile(profile: ProfileUpsertDto): Result<ProfileDto> = guardConfigured {
+        val uid = requireUserId("create or edit a profile") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("create or edit a profile"))
+        val cleanUsername = profile.username.trim().lowercase()
+        if (!cleanUsername.matches(Regex("^[a-z0-9_.]{3,30}$"))) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Username must be 3–30 characters (letters, numbers, _ or .)."))
+        }
+        if (profile.displayName.isBlank()) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Display name is required."))
+        }
+        val birth = profile.birthDate
+        if (!birth.isNullOrBlank() && !AppConfig.isEligibleAge16Plus(birth)) {
+            return@guardConfigured Result.failure(IllegalArgumentException("You must be at least 16 years old."))
+        }
+        val safeLinks = profile.portfolioLinks.filter { AppConfig.isValidHttpUrl(it.url) }
+        val resolvedWebsite = profile.website.trim().ifBlank { safeLinks.firstOrNull()?.url.orEmpty() }
+        val resp = postgrestApi.upsertProfile(
+            profile.copy(
+                id = uid,
+                username = cleanUsername,
+                displayName = profile.displayName.trim().take(80),
+                bio = profile.bio.trim().take(AppConfig.MAX_BIO_LENGTH),
+                website = resolvedWebsite,
+                onboarded = true,
+                portfolioLinks = safeLinks,
+            ),
+        )
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        val saved = resp.body()?.firstOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Profile save returned empty body"))
+        Result.success(saved)
+    }
+
+    suspend fun updateProfileFields(userId: String, updates: Map<String, Any?>): Result<ProfileDto> = guardConfigured {
+        val uid = requireUserId("edit your profile") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("edit your profile"))
+        val sanitized = updates.toMutableMap()
+        if (sanitized.containsKey("region_label") && !sanitized.containsKey("location")) {
+            sanitized["location"] = sanitized["region_label"]
+        }
+        // Never allow client code to mutate privileged or non-existent profile columns directly
+        sanitized.remove("role")
+        sanitized.remove("is_verified")
+        sanitized.remove("account_status")
+        sanitized.remove("followers_count")
+        sanitized.remove("following_count")
+        sanitized.remove("posts_count")
+        sanitized.remove("headline")
+        sanitized.remove("region_label")
+        sanitized.remove("allow_dms_from")
+        val resp = postgrestApi.updateProfile(idEq = "eq.$uid", updates = sanitized)
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        val saved = resp.body()?.firstOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Profile update returned empty body"))
+        Result.success(saved)
+    }
+
+    suspend fun syncUserSkills(skillNames: List<String>): Result<Unit> = guardConfigured {
+        val uid = requireUserId("save skills") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("save skills"))
+        if (skillNames.isEmpty()) return@guardConfigured Result.success(Unit)
+        val cleanSkills = skillNames.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        postgrestApi.updateProfile(idEq = "eq.$uid", updates = mapOf("skills" to cleanSkills))
+        val catalogResp = postgrestApi.getSkills(limit = 200)
+        if (!catalogResp.isSuccessful) return@guardConfigured Result.success(Unit)
+        val normalized = cleanSkills.map { it.lowercase() }.toSet()
+        val matchedIds = catalogResp.body().orEmpty()
+            .filter { it.name.trim().lowercase() in normalized }
+            .map { it.id }
+        if (matchedIds.isEmpty()) return@guardConfigured Result.success(Unit)
+        val rows = matchedIds.map { skillId ->
+            mapOf("user_id" to uid, "skill_id" to skillId, "proficiency" to "intermediate")
+        }
+        postgrestApi.upsertUserSkills(rows)
+        Result.success(Unit)
+    }
+
+    private fun PostDto.normalizedForUi(): PostDto {
+        val resolvedMediaUrls = mediaUrls.ifEmpty {
+            listOfNotNull(imageUrl?.takeIf { it.isNotBlank() })
+        }
+        val resolvedMediaTypes = mediaTypes.ifEmpty {
+            resolvedMediaUrls.map { url ->
+                val lower = url.lowercase()
+                if (lower.endsWith(".mp4") || lower.endsWith(".mov") || lower.endsWith(".webm")) "video" else "image"
+            }
+        }
+        val resolvedType = when {
+            postType != "text" -> postType
+            !category.isNullOrBlank() -> category
+            resolvedMediaTypes.contains("video") -> "video"
+            resolvedMediaUrls.size > 1 -> "carousel"
+            resolvedMediaUrls.size == 1 -> "image"
+            else -> "text"
+        }
+        val resolvedSkills = skillTags.ifEmpty { tags }
+        return copy(
+            postType = resolvedType,
+            mediaUrls = resolvedMediaUrls,
+            mediaTypes = resolvedMediaTypes,
+            skillTags = resolvedSkills,
+        )
+    }
+
+    suspend fun fetchFeed(tab: FeedTab, limit: Int = 20, offset: Int = 0): Result<List<PostDto>> = guardConfigured {
+        val trace = analyticsTracker.startTrace("fetch_feed_${tab.name.lowercase()}")
+        try {
+            val session = sessionStore.currentSession()
+            if (tab == FeedTab.FOLLOWING && session.userId.isBlank()) {
+                return@guardConfigured Result.success(emptyList())
+            }
+            val order = when (tab) {
+                FeedTab.FOLLOWING -> "created_at.desc"
+                FeedTab.RECOMMENDED -> "likes_count.desc,created_at.desc"
+                FeedTab.DISCOVER -> "created_at.desc"
+            }
+            val authorFilter = if (tab == FeedTab.FOLLOWING && session.userId.isNotBlank()) {
+                val followingIds = getFollowingIds(session.userId).getOrDefault(emptyList()) + session.userId
+                "in.(${followingIds.joinToString(",")})"
+            } else {
+                null
+            }
+            val resp = postgrestApi.getPosts(
+                authorIdFilter = authorFilter,
+                order = order,
+                limit = limit,
+                offset = offset,
+            )
+            if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+            Result.success(resp.body().orEmpty().map { it.normalizedForUi() })
+        } finally {
+            analyticsTracker.stopTrace(trace)
+        }
+    }
+
+    suspend fun fetchMyLikedPostIds(): Result<Set<String>> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(emptySet())
+        val resp = postgrestApi.getPostLikes(userIdEq = "eq.$uid")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().map { it.postId }.toSet())
+    }
+
+    suspend fun fetchMyPollVotes(): Result<Map<String, String>> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(emptyMap())
+        val resp = postgrestApi.getPollVotes(userIdEq = "eq.$uid")
+        if (resp.code() == 404) return@guardConfigured Result.success(emptyMap())
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().associate { it.postId to it.optionId })
+    }
+
+    suspend fun fetchShortVideos(): Result<List<PostDto>> = guardConfigured {
+        val resp = postgrestApi.getPosts(order = "created_at.desc", limit = 30)
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        val videos = resp.body().orEmpty()
+            .map { it.normalizedForUi() }
+            .filter { it.postType == "video" || it.mediaTypes.contains("video") }
+        Result.success(videos)
+    }
+
+    suspend fun fetchPostsByAuthor(authorId: String): Result<List<PostDto>> = guardConfigured {
+        val resp = postgrestApi.getPosts(authorIdFilter = "eq.$authorId", limit = 30)
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().map { it.normalizedForUi() })
+    }
+
+    suspend fun createPost(
+        request: CreatePostRequest,
+        pollOptionTexts: List<String> = emptyList(),
+    ): Result<PostDto> = guardConfigured {
+        val uid = requireUserId("create a post") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("create a post"))
+        val trimmedContent = request.content.trim()
+        if (trimmedContent.isBlank() && request.mediaUrls.isEmpty() && request.repostedPostId == null) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Post content or media is required."))
+        }
+        if (trimmedContent.length > AppConfig.MAX_POST_LENGTH) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Post exceeds ${AppConfig.MAX_POST_LENGTH} character limit."))
+        }
+        val cleanLink = request.linkUrl?.trim()?.takeIf { it.isNotBlank() }
+        if (cleanLink != null && !AppConfig.isValidHttpUrl(cleanLink)) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Attached link must be a valid http:// or https:// URL."))
+        }
+        val cleanPollOptions = pollOptionTexts.map { it.trim() }.filter { it.isNotBlank() }
+        if (request.postType == "poll" && cleanPollOptions.size < 2) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Polls must include at least 2 options."))
+        }
+
+        val finalContent = if (cleanLink != null && !trimmedContent.contains(cleanLink)) {
+            listOf(trimmedContent, cleanLink).filter { it.isNotBlank() }.joinToString("\n").take(AppConfig.MAX_POST_LENGTH)
+        } else {
+            trimmedContent
+        }
+        val mergedTags = (request.tags + request.skillTags + request.hashtags)
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+
+        val resp = postgrestApi.createPost(
+            request.copy(
+                authorId = uid,
+                content = finalContent,
+                imageUrl = request.imageUrl ?: request.mediaUrls.firstOrNull(),
+                category = request.category ?: request.postType,
+                tags = mergedTags,
+            ),
+        )
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        val created = resp.body()?.firstOrNull()?.normalizedForUi()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Post creation returned empty body"))
+        if (cleanPollOptions.isNotEmpty()) {
+            val rows = cleanPollOptions.mapIndexed { idx, text ->
+                mapOf("post_id" to created.id, "option_text" to text.take(120), "sort_order" to idx)
+            }
+            try {
+                postgrestApi.createPollOptions(rows)
+            } catch (_: Exception) {
+            }
+        }
+        analyticsTracker.logEvent("create_post", mapOf("post_type" to request.postType))
+        Result.success(created)
+    }
+
+    suspend fun editPost(postId: String, content: String): Result<PostDto> = guardConfigured {
+        requireUserId("edit posts") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("edit posts"))
+        val clean = content.trim()
+        if (clean.isBlank()) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Post content cannot be empty."))
+        }
+        val resp = postgrestApi.updatePost(
+            idEq = "eq.$postId",
+            updates = mapOf("content" to clean.take(AppConfig.MAX_POST_LENGTH)),
+        )
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        val updated = resp.body()?.firstOrNull()?.normalizedForUi()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Update returned empty body"))
+        Result.success(updated)
+    }
+
+    suspend fun deletePost(postId: String): Result<Unit> = guardConfigured {
+        requireUserId("delete posts") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete posts"))
+        val resp = postgrestApi.deletePost(idEq = "eq.$postId")
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun toggleLike(postId: String, currentlyLiked: Boolean): Result<Boolean> = guardConfigured {
+        val uid = requireUserId("like posts") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("like posts"))
+        val resp = if (currentlyLiked) {
+            postgrestApi.unlikePost("eq.$postId", "eq.$uid")
+        } else {
+            postgrestApi.likePost(mapOf("post_id" to postId, "user_id" to uid))
+        }
+        if (resp.isSuccessful) Result.success(!currentlyLiked)
+        else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun votePoll(postId: String, optionId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("vote in polls") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("vote in polls"))
+        val resp = postgrestApi.castPollVote(mapOf("post_id" to postId, "option_id" to optionId, "user_id" to uid))
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun fetchComments(postId: String): Result<List<CommentDto>> = guardConfigured {
+        val resp = postgrestApi.getComments(postIdEq = "eq.$postId")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun addComment(postId: String, content: String, parentCommentId: String? = null): Result<CommentDto> =
+        guardConfigured {
+            val uid = requireUserId("comment or reply") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("comment or reply"))
+            val clean = content.trim()
+            if (clean.isBlank()) {
+                return@guardConfigured Result.failure(IllegalArgumentException("Comment cannot be blank."))
+            }
+            val resp = postgrestApi.createComment(
+                CreateCommentRequest(
+                    postId = postId,
+                    authorId = uid,
+                    parentCommentId = parentCommentId,
+                    content = clean.take(AppConfig.MAX_COMMENT_LENGTH),
+                ),
+            )
+            if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+            Result.success(resp.body()!!.first())
+        }
+
+    suspend fun fetchActiveStories(): Result<List<StoryDto>> = guardConfigured {
+        val resp = postgrestApi.getActiveStories()
+        if (resp.code() == 404) return@guardConfigured Result.success(emptyList())
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun createStory(mediaUrl: String, mediaType: String, caption: String): Result<StoryDto> = guardConfigured {
+        val uid = requireUserId("share a story") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("share a story"))
+        val resp = postgrestApi.createStory(CreateStoryRequest(uid, mediaUrl, mediaType, caption.trim().take(280)))
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body()!!.first())
+    }
+
+    suspend fun deleteStory(storyId: String): Result<Unit> = guardConfigured {
+        requireUserId("delete stories") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete stories"))
+        val resp = postgrestApi.deleteStory("eq.$storyId")
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun getFollowingIds(userId: String): Result<List<String>> = guardConfigured {
+        val resp = postgrestApi.getFollows(followerIdEq = "eq.$userId")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().map { it.followingId })
+    }
+
+    suspend fun toggleFollow(targetUserId: String, currentlyFollowing: Boolean): Result<Boolean> = guardConfigured {
+        val uid = requireUserId("follow creators") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("follow creators"))
+        if (uid == targetUserId) return@guardConfigured Result.failure(IllegalArgumentException("Cannot follow yourself"))
+        val resp = if (currentlyFollowing) {
+            postgrestApi.unfollowUser("eq.$uid", "eq.$targetUserId")
+        } else {
+            postgrestApi.followUser(FollowRowDto(uid, targetUserId))
+        }
+        if (resp.isSuccessful) Result.success(!currentlyFollowing)
+        else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun blockUser(targetUserId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("block accounts") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("block accounts"))
+        if (uid == targetUserId) return@guardConfigured Result.failure(IllegalArgumentException("Cannot block yourself"))
+        val resp = postgrestApi.blockUser(mapOf("blocker_id" to uid, "blocked_id" to targetUserId))
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun unblockUser(targetUserId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("unblock accounts") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("unblock accounts"))
+        val resp = postgrestApi.unblockUser("eq.$uid", "eq.$targetUserId")
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun fetchBlockedAccounts(): Result<List<BlockRowDto>> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(emptyList())
+        val resp = postgrestApi.getBlocks("eq.$uid")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun muteUser(targetUserId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("mute accounts") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("mute accounts"))
+        if (uid == targetUserId) return@guardConfigured Result.failure(IllegalArgumentException("Cannot mute yourself"))
+        val resp = postgrestApi.muteUser(MuteRowDto(uid, targetUserId))
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun searchProfiles(query: String): Result<List<ProfileDto>> = guardConfigured {
+        val sanitized = query.trim().replace(",", "").replace("(", "").replace(")", "")
+        val filter = if (sanitized.isBlank()) null else "(username.ilike.*$sanitized*,display_name.ilike.*$sanitized*,bio.ilike.*$sanitized*)"
+        val resp = postgrestApi.getProfiles(orFilter = filter, limit = 25)
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun searchPosts(query: String, sort: String = "created_at.desc"): Result<List<PostDto>> = guardConfigured {
+        val sanitized = query.trim().replace(",", "").replace("(", "").replace(")", "")
+        val filter = if (sanitized.isBlank()) null else "(content.ilike.*$sanitized*)"
+        val resp = postgrestApi.getPosts(orFilter = filter, order = sort, limit = 25)
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().map { it.normalizedForUi() })
+    }
+
+    suspend fun fetchCommunities(category: String? = null, query: String = ""): Result<List<CommunityDto>> =
+        guardConfigured {
+            val sanitized = query.trim().replace(",", "").replace("(", "").replace(")", "")
+            val catFilter = category?.takeIf { it != "All" }?.let { "eq.$it" }
+            val orFilter = if (sanitized.isBlank()) null else "(name.ilike.*$sanitized*,description.ilike.*$sanitized*)"
+            val resp = postgrestApi.getCommunities(categoryEq = catFilter, orFilter = orFilter)
+            if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+            Result.success(resp.body().orEmpty())
+        }
+
+    suspend fun fetchMyJoinedCommunityIds(): Result<Set<String>> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(emptySet())
+        val resp = postgrestApi.getCommunityMembers(userIdEq = "eq.$uid", select = "community_id,user_id,role,created_at")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().map { it.communityId }.toSet())
+    }
+
+    suspend fun createCommunity(
+        name: String,
+        description: String,
+        category: String,
+        isPrivate: Boolean,
+    ): Result<CommunityDto> = guardConfigured {
+        val uid = requireUserId("create a community") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("create a community"))
+        val cleanName = name.trim()
+        if (cleanName.length < 2) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Community name must be at least 2 characters."))
+        }
+        val slugBase = cleanName.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').ifBlank { "group" }
+        val slug = "$slugBase-${(100..999).random()}"
+        val resp = postgrestApi.createCommunity(
+            CreateCommunityRequest(
+                slug = slug,
+                name = cleanName.take(80),
+                description = description.trim().take(1000),
+                category = category,
+                isPrivate = isPrivate,
+                creatorId = uid,
+            ),
+        )
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        val created = resp.body()!!.first()
+        postgrestApi.joinCommunity(mapOf("community_id" to created.id, "user_id" to uid, "role" to "owner"))
+        Result.success(created)
+    }
+
+    suspend fun joinCommunity(communityId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("join communities") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("join communities"))
+        val resp = postgrestApi.joinCommunity(mapOf("community_id" to communityId, "user_id" to uid, "role" to "member"))
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun leaveCommunity(communityId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("leave communities") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("leave communities"))
+        val resp = postgrestApi.leaveCommunity("eq.$communityId", "eq.$uid")
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun fetchCommunityMembers(communityId: String): Result<List<CommunityMemberDto>> = guardConfigured {
+        val resp = postgrestApi.getCommunityMembers(communityIdEq = "eq.$communityId")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun fetchCommunityPosts(communityId: String): Result<List<PostDto>> = guardConfigured {
+        val resp = postgrestApi.getPosts(communityIdFilter = "eq.$communityId")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().map { it.normalizedForUi() })
+    }
+
+    suspend fun fetchProjects(ownerId: String? = null): Result<List<ProjectDto>> = guardConfigured {
+        val resp = postgrestApi.getProjects(ownerIdEq = ownerId?.let { "eq.$it" })
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun createProject(request: CreateProjectRequest): Result<ProjectDto> = guardConfigured {
+        val uid = requireUserId("showcase a project") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("showcase a project"))
+        val title = request.title.trim()
+        val desc = request.description.trim()
+        if (title.isBlank() || desc.isBlank()) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Project title and description are required."))
+        }
+        val resp = postgrestApi.createProject(
+            request.copy(
+                ownerId = uid,
+                title = title.take(120),
+                description = desc.take(2000),
+            ),
+        )
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body()!!.first())
+    }
+
+    suspend fun fetchSkills(): Result<List<SkillDto>> = guardConfigured {
+        val resp = postgrestApi.getSkills()
+        if (resp.code() == 404) {
+            return@guardConfigured Result.success(
+                listOf(
+                    SkillDto("sk_kotlin", "Kotlin", "Technology"),
+                    SkillDto("sk_design", "UI Design", "Design"),
+                    SkillDto("sk_photo", "Photography", "Creative Arts"),
+                    SkillDto("sk_ai", "AI & ML", "Technology"),
+                    SkillDto("sk_writing", "Writing", "Words"),
+                    SkillDto("sk_founder", "Entrepreneurship", "Business"),
+                    SkillDto("sk_video", "Video Editing", "Media"),
+                    SkillDto("sk_music", "Music Production", "Performing"),
+                ),
+            )
+        }
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun fetchExperiences(userId: String): Result<List<ExperienceDto>> = guardConfigured {
+        val resp = postgrestApi.getExperiences("eq.$userId")
+        if (resp.code() == 404) return@guardConfigured Result.success(emptyList())
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun createExperience(request: CreateExperienceRequest): Result<ExperienceDto> = guardConfigured {
+        val uid = requireUserId("add experience") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("add experience"))
+        if (request.title.isBlank() || request.organization.isBlank()) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Role title and organization are required."))
+        }
+        val resp = postgrestApi.createExperience(request.copy(userId = uid))
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body()!!.first())
+    }
+
+    suspend fun fetchAchievements(userId: String): Result<List<AchievementDto>> = guardConfigured {
+        val resp = postgrestApi.getAchievements("eq.$userId")
+        if (resp.code() == 404) return@guardConfigured Result.success(emptyList())
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun createAchievement(
+        title: String,
+        issuer: String,
+        awardedAt: String?,
+        description: String,
+    ): Result<AchievementDto> = guardConfigured {
+        val uid = requireUserId("add achievements") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("add achievements"))
+        if (title.isBlank()) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Achievement title is required."))
+        }
+        val resp = postgrestApi.createAchievement(
+            CreateAchievementRequest(
+                userId = uid,
+                title = title.trim().take(120),
+                issuer = issuer.trim().take(120),
+                awardedAt = awardedAt?.trim()?.takeIf { it.isNotBlank() },
+                description = description.trim().take(1000),
+            ),
+        )
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body()!!.first())
+    }
+
+    suspend fun startDirectConversation(peerUserId: String): Result<String> = guardConfigured {
+        val uid = requireUserId("start a private conversation")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("start a private conversation"))
+        if (uid == peerUserId) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Cannot message yourself."))
+        }
+        val resp = postgrestApi.createOrGetDirectConversation(CreateDirectConversationParams(peerUserId))
+        if (resp.isSuccessful) {
+            val convId = resp.body()?.trim().orEmpty()
+            return@guardConfigured if (convId.isBlank()) {
+                Result.failure(IllegalStateException("Conversation could not be created."))
+            } else {
+                Result.success(convId)
+            }
+        }
+        if (resp.code() == 404) {
+            val existing = postgrestApi.getConversations().body().orEmpty().firstOrNull { conv ->
+                val ids = conv.participants.map { it.userId }.toSet()
+                ids.size == 2 && uid in ids && peerUserId in ids
+            }
+            if (existing != null) return@guardConfigured Result.success(existing.id)
+        }
+        Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun fetchConversations(): Result<List<ConversationDto>> = guardConfigured {
+        requireUserId("access private messages") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access private messages"))
+        val resp = postgrestApi.getConversations()
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun fetchMessages(conversationId: String): Result<List<MessageDto>> = guardConfigured {
+        requireUserId("access private messages") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access private messages"))
+        val resp = postgrestApi.getMessages("eq.$conversationId")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun sendMessage(conversationId: String, content: String, mediaUrl: String? = null): Result<MessageDto> =
+        guardConfigured {
+            val uid = requireUserId("send private messages") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("send private messages"))
+            val clean = content.trim()
+            if (clean.isBlank() && mediaUrl.isNullOrBlank()) {
+                return@guardConfigured Result.failure(IllegalArgumentException("Message content or media is required."))
+            }
+            val resp = postgrestApi.sendMessage(
+                SendMessageRequest(
+                    conversationId = conversationId,
+                    senderId = uid,
+                    content = clean.take(AppConfig.MAX_MESSAGE_LENGTH),
+                    mediaUrl = mediaUrl,
+                ),
+            )
+            if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+            Result.success(resp.body()!!.first())
+        }
+
+    suspend fun fetchNotifications(): Result<List<NotificationDto>> = guardConfigured {
+        val uid = requireUserId("view notifications") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("view notifications"))
+        val resp = postgrestApi.getNotifications("eq.$uid")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun markNotificationRead(id: String): Result<Unit> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(Unit)
+        val resp = postgrestApi.markNotificationsRead("eq.$uid", "eq.$id", mapOf("read" to true))
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun markAllNotificationsRead(): Result<Unit> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(Unit)
+        val resp = postgrestApi.markNotificationsRead("eq.$uid", null, mapOf("read" to true))
+        if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
+    }
+
+    suspend fun fetchSavedCollections(): Result<List<SavedCollectionDto>> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(emptyList())
+        val resp = postgrestApi.getSavedCollections("eq.$uid")
+        if (resp.code() == 404) return@guardConfigured Result.success(emptyList())
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun createSavedCollection(name: String): Result<SavedCollectionDto> = guardConfigured {
+        val uid = requireUserId("create saved collections") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("create saved collections"))
+        val clean = name.trim()
+        if (clean.isBlank()) return@guardConfigured Result.failure(IllegalArgumentException("Collection name is required."))
+        val resp = postgrestApi.createSavedCollection(mapOf("owner_id" to uid, "name" to clean.take(60), "is_private" to true))
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body()!!.first())
+    }
+
+    suspend fun fetchSavedPosts(): Result<List<SavedPostDto>> = guardConfigured {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return@guardConfigured Result.success(emptyList())
+        val resp = postgrestApi.getSavedPosts("eq.$uid")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().map { it.copy(post = it.post?.normalizedForUi()) })
+    }
+
+    suspend fun toggleSavePost(postId: String, currentlySaved: Boolean, collectionId: String? = null): Result<Boolean> =
+        guardConfigured {
+            val uid = requireUserId("save content") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("save content"))
+            val resp = if (currentlySaved) {
+                postgrestApi.unsavePost("eq.$uid", "eq.$postId")
+            } else {
+                postgrestApi.savePost(mapOf("user_id" to uid, "post_id" to postId))
+            }
+            if (resp.isSuccessful) Result.success(!currentlySaved)
+            else Result.failure(IllegalStateException(resp.parseError()))
+        }
+
+    suspend fun submitReport(targetType: String, targetId: String, reason: String, details: String): Result<ReportDto> =
+        guardConfigured {
+            val uid = requireUserId("submit safety reports") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("submit safety reports"))
+            val resp = postgrestApi.submitReport(CreateReportRequest(uid, targetType, targetId, reason, details.trim().take(1000)))
+            if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+            Result.success(resp.body()!!.first())
+        }
+
+    suspend fun fetchModerationReports(): Result<List<ReportDto>> = guardConfigured {
+        requireUserId("access moderation reports") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access moderation reports"))
+        val resp = postgrestApi.getReports()
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun updateReportStatus(reportId: String, status: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("update moderation reports") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("update moderation reports"))
+        val resp = postgrestApi.updateReportStatus("eq.$reportId", mapOf("status" to status))
+        if (resp.isSuccessful) {
+            try {
+                postgrestApi.createAuditLog(
+                    CreateAuditLogRequest(
+                        actorAdminId = uid,
+                        action = "report_$status",
+                        targetType = "report",
+                        targetId = reportId,
+                        notes = "Report status updated to $status",
+                    ),
+                )
+            } catch (_: Exception) {
+            }
+            Result.success(Unit)
+        } else {
+            Result.failure(IllegalStateException(resp.parseError()))
+        }
+    }
+
+    suspend fun fetchAuditLogs(): Result<List<ModerationAuditLogDto>> = guardConfigured {
+        requireUserId("access moderation audit logs") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access moderation audit logs"))
+        val resp = postgrestApi.getAuditLogs()
+        if (resp.code() == 404) return@guardConfigured Result.success(emptyList())
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun fetchModerationAppeals(): Result<List<ModerationAppealDto>> = guardConfigured {
+        requireUserId("view moderation appeals") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("view moderation appeals"))
+        val resp = postgrestApi.getModerationAppeals()
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty())
+    }
+
+    suspend fun submitModerationAppeal(reason: String): Result<ModerationAppealDto> = guardConfigured {
+        val uid = requireUserId("submit moderation appeals") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("submit moderation appeals"))
+        val clean = reason.trim()
+        if (clean.length < 5) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Please describe your appeal reason (5+ characters)."))
+        }
+        val resp = postgrestApi.submitModerationAppeal(CreateAppealRequest(uid, clean.take(1000)))
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body()!!.first())
+    }
+
+    suspend fun syncFcmToken(token: String) {
+        if (!isConfiguredCheck()) return
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank() || token.isBlank()) return
+        try {
+            val rpcResp = postgrestApi.upsertDeviceTokenRpc(DeviceTokenRpcParams(fcmToken = token, platform = "android"))
+            if (!rpcResp.isSuccessful) {
+                postgrestApi.upsertDeviceToken(DeviceTokenUpsertDto(uid, token))
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun syncFcmTokenAsync(token: String) {
+        repoScope.launch {
+            syncFcmToken(token)
+        }
+    }
+}

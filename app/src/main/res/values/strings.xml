@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Skillect</string>
+    <string name="tagline">Connect. Create. Discover. Grow.</string>
+    <string name="age_gate_notice">Skillect is a global community for people aged 16 and above.</string>
+    <string name="backend_setup_banner">Connect your Supabase project in AI Studio Secrets (SUPABASE_URL &amp; SUPABASE_ANON_KEY) to sync live global data.</string>
+    <string name="nav_feed">Feed</string>
+    <string name="nav_explore">Explore</string>
+    <string name="nav_create">Create</string>
+    <string name="nav_communities">Groups</string>
+    <string name="nav_messages">Messages</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_notifications">Alerts</string>
+    <string name="channel_messages_name">Direct Messages</string>
+    <string name="channel_social_name">Social &amp; Activity</string>
+    <string name="channel_safety_name">Safety &amp; Account Alerts</string>
+</resources>

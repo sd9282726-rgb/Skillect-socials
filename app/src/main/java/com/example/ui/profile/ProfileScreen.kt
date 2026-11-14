@@ -1,0 +1,906 @@
+package com.example.ui.profile
+
+import android.content.Intent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Flag
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.WorkOutline
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.example.R
+import com.example.core.config.AppConfig
+import com.example.core.designsystem.BackendConfigBanner
+import com.example.core.designsystem.EmptyStateCard
+import com.example.core.designsystem.MinorSafeBadge
+import com.example.core.designsystem.SkillChip
+import com.example.core.designsystem.SkillectAvatar
+import com.example.core.designsystem.SkillectBrandBadge
+import com.example.core.designsystem.SkillectCard
+import com.example.core.designsystem.SkillectGradientIconTile
+import com.example.core.designsystem.SkillectOutlinedButton
+import com.example.core.designsystem.SkillectPrimaryButton
+import com.example.core.designsystem.VerifiedCreatorBadge
+import com.example.ui.feed.ReportContentDialog
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileScreen(
+    targetUserId: String?,
+    currentUserId: String,
+    uiState: ProfileSettingsUiState,
+    viewModel: ProfileSettingsViewModel,
+    onOpenSettings: () -> Unit,
+    onOpenConversation: (conversationId: String, peerName: String) -> Unit = { _, _ -> },
+    onRequireAuth: (createAccount: Boolean, reason: String) -> Unit = { _, _ -> },
+    onBack: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val isGuestOwnProfile = targetUserId == null && currentUserId.isBlank()
+
+    if (isGuestOwnProfile) {
+        GuestProfileView(
+            onCreateAccount = { onRequireAuth(true, "Create a Skillect account to build your profile, showcase projects, and connect.") },
+            onSignIn = { onRequireAuth(false, "Sign in to access your Skillect profile and saved collections.") },
+            onOpenSettings = onOpenSettings,
+            modifier = modifier,
+        )
+        return
+    }
+
+    LaunchedEffect(targetUserId, currentUserId) {
+        viewModel.loadProfile(targetUserId)
+    }
+
+    val profile = uiState.viewedProfile ?: uiState.myProfile
+    val isOwnProfile = targetUserId == null || (currentUserId.isNotBlank() && targetUserId == currentUserId)
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showProjectDialog by remember { mutableStateOf(false) }
+    var showExperienceDialog by remember { mutableStateOf(false) }
+    var showAchievementDialog by remember { mutableStateOf(false) }
+    var showCollectionDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        LazyColumn(
+            modifier = Modifier.widthIn(max = 720.dp).fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp),
+        ) {
+            item {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    if (!profile?.coverUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = profile?.coverUrl,
+                            contentDescription = "Profile cover image",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp),
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.img_community_banner),
+                            contentDescription = "Default profile cover",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp),
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+
+                        Row {
+                            if (isOwnProfile) {
+                                IconButton(
+                                    onClick = onOpenSettings,
+                                    modifier = Modifier.testTag("profile_settings_button"),
+                                ) {
+                                    Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = Color.White)
+                                }
+                            } else {
+                                Box {
+                                    IconButton(onClick = { menuExpanded = true }) {
+                                        Icon(Icons.Rounded.MoreVert, contentDescription = "Profile actions", tint = Color.White)
+                                    }
+                                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                                        DropdownMenuItem(
+                                            text = { Text("Share profile") },
+                                            leadingIcon = { Icon(Icons.Rounded.Share, contentDescription = null) },
+                                            onClick = {
+                                                menuExpanded = false
+                                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                                    type = "text/plain"
+                                                    putExtra(Intent.EXTRA_TEXT, "Connect with @${profile?.username ?: "member"} on Skillect")
+                                                }
+                                                context.startActivity(Intent.createChooser(intent, "Share Profile"))
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Mute account") },
+                                            onClick = {
+                                                menuExpanded = false
+                                                if (currentUserId.isBlank()) {
+                                                    onRequireAuth(false, "Sign in to mute accounts.")
+                                                } else {
+                                                    profile?.id?.let(viewModel::muteUser)
+                                                }
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Block account") },
+                                            leadingIcon = { Icon(Icons.Rounded.Block, contentDescription = null) },
+                                            onClick = {
+                                                menuExpanded = false
+                                                if (currentUserId.isBlank()) {
+                                                    onRequireAuth(false, "Sign in to block accounts.")
+                                                } else {
+                                                    profile?.id?.let(viewModel::blockUser)
+                                                }
+                                            },
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Report account") },
+                                            leadingIcon = { Icon(Icons.Rounded.Flag, contentDescription = null) },
+                                            onClick = {
+                                                menuExpanded = false
+                                                if (currentUserId.isBlank()) {
+                                                    onRequireAuth(false, "Sign in to submit safety reports.")
+                                                } else {
+                                                    showReportDialog = true
+                                                }
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 16.dp)
+                            .align(Alignment.BottomStart)
+                            .offset(y = 38.dp),
+                    ) {
+                        SkillectAvatar(
+                            avatarUrl = profile?.avatarUrl,
+                            contentDescription = "Profile avatar",
+                            size = 82.dp,
+                            hasActiveStory = true,
+                        )
+                    }
+                }
+            }
+
+            item {
+                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 46.dp)) {
+                    if (!AppConfig.isSupabaseConfigured) {
+                        BackendConfigBanner()
+                        Spacer(modifier = Modifier.height(14.dp))
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = profile?.displayName ?: "Skillect Member",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                )
+                                if (profile?.isVerified == true) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    VerifiedCreatorBadge()
+                                }
+                            }
+                            Text(
+                                text = "@${profile?.username ?: "skillect_user"}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+
+                        if (isOwnProfile) {
+                            SkillectOutlinedButton(
+                                text = "Edit Profile",
+                                leadingIcon = Icons.Rounded.Edit,
+                                onClick = { showEditDialog = true },
+                                modifier = Modifier.testTag("edit_profile_button"),
+                            )
+                        } else if (profile != null) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SkillectOutlinedButton(
+                                    text = "Message",
+                                    onClick = {
+                                        if (currentUserId.isBlank()) {
+                                            onRequireAuth(false, "Sign in to send direct messages.")
+                                        } else {
+                                            viewModel.startDirectConversation(profile.id) { conversationId ->
+                                                onOpenConversation(conversationId, profile.displayName)
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("profile_message_button"),
+                                )
+                                SkillectPrimaryButton(
+                                    text = if (uiState.isFollowing) "Following" else "Follow",
+                                    onClick = {
+                                        if (currentUserId.isBlank()) {
+                                            onRequireAuth(false, "Sign in to follow creators and build your network.")
+                                        } else {
+                                            viewModel.toggleFollow(profile.id)
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("profile_follow_button"),
+                                )
+                            }
+                        }
+                    }
+
+                    if (profile?.headline?.isNotBlank() == true) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = profile.headline,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+
+                    if (profile?.bio?.isNotBlank() == true) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = profile.bio, style = MaterialTheme.typography.bodyMedium)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (profile != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Rounded.LocationOn,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "${profile.regionLabel.ifBlank { profile.countryCode }} · ${profile.timezone}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        if (profile?.isMinorSafeDefaults == true) {
+                            MinorSafeBadge()
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        StatCounter(profile?.postsCount ?: uiState.posts.size, "Posts")
+                        StatCounter(profile?.followersCount ?: 0, "Followers")
+                        StatCounter(profile?.followingCount ?: 0, "Following")
+                    }
+
+                    if (profile?.interests?.isNotEmpty() == true) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            profile.interests.forEach { SkillChip(label = it) }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(14.dp))
+                val tabs = if (isOwnProfile) listOf("Posts", "Projects", "Career", "Saved") else listOf("Posts", "Projects", "Career")
+                SecondaryTabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.onBackground,
+                    indicator = {
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(selectedTab, matchContentSize = false),
+                            height = 2.dp,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+                    },
+                    divider = {
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                    },
+                ) {
+                    tabs.forEachIndexed { idx, label ->
+                        val isSel = selectedTab == idx
+                        Tab(
+                            selected = isSel,
+                            onClick = { selectedTab = idx },
+                            text = {
+                                Text(
+                                    text = label,
+                                    color = if (isSel) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Medium,
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+
+            when (selectedTab) {
+                0 -> {
+                    if (uiState.posts.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.padding(16.dp)) {
+                                EmptyStateCard(
+                                    icon = Icons.Rounded.Person,
+                                    title = "No posts yet",
+                                    subtitle = "Published posts, visual media, threads, and project updates will appear here.",
+                                )
+                            }
+                        }
+                    } else {
+                        items(uiState.posts, key = { it.id }) { post ->
+                            SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
+                                Text(
+                                    text = AppConfig.formatRelativeTimestamp(post.createdAt),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                if (post.content.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(post.content, style = MaterialTheme.typography.bodyMedium)
+                                }
+                                if (post.mediaUrls.isNotEmpty() && post.mediaTypes.firstOrNull() != "video") {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    AsyncImage(
+                                        model = post.mediaUrls.first(),
+                                        contentDescription = "Post media",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(160.dp),
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "${AppConfig.formatCompactCount(post.likesCount)} likes · ${AppConfig.formatCompactCount(post.commentsCount)} comments",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+                1 -> {
+                    if (isOwnProfile) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.End,
+                            ) {
+                                SkillectPrimaryButton(
+                                    text = "Add Project",
+                                    leadingIcon = Icons.Rounded.Add,
+                                    onClick = { showProjectDialog = true },
+                                )
+                            }
+                        }
+                    }
+                    if (uiState.projects.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.padding(16.dp)) {
+                                EmptyStateCard(
+                                    icon = Icons.Rounded.Code,
+                                    title = "Project Showcase",
+                                    subtitle = "Showcase builds, creative portfolios, open-source work, and collaborator details.",
+                                )
+                            }
+                        }
+                    } else {
+                        items(uiState.projects, key = { it.id }) { proj ->
+                            SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
+                                Text(proj.title, style = MaterialTheme.typography.titleMedium)
+                                Text(proj.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(proj.description, style = MaterialTheme.typography.bodyMedium)
+                                if (proj.skillsUsed.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        proj.skillsUsed.forEach { SkillChip(label = it) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                2 -> {
+                    if (isOwnProfile) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                            ) {
+                                SkillectOutlinedButton(
+                                    text = "Add Experience",
+                                    leadingIcon = Icons.Rounded.Add,
+                                    onClick = { showExperienceDialog = true },
+                                )
+                                SkillectOutlinedButton(
+                                    text = "Add Achievement",
+                                    leadingIcon = Icons.Rounded.EmojiEvents,
+                                    onClick = { showAchievementDialog = true },
+                                )
+                            }
+                        }
+                    }
+                    if (uiState.experiences.isEmpty() && uiState.achievements.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.padding(16.dp)) {
+                                EmptyStateCard(
+                                    icon = Icons.Rounded.WorkOutline,
+                                    title = "Experience & Achievements",
+                                    subtitle = "Add roles, creative collaborations, education, and career milestones.",
+                                )
+                            }
+                        }
+                    } else {
+                        if (uiState.experiences.isNotEmpty()) {
+                            items(uiState.experiences, key = { it.id }) { exp ->
+                                SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
+                                    Text(exp.title, style = MaterialTheme.typography.titleMedium)
+                                    Text(
+                                        text = "${exp.organization} · ${exp.startDate}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                    if (exp.description.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(exp.description, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                            }
+                        }
+                        if (uiState.achievements.isNotEmpty()) {
+                            items(uiState.achievements, key = { "ach_${it.id}" }) { ach ->
+                                SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.EmojiEvents,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(ach.title, style = MaterialTheme.typography.titleMedium)
+                                    }
+                                    val subtitle = listOfNotNull(
+                                        ach.issuer.takeIf { it.isNotBlank() },
+                                        ach.awardedAt?.takeIf { it.isNotBlank() },
+                                    ).joinToString(" · ")
+                                    if (subtitle.isNotBlank()) {
+                                        Text(
+                                            text = subtitle,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                    if (ach.description.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(ach.description, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                3 -> {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("Private Saved Collections", style = MaterialTheme.typography.titleMedium)
+                            SkillectOutlinedButton(
+                                text = "New Collection",
+                                leadingIcon = Icons.Rounded.Add,
+                                onClick = { showCollectionDialog = true },
+                            )
+                        }
+                    }
+                    if (uiState.savedPosts.isEmpty() && uiState.savedCollections.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.padding(16.dp)) {
+                                EmptyStateCard(
+                                    icon = Icons.Rounded.Bookmark,
+                                    title = "Saved Content is Private",
+                                    subtitle = "Bookmark posts into private collections visible only to you.",
+                                )
+                            }
+                        }
+                    } else {
+                        items(uiState.savedCollections, key = { it.id }) { col ->
+                            SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth()) {
+                                Text(col.name, style = MaterialTheme.typography.titleSmall)
+                                Text("Private collection", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        items(uiState.savedPosts, key = { it.postId }) { saved ->
+                            SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
+                                Text(
+                                    text = saved.post?.content ?: "Saved post ${saved.postId}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showEditDialog) {
+        var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
+        var headline by remember { mutableStateOf(profile?.headline.orEmpty()) }
+        var bio by remember { mutableStateOf(profile?.bio.orEmpty()) }
+        var region by remember { mutableStateOf(profile?.regionLabel.orEmpty()) }
+        var interests by remember { mutableStateOf(profile?.interests?.joinToString(", ").orEmpty()) }
+
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("Edit Profile") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Display Name") })
+                    OutlinedTextField(value = headline, onValueChange = { headline = it }, label = { Text("Professional Headline") })
+                    OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, minLines = 2)
+                    OutlinedTextField(value = region, onValueChange = { region = it }, label = { Text("Country / Region (privacy-safe)") })
+                    OutlinedTextField(value = interests, onValueChange = { interests = it }, label = { Text("Interests (comma-separated)") })
+                }
+            },
+            confirmButton = {
+                SkillectPrimaryButton(
+                    text = "Save",
+                    onClick = {
+                        viewModel.updateProfile(displayName, headline, bio, region, interests)
+                        showEditDialog = false
+                    },
+                )
+            },
+            dismissButton = { TextButton(onClick = { showEditDialog = false }) { Text("Cancel") } },
+        )
+    }
+
+    if (showProjectDialog) {
+        var title by remember { mutableStateOf("") }
+        var desc by remember { mutableStateOf("") }
+        var category by remember { mutableStateOf("Technology") }
+        var skills by remember { mutableStateOf("") }
+        var collaborators by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showProjectDialog = false },
+            title = { Text("Showcase Project") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Project Title") })
+                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Description") }, minLines = 3)
+                    OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Category") })
+                    OutlinedTextField(value = skills, onValueChange = { skills = it }, label = { Text("Skills used (comma-separated)") })
+                    OutlinedTextField(value = collaborators, onValueChange = { collaborators = it }, label = { Text("Collaborators note") })
+                }
+            },
+            confirmButton = {
+                SkillectPrimaryButton(
+                    text = "Publish",
+                    enabled = title.isNotBlank() && desc.isNotBlank(),
+                    onClick = {
+                        viewModel.addProject(title, desc, category, skills, collaborators)
+                        showProjectDialog = false
+                    },
+                )
+            },
+            dismissButton = { TextButton(onClick = { showProjectDialog = false }) { Text("Cancel") } },
+        )
+    }
+
+                    if (showExperienceDialog) {
+                        var title by remember { mutableStateOf("") }
+                        var org by remember { mutableStateOf("") }
+                        var start by remember { mutableStateOf("2024-01-01") }
+                        var desc by remember { mutableStateOf("") }
+
+                        AlertDialog(
+                            onDismissRequest = { showExperienceDialog = false },
+                            title = { Text("Add Experience") },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Role / Title") })
+                                    OutlinedTextField(value = org, onValueChange = { org = it }, label = { Text("Organization / Studio") })
+                                    OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Start Date (YYYY-MM-DD)") })
+                                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Highlights") }, minLines = 2)
+                                }
+                            },
+                            confirmButton = {
+                                SkillectPrimaryButton(
+                                    text = "Save",
+                                    enabled = title.isNotBlank() && org.isNotBlank(),
+                                    onClick = {
+                                        viewModel.addExperience(title, org, start, desc)
+                                        showExperienceDialog = false
+                                    },
+                                )
+                            },
+                            dismissButton = { TextButton(onClick = { showExperienceDialog = false }) { Text("Cancel") } },
+                        )
+                    }
+
+                    if (showAchievementDialog) {
+                        var title by remember { mutableStateOf("") }
+                        var issuer by remember { mutableStateOf("") }
+                        var awardedAt by remember { mutableStateOf("") }
+                        var desc by remember { mutableStateOf("") }
+
+                        AlertDialog(
+                            onDismissRequest = { showAchievementDialog = false },
+                            title = { Text("Add Achievement") },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Achievement / Certification") })
+                                    OutlinedTextField(value = issuer, onValueChange = { issuer = it }, label = { Text("Issuer / Organization") })
+                                    OutlinedTextField(value = awardedAt, onValueChange = { awardedAt = it }, label = { Text("Date (YYYY-MM-DD, optional)") })
+                                    OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Details") }, minLines = 2)
+                                }
+                            },
+                            confirmButton = {
+                                SkillectPrimaryButton(
+                                    text = "Save",
+                                    enabled = title.isNotBlank(),
+                                    onClick = {
+                                        viewModel.addAchievement(title, issuer, awardedAt, desc)
+                                        showAchievementDialog = false
+                                    },
+                                )
+                            },
+                            dismissButton = { TextButton(onClick = { showAchievementDialog = false }) { Text("Cancel") } },
+                        )
+                    }
+
+    if (showCollectionDialog) {
+        var name by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showCollectionDialog = false },
+            title = { Text("New Private Collection") },
+            text = {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Collection Name") })
+            },
+            confirmButton = {
+                SkillectPrimaryButton(
+                    text = "Create",
+                    enabled = name.isNotBlank(),
+                    onClick = {
+                        viewModel.createSavedCollection(name)
+                        showCollectionDialog = false
+                    },
+                )
+            },
+            dismissButton = { TextButton(onClick = { showCollectionDialog = false }) { Text("Cancel") } },
+        )
+    }
+
+    if (showReportDialog && profile != null) {
+        ReportContentDialog(
+            title = "Report Account",
+            onDismiss = { showReportDialog = false },
+            onSubmit = { reason, details ->
+                viewModel.reportProfile(profile.id, reason, details)
+                showReportDialog = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun StatCounter(count: Int, label: String) {
+    Column {
+        Text(
+            text = AppConfig.formatCompactCount(count),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+fun GuestProfileView(
+    onCreateAccount: () -> Unit,
+    onSignIn: () -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .testTag("guest_profile_screen"),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 620.dp)
+                .fillMaxSize(),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SkillectBrandBadge(size = 28.dp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Profile",
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                }
+                IconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier.testTag("profile_settings_button"),
+                ) {
+                    Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+                }
+            }
+
+            HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        SkillectGradientIconTile(icon = Icons.Rounded.Person)
+                        Spacer(modifier = Modifier.height(18.dp))
+                        MinorSafeBadge()
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Text(
+                            text = "Profile",
+                            style = MaterialTheme.typography.headlineMedium,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Your skills, projects, followers, and posts in one global profile. Create an account or sign in to get started.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        SkillectPrimaryButton(
+                            text = "Create an account",
+                            onClick = onCreateAccount,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("guest_create_account_button"),
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        SkillectOutlinedButton(
+                            text = "Sign in",
+                            onClick = onSignIn,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("guest_sign_in_button"),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

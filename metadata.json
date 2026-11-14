@@ -1,0 +1,6 @@
+{
+  "name": "Skillect",
+  "description": "Worldwide social, creative, and professional networking platform (16+) uniting visual feeds, stories, short videos, discussions, communities, real-time messaging, and skill/project portfolios.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
