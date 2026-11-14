@@ -401,9 +401,6 @@ class SkillectRepository(
     suspend fun updateProfileFields(userId: String, updates: Map<String, Any?>): Result<ProfileDto> = guardConfigured {
         val uid = requireUserId("edit your profile") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("edit your profile"))
         if (userId != uid) return@guardConfigured Result.failure(IllegalArgumentException("You can only edit your own profile."))
-        if (updates.containsKey("cover_url")) {
-            return@guardConfigured Result.failure(IllegalStateException("Profile background upload needs the secure profile-media endpoint."))
-        }
         val existingResponse = postgrestApi.getProfiles(idFilter = "eq.$uid", limit = 1)
         if (!existingResponse.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(existingResponse.parseError()))
         val existing = existingResponse.body()?.firstOrNull()
