@@ -71,7 +71,27 @@ object AppConfig {
         CountryOption("NL", "Netherlands", "+31", "Europe/Amsterdam"),
         CountryOption("SE", "Sweden", "+46", "Europe/Stockholm"),
         CountryOption("ID", "Indonesia", "+62", "Asia/Jakarta"),
-    )
+    ).let { featured ->
+        // Keep common regions first, then include every remaining ISO-3166 country.
+        // Unknown calling codes/time zones intentionally fall back to blank/UTC rather than
+        // silently assigning an incorrect regional value.
+        val featuredCodes = featured.map { it.isoCode }.toSet()
+        val remaining = Locale.getISOCountries()
+            .asSequence()
+            .filterNot { it in featuredCodes }
+            .mapNotNull { isoCode ->
+                val countryName = Locale("", isoCode).getDisplayCountry(Locale.ENGLISH).trim()
+                if (countryName.isBlank()) null else CountryOption(
+                    isoCode = isoCode,
+                    name = countryName,
+                    dialCode = "",
+                    defaultTimezone = "UTC",
+                )
+            }
+            .sortedBy { it.name }
+            .toList()
+        featured + remaining
+    }
 
     val supportedLanguages: List<Pair<String, String>> = listOf(
         "en" to "English",
