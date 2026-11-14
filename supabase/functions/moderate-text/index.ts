@@ -105,6 +105,8 @@ Deno.serve(async (request: Request) => {
         String(input.website || ""),
         ...(Array.isArray(input.skills) ? input.skills.map(String) : []),
         ...(Array.isArray(input.interests) ? input.interests.map(String) : []),
+        String(input.avatar_url || ""),
+        String(input.cover_url || ""),
       ]
     : [];
   const projectFields = type === "project"
@@ -116,7 +118,7 @@ Deno.serve(async (request: Request) => {
   const content = rawContent || moderationText;
   if (!["post", "comment", "message", "message_request", "profile", "media_caption", "project", "community"].includes(type)) return json(400, { error: "Unsupported content type" });
 
-  if (type === "profile" && input.onboarded === true) {
+  if (type === "profile") {
     try {
       const profiles = await rest(base, service, "profiles?select=onboarded,date_of_birth&id=eq." + encodeURIComponent(userId) + "&limit=1");
       const existing = Array.isArray(profiles) ? profiles[0] : null;
@@ -249,14 +251,37 @@ Deno.serve(async (request: Request) => {
     if (Object.prototype.hasOwnProperty.call(input, "avatar_url")) {
       const avatar = String(input.avatar_url || "");
       const isPresetAvatar = ["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5"].includes(avatar);
-      const isSecurePhoto = avatar.toLowerCase().startsWith("https://") && avatar.length <= 500;
-      if (!isPresetAvatar && !isSecurePhoto) return json(400, { error: "Choose one of the available Skillect avatars or a secure profile photo URL" });
-      record.avatar_url = avatar;
+      if (avatar && !isPresetAvatar) {
+        if (!avatar.toLowerCase().startsWith("https://") || avatar.length > 500) {
+          return json(400, { error: "Choose an approved Skillect avatar or a secure profile photo." });
+        }
+        const approved = await rest(
+          base,
+          service,
+          "media_assets?select=id&owner_id=eq." + encodeURIComponent(userId) +
+            "&public_url=eq." + encodeURIComponent(avatar) + "&status=eq.approved&media_type=eq.image&limit=1",
+        );
+        if (!Array.isArray(approved) || approved.length === 0) {
+          return json(403, { error: "Profile photos must pass Skillect image screening before use." });
+        }
+      }
+      record.avatar_url = avatar || null;
     }
     if (Object.prototype.hasOwnProperty.call(input, "cover_url")) {
       const cover = String(input.cover_url || "");
-      if (cover && (!cover.toLowerCase().startsWith("https://") || cover.length > 500)) {
-        return json(400, { error: "Choose a secure profile background URL." });
+      if (cover) {
+        if (!cover.toLowerCase().startsWith("https://") || cover.length > 500) {
+          return json(400, { error: "Choose a secure profile background." });
+        }
+        const approved = await rest(
+          base,
+          service,
+          "media_assets?select=id&owner_id=eq." + encodeURIComponent(userId) +
+            "&public_url=eq." + encodeURIComponent(cover) + "&status=eq.approved&media_type=eq.image&limit=1",
+        );
+        if (!Array.isArray(approved) || approved.length === 0) {
+          return json(403, { error: "Profile backgrounds must pass Skillect image screening before use." });
+        }
       }
       record.cover_url = cover || null;
     }
