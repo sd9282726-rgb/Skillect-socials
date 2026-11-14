@@ -50,6 +50,7 @@ class ExploreCommunitiesViewModel(
     val uiState: StateFlow<ExploreUiState> = _uiState.asStateFlow()
     private var searchJob: Job? = null
     private var exploreJob: Job? = null
+    private var communityDetailJob: Job? = null
 
     init {
         refreshExplore()
@@ -200,13 +201,37 @@ class ExploreCommunitiesViewModel(
     }
 
     fun openCommunityDetail(communityId: String) {
+        communityDetailJob?.cancel()
         val found = _uiState.value.communities.firstOrNull { it.id == communityId }
-        _uiState.update { it.copy(selectedCommunity = found, communityMembers = emptyList(), communityPosts = emptyList()) }
+            ?: _uiState.value.selectedCommunity?.takeIf { it.id == communityId }
+        _uiState.update {
+            it.copy(
+                selectedCommunity = found,
+                communityMembers = emptyList(),
+                communityPosts = emptyList(),
+            )
+        }
         if (!AppConfig.isSupabaseConfigured) return
-        viewModelScope.launch {
-            val members = repository.fetchCommunityMembers(communityId).getOrDefault(emptyList())
-            val posts = repository.fetchCommunityPosts(communityId).getOrDefault(emptyList())
-            _uiState.update { it.copy(communityMembers = members, communityPosts = posts) }
+        communityDetailJob = viewModelScope.launch {
+            val communitiesResult = repository.fetchCommunities()
+            val membersResult = repository.fetchCommunityMembers(communityId)
+            val postsResult = repository.fetchCommunityPosts(communityId)
+            val latestCommunity = communitiesResult.getOrNull()?.firstOrNull { it.id == communityId } ?: found
+            // Ignore late responses if the user has already opened a different community.
+            _uiState.update { state ->
+                if (state.selectedCommunity?.id != communityId) state
+                else state.copy(
+                    selectedCommunity = latestCommunity,
+                    communities = communitiesResult.getOrNull()?.let { latest ->
+                        latest + state.communities.filterNot { old -> latest.any { it.id == old.id } }
+                    } ?: state.communities,
+                    communityMembers = membersResult.getOrDefault(emptyList()),
+                    communityPosts = postsResult.getOrDefault(emptyList()),
+                    errorMessage = membersResult.exceptionOrNull()?.message
+                        ?: postsResult.exceptionOrNull()?.message
+                        ?: state.errorMessage,
+                )
+            }
         }
     }
 
