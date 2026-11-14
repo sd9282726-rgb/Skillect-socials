@@ -8,6 +8,8 @@ The `functions/` directory mirrors the active Edge Function entrypoints retrieve
 
 The live database schema and migration history have not yet been exported into this repository. Do not treat this folder as a complete database baseline.
 
+The versioned `moderate-text` source includes an un-deployed pre-release patch: profile updates now pass through text screening, profile fields are persisted consistently, age eligibility is rechecked, and custom profile images must already be approved in `media_assets`. The live function has **not** been updated by this repository change. Deploy only after the profile-media upload path and required secrets are reviewed.
+
 Server-side secrets remain in Supabase, never in GitHub:
 - `FIREBASE_SERVICE_ACCOUNT_JSON` for Android push delivery.
 - `SIGHTENGINE_API_USER` and `SIGHTENGINE_API_SECRET` for text and media screening.
