@@ -16,8 +16,9 @@ class MainActivity : ComponentActivity() {
     private var deepLinkEntityIdState by mutableStateOf<String?>(null)
 
     private fun readNotificationDeepLink(intent: Intent?) {
-        deepLinkTypeState = intent?.getStringExtra("deep_link_type")
+        val incomingType = intent?.getStringExtra("deep_link_type")
             ?: intent?.getStringExtra("type")
+        deepLinkTypeState = if (incomingType == "new_message") "message" else incomingType
         deepLinkEntityIdState = intent?.getStringExtra("deep_link_entity_id")
             ?: intent?.getStringExtra("entity_id")
     }
