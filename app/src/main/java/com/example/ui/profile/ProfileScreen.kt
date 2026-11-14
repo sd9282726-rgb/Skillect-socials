@@ -105,8 +105,9 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val mediaScope = rememberCoroutineScope()
+    val effectiveCurrentUserId = effectiveCurrentUserId
     var mediaStatus by remember { mutableStateOf<String?>(null) }
-    val isGuestOwnProfile = targetUserId == null && currentUserId.isBlank()
+    val isGuestOwnProfile = targetUserId == null && effectiveCurrentUserId.isBlank()
 
     if (isGuestOwnProfile) {
         GuestProfileView(
@@ -118,7 +119,7 @@ fun ProfileScreen(
         return
     }
 
-    LaunchedEffect(targetUserId, currentUserId) {
+    LaunchedEffect(targetUserId, effectiveCurrentUserId) {
         viewModel.loadProfile(targetUserId)
     }
 
@@ -143,7 +144,7 @@ fun ProfileScreen(
             )
         }
     }
-    val isOwnProfile = targetUserId == null || viewModel.isCurrentUser(profile?.id) || (currentUserId.isNotBlank() && profile?.id == currentUserId)
+    val isOwnProfile = targetUserId == null || viewModel.isCurrentUser(profile?.id) || (effectiveCurrentUserId.isNotBlank() && profile?.id == effectiveCurrentUserId)
     var selectedTab by remember { mutableIntStateOf(0) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showProjectDialog by remember { mutableStateOf(false) }
@@ -227,7 +228,7 @@ fun ProfileScreen(
                                             text = { Text("Mute account") },
                                             onClick = {
                                                 menuExpanded = false
-                                                if (currentUserId.isBlank()) {
+                                                if (effectiveCurrentUserId.isBlank()) {
                                                     onRequireAuth(false, "Sign in to mute accounts.")
                                                 } else {
                                                     profile?.id?.let(viewModel::muteUser)
