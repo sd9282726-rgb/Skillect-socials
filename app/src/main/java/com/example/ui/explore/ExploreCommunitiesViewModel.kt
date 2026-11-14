@@ -85,8 +85,11 @@ class ExploreCommunitiesViewModel(
     }
 
     fun selectCategory(category: String) {
+        searchJob?.cancel()
         _uiState.update { it.copy(selectedCategory = category) }
-        refreshCommunitiesOnly()
+        // Use the same cancellable refresh pipeline as Explore search so an older
+        // category request cannot overwrite a newer selection.
+        refreshExplore()
     }
 
     fun refreshExplore() {
