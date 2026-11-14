@@ -731,6 +731,13 @@ fun ProfileScreen(
                         )
                     }
                     mediaStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    if (!uiState.statusMessage.isNullOrBlank()) {
+                        Text(
+                            text = uiState.statusMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (uiState.statusMessage == "Profile updated.") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
             },
             confirmButton = {
