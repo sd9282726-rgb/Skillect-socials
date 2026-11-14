@@ -423,12 +423,16 @@ class SkillectRepository(
             "username" to existing.username,
             "display_name" to existing.displayName,
             "bio" to existing.bio,
-            "location" to existing.location,
+            "location" to existing.regionLabel,
             "website" to existing.website,
             "skills" to existing.skills,
             "interests" to existing.interests,
+            "country" to existing.countryCode,
+            "is_private" to existing.isPrivate,
+            "onboarded" to existing.onboarded,
+            "avatar_url" to existing.avatarUrl,
+            "cover_url" to existing.coverUrl,
         )
-        existing.country?.let { body["country"] = it }
         body.putAll(sanitized)
         val content = listOf(
             body["display_name"]?.toString(),
