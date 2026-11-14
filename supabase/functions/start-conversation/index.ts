@@ -35,6 +35,19 @@ function isAtLeast16(value: unknown): boolean {
   return age >= 16 && birth.getTime() <= now.getTime();
 }
 
+function is16To17(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  const birth = new Date(Date.UTC(year, month - 1, day));
+  if (birth.getUTCFullYear() !== year || birth.getUTCMonth() !== month - 1 || birth.getUTCDate() !== day) return false;
+  const now = new Date();
+  let age = now.getUTCFullYear() - year;
+  if (now.getUTCMonth() < month - 1 || (now.getUTCMonth() === month - 1 && now.getUTCDate() < day)) age--;
+  return age >= 16 && age <= 17;
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -84,6 +97,9 @@ Deno.serve(async (request: Request) => {
 
     const targetFollowsSender = await rest(base, service, "follows?select=id&follower_id=eq." + recipientId + "&following_id=eq." + senderId + "&limit=1");
     const senderFollowsTarget = await rest(base, service, "follows?select=id&follower_id=eq." + senderId + "&following_id=eq." + recipientId + "&limit=1");
+    if (is16To17(recipient.date_of_birth) && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
+      return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
+    }
     const preferences = await rest(base, service, "user_preferences?select=allow_message_requests&user_id=eq." + recipientId + "&limit=1");
     const allowRequests = preferences?.[0]?.allow_message_requests !== false;
     if (recipient.is_private && (!Array.isArray(senderFollowsTarget) || !senderFollowsTarget.length)) {
