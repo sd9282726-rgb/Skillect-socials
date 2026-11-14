@@ -22,6 +22,7 @@ object NotificationChannels {
     const val CHANNEL_MESSAGES = "skillect_messages"
     const val CHANNEL_SOCIAL = "skillect_social"
     const val CHANNEL_SAFETY = "skillect_safety"
+    const val CHANNEL_ACTIVITY = "skillect_activity"
 
     fun createAll(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -41,6 +42,11 @@ object NotificationChannels {
                     CHANNEL_SAFETY,
                     context.getString(R.string.channel_safety_name),
                     NotificationManager.IMPORTANCE_HIGH,
+                ),
+                NotificationChannel(
+                    CHANNEL_ACTIVITY,
+                    context.getString(R.string.channel_social_name),
+                    NotificationManager.IMPORTANCE_DEFAULT,
                 ),
             )
             manager.createNotificationChannels(channels)
