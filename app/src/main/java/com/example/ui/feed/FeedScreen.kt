@@ -79,7 +79,6 @@ import com.example.core.designsystem.SkillectAvatar
 import com.example.core.designsystem.SkillectBrandBadge
 import com.example.core.designsystem.SkillectCard
 import com.example.core.designsystem.SkillectCrimson
-import com.example.core.designsystem.SkillectHorizontalBrandGradient
 import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.core.media.MediaUploadManager
@@ -157,14 +156,6 @@ fun FeedScreen(
                                 letterSpacing = (-0.8).sp,
                                 brush = SkillectHorizontalBrandGradient,
                             ),
-                        )
-                        Text(
-                            text = "CREATE  ·  CONNECT  ·  GROW",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                letterSpacing = 1.15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
