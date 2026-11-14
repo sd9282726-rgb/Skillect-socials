@@ -85,7 +85,7 @@ Deno.serve(async (request: Request) => {
   if (!notificationId || !userId) return json(400, { error: "notification_id and user_id are required" });
 
   const notificationResponse = await fetch(
-    base + "/rest/v1/notifications?select=id,user_id,type&id=eq." + encodeURIComponent(notificationId) + "&user_id=eq." + encodeURIComponent(userId),
+    base + "/rest/v1/notifications?select=id,user_id,type,entity_type,entity_id&id=eq." + encodeURIComponent(notificationId) + "&user_id=eq." + encodeURIComponent(userId),
     { headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey } },
   );
   if (!notificationResponse.ok) return json(503, { error: "Notification record could not be verified" });
@@ -110,6 +110,16 @@ Deno.serve(async (request: Request) => {
   try { accessToken = await firebaseAccessToken(serviceAccount); }
   catch { return json(503, { error: "Could not authenticate with Firebase" }); }
 
+  const notification = notifications[0];
+  const notificationType = String(notification.type || "activity");
+  const entityId = notification.entity_id == null ? "" : String(notification.entity_id);
+  const entityType = notification.entity_type == null ? "" : String(notification.entity_type);
+  const channelId = notificationType === "new_message"
+    ? "skillect_messages"
+    : notificationType === "safety"
+      ? "skillect_safety"
+      : "skillect_social";
+
   let sent = 0;
   let failed = 0;
   for (const row of rows) {
@@ -123,8 +133,13 @@ Deno.serve(async (request: Request) => {
           message: {
             token: fcmToken,
             notification: { title: "Skillect", body: "You have new activity" },
-            data: { notification_id: notificationId, type: String(notifications[0].type || "activity") },
-            android: { priority: "HIGH", notification: { channel_id: "skillect_activity" } },
+            data: {
+              notification_id: notificationId,
+              type: notificationType,
+              entity_id: entityId,
+              entity_type: entityType,
+            },
+            android: { priority: "HIGH", notification: { channel_id: channelId } },
           },
         }),
       },
