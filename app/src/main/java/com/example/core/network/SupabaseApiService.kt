@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
@@ -28,6 +29,8 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.PATCH
 import retrofit2.http.Path
+import retrofit2.http.Multipart
+import retrofit2.http.Part
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
@@ -77,6 +80,21 @@ interface SupabasePostgrestApi {
         @Body request: Map<String, @JvmSuppressWildcards Any?>,
     ): Response<ModerationGatewayResponse>
 
+    @Multipart
+    @POST("functions/v1/moderate-media")
+    suspend fun moderateMedia(
+        @Part file: MultipartBody.Part,
+        @Part("content") content: RequestBody,
+        @Part("tags") tags: RequestBody,
+        @Part("category") category: RequestBody,
+        @Part("community_id") communityId: RequestBody? = null,
+    ): Response<ModerationGatewayResponse>
+
+    @POST("functions/v1/submit-video-post")
+    suspend fun submitVideoPost(
+        @Body request: Map<String, @JvmSuppressWildcards Any?>,
+    ): Response<ModerationGatewayResponse>
+
     @Headers("Prefer: return=representation")
     @PATCH("rest/v1/profiles")
     suspend fun updateProfile(
@@ -87,6 +105,7 @@ interface SupabasePostgrestApi {
     @GET("rest/v1/posts")
     suspend fun getPosts(
         @Query("select") select: String = "*,author:profiles(*)",
+        @Query("id") idFilter: String? = null,
         @Query("author_id") authorIdFilter: String? = null,
         @Query("community_id") communityIdFilter: String? = null,
         @Query("category") postTypeFilter: String? = null,
@@ -145,6 +164,7 @@ interface SupabasePostgrestApi {
     @GET("rest/v1/comments")
     suspend fun getComments(
         @Query("post_id") postIdEq: String,
+        @Query("id") idEq: String? = null,
         @Query("select") select: String = "*,author:profiles(*)",
         @Query("order") order: String = "created_at.asc",
     ): Response<List<CommentDto>>
@@ -282,6 +302,7 @@ interface SupabasePostgrestApi {
     @GET("rest/v1/messages")
     suspend fun getMessages(
         @Query("conversation_id") conversationIdEq: String,
+        @Query("id") idEq: String? = null,
         @Query("order") order: String = "created_at.asc",
         @Query("limit") limit: Int = 50,
     ): Response<List<MessageDto>>
