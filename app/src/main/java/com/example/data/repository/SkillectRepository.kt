@@ -428,6 +428,7 @@ class SkillectRepository(
             "skills" to existing.skills,
             "interests" to existing.interests,
             "country" to existing.countryCode,
+            "date_of_birth" to existing.birthDate,
             "is_private" to existing.isPrivate,
             "onboarded" to existing.onboarded,
             "avatar_url" to existing.avatarUrl,
