@@ -34,6 +34,7 @@ data class FeedUiState(
     val activeCommentsPost: PostDto? = null,
     val comments: List<CommentDto> = emptyList(),
     val loadingComments: Boolean = false,
+    val isSubmittingComment: Boolean = false,
     val snackbarMessage: String? = null,
 )
 
@@ -80,6 +81,7 @@ class FeedViewModel(
                 votedPollOptions = emptyMap(),
                 activeCommentsPost = null,
                 comments = emptyList(),
+                isSubmittingComment = false,
                 snackbarMessage = null,
             )
         }
@@ -330,10 +332,15 @@ class FeedViewModel(
         _uiState.update { it.copy(activeCommentsPost = null, comments = emptyList()) }
     }
 
-    fun submitComment(content: String, parentCommentId: String? = null) {
+    fun submitComment(
+        content: String,
+        parentCommentId: String? = null,
+        onComplete: (Boolean) -> Unit = {},
+    ) {
         val post = _uiState.value.activeCommentsPost ?: return
-        if (content.isBlank()) return
+        if (content.isBlank() || _uiState.value.isSubmittingComment) return
         viewModelScope.launch {
+            _uiState.update { it.copy(isSubmittingComment = true, snackbarMessage = null) }
             repository.addComment(post.id, content.trim(), parentCommentId).fold(
                 onSuccess = { added ->
                     _uiState.update { state ->
@@ -342,10 +349,15 @@ class FeedViewModel(
                             posts = state.posts.map {
                                 if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it
                             },
+                            isSubmittingComment = false,
                         )
                     }
+                    onComplete(true)
                 },
-                onFailure = { err -> _uiState.update { it.copy(snackbarMessage = err.message) } },
+                onFailure = { err ->
+                    _uiState.update { it.copy(isSubmittingComment = false, snackbarMessage = err.message) }
+                    onComplete(false)
+                },
             )
         }
     }
