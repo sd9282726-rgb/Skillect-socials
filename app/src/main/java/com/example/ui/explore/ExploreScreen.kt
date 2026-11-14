@@ -124,7 +124,7 @@ fun ExploreScreen(
                     placeholder = { Text("Search people, @usernames, #tags, skills, projects...") },
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                     trailingIcon = {
-                        IconButton(onClick = viewModel::refreshExplore) {
+                        IconButton(onClick = viewModel::searchNow) {
                             Icon(Icons.Rounded.Search, contentDescription = "Run search")
                         }
                     },
@@ -196,7 +196,7 @@ fun ExploreScreen(
                                 hashtags.take(12).forEach { tag ->
                                     HashtagChip(tag = tag, onClick = {
                                         viewModel.updateQuery(tag)
-                                        viewModel.refreshExplore()
+                                        viewModel.searchNow()
                                     })
                                 }
                             }
