@@ -70,7 +70,8 @@ class SkillectFirebaseMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(message)
         val title = message.notification?.title ?: message.data["title"] ?: getString(R.string.app_name)
         val body = message.notification?.body ?: message.data["body"] ?: ""
-        val type = message.data["type"] ?: "social"
+        val rawType = message.data["type"] ?: "social"
+        val type = if (rawType == "new_message") "message" else rawType
         val channelId = when (type) {
             "message" -> NotificationChannels.CHANNEL_MESSAGES
             "safety" -> NotificationChannels.CHANNEL_SAFETY
