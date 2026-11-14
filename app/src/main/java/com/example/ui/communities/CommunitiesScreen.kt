@@ -128,7 +128,16 @@ fun CommunitiesScreen(
                     item { BackendConfigBanner() }
                 }
 
-                if (uiState.communities.isEmpty() && !uiState.isLoading) {
+                if (uiState.isLoading && uiState.communities.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 36.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator()
+                        }
+                    }
+                } else if (uiState.communities.isEmpty() && !uiState.isLoading) {
                     item {
                         EmptyStateCard(
                             icon = Icons.Rounded.Groups,
