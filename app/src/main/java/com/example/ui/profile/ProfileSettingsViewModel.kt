@@ -140,7 +140,7 @@ class ProfileSettingsViewModel(
 
     fun updateProfile(
         displayName: String,
-        headline: String,
+        website: String,
         bio: String,
         regionLabel: String,
         interestsCsv: String,
@@ -153,9 +153,9 @@ class ProfileSettingsViewModel(
             val interests = interestsCsv.split(",").map { it.trim() }.filter { it.isNotBlank() }
             val updates = mutableMapOf<String, Any?>(
                 "display_name" to displayName.trim(),
-                "headline" to headline.trim(),
+                "website" to website.trim(),
                 "bio" to bio.trim(),
-                "region_label" to regionLabel.trim(),
+                "location" to regionLabel.trim(),
                 "interests" to interests,
             )
             if (avatarUrl != null) updates["avatar_url"] = avatarUrl
