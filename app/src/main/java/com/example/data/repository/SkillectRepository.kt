@@ -869,8 +869,18 @@ class SkillectRepository(
             ),
         )
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        val created = resp.body()!!.first()
-        postgrestApi.joinCommunity(mapOf("community_id" to created.id, "user_id" to uid, "role" to "owner"))
+        val created = resp.body()?.firstOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("The community was not returned after creation."))
+        val membership = postgrestApi.joinCommunity(
+            mapOf("community_id" to created.id, "user_id" to uid, "role" to "owner"),
+        )
+        if (!membership.isSuccessful) {
+            return@guardConfigured Result.failure(
+                IllegalStateException(
+                    "Community created, but owner membership could not be confirmed. Refresh Communities and check your membership.",
+                ),
+            )
+        }
         Result.success(created)
     }
 
