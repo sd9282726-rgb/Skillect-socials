@@ -165,6 +165,7 @@ fun CommunitiesScreen(
                                 if (isMember) {
                                     SkillectOutlinedButton(
                                         text = "Joined",
+                                        enabled = comm.id !in uiState.communityActionsInProgress,
                                         shape = RoundedCornerShape(50),
                                         onClick = {
                                             if (isGuest) onRequireAuth(false, "Sign in to manage community memberships.")
@@ -173,7 +174,8 @@ fun CommunitiesScreen(
                                     )
                                 } else {
                                     SkillectPrimaryButton(
-                                        text = "Join",
+                                        text = if (comm.id in uiState.communityActionsInProgress) "Joining..." else "Join",
+                                        enabled = comm.id !in uiState.communityActionsInProgress,
                                         shape = RoundedCornerShape(50),
                                         onClick = {
                                             if (isGuest) onRequireAuth(false, "Sign in to join communities.")
@@ -336,7 +338,8 @@ fun CommunityDetailScreen(
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SkillectPrimaryButton(
-                        text = if (isMember) "Leave Group" else "Join Group",
+                        text = if (communityId in uiState.communityActionsInProgress) "Please wait..." else if (isMember) "Leave Group" else "Join Group",
+                        enabled = communityId !in uiState.communityActionsInProgress,
                         shape = RoundedCornerShape(50),
                         onClick = {
                             if (isGuest) onRequireAuth(false, "Sign in to join communities.")
