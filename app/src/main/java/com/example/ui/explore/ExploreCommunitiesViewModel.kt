@@ -102,7 +102,13 @@ class ExploreCommunitiesViewModel(
     }
 
     fun clearPrivateState() {
-        _uiState.update { it.copy(joinedCommunityIds = emptySet(), statusMessage = null) }
+        _uiState.update {
+            it.copy(
+                joinedCommunityIds = emptySet(),
+                communityActionsInProgress = emptySet(),
+                statusMessage = null,
+            )
+        }
     }
 
     fun refreshCommunitiesOnly() {
