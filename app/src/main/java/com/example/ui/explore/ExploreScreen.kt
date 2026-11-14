@@ -446,20 +446,45 @@ fun ExploreScreen(
                     }
                 }
 
-                val nothingLoaded = uiState.people.isEmpty() &&
-                    uiState.posts.isEmpty() &&
-                    uiState.communities.isEmpty() &&
-                    uiState.projects.isEmpty() &&
-                    !uiState.isLoading
-                if (nothingLoaded) {
+                val hasVisibleResults = when (uiState.filter) {
+                    ExploreFilter.ALL -> uiState.people.isNotEmpty() || uiState.posts.isNotEmpty() ||
+                        uiState.communities.isNotEmpty() || uiState.projects.isNotEmpty() ||
+                        uiState.skills.isNotEmpty() || hashtags.isNotEmpty()
+                    ExploreFilter.PEOPLE -> uiState.people.isNotEmpty()
+                    ExploreFilter.POSTS -> uiState.posts.isNotEmpty()
+                    ExploreFilter.HASHTAGS -> hashtags.isNotEmpty()
+                    ExploreFilter.COMMUNITIES -> uiState.communities.isNotEmpty()
+                    ExploreFilter.PROJECTS -> uiState.projects.isNotEmpty()
+                    ExploreFilter.SKILLS -> uiState.skills.isNotEmpty()
+                }
+                if (uiState.isLoading && !hasVisibleResults) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator()
+                        }
+                    }
+                } else if (!uiState.isLoading && !hasVisibleResults) {
                     item {
                         EmptyStateCard(
                             icon = Icons.Rounded.Explore,
-                            title = "Explore",
-                            subtitle = if (AppConfig.isSupabaseConfigured) {
-                                "Trending projects, skill categories, and people search live here."
+                            title = when (uiState.filter) {
+                                ExploreFilter.PEOPLE -> "No people found"
+                                ExploreFilter.POSTS -> "No posts found"
+                                ExploreFilter.HASHTAGS -> "No trending topics yet"
+                                ExploreFilter.COMMUNITIES -> "No communities found"
+                                ExploreFilter.PROJECTS -> "No projects found"
+                                ExploreFilter.SKILLS -> "No skills found"
+                                ExploreFilter.ALL -> "Explore"
+                            },
+                            subtitle = if (uiState.query.isNotBlank()) {
+                                "Try another search or clear your search text."
+                            } else if (AppConfig.isSupabaseConfigured) {
+                                "There is nothing to show in this section yet. Check back as the community grows."
                             } else {
-                                "Connect Supabase credentials in AI Studio Secrets to search global profiles, posts, communities, and projects."
+                                "Connect Supabase credentials to discover people, posts, communities and projects."
                             },
                         )
                     }
