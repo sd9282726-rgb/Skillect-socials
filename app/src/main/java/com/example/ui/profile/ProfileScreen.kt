@@ -105,7 +105,7 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val mediaScope = rememberCoroutineScope()
-    val effectiveCurrentUserId = effectiveCurrentUserId
+    val effectiveCurrentUserId = viewModel.authenticatedUserId().ifBlank { currentUserId }
     var mediaStatus by remember { mutableStateOf<String?>(null) }
     val isGuestOwnProfile = targetUserId == null && effectiveCurrentUserId.isBlank()
 
