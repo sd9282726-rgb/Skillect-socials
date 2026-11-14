@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "329561869507",
+    "project_id": "skillect-d29c5",
+    "storage_bucket": "skillect-d29c5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:329561869507:android:7f4354f704990f4a54e676",
+        "android_client_info": {
+          "package_name": "com.skillect.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuuM7-smamtcMfZXFzFM1RQ4TS-m4_r4U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
