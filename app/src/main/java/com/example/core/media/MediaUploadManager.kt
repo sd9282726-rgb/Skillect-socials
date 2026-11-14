@@ -49,7 +49,11 @@ class MediaUploadManager(
         ownerId: String,
     ): Flow<UploadProgressState> = channelFlow {
         if (!AppConfig.isSupabaseConfigured) {
-            send(UploadProgressState.Failed("Supabase is not configured in AI Studio Secrets."))
+            send(UploadProgressState.Failed("Supabase is not configured."))
+            return@channelFlow
+        }
+        if (ownerId.isBlank() || ownerId.contains("/") || ownerId.contains("..")) {
+            send(UploadProgressState.Failed("Sign in before uploading media."))
             return@channelFlow
         }
 
@@ -106,7 +110,7 @@ class MediaUploadManager(
         )
 
         if (response.isSuccessful) {
-            val publicUrl = "${AppConfig.supabaseUrl}/storage/v1/object/public/$bucket/$objectPath"
+            val publicUrl = "${AppConfig.supabaseUrl.trimEnd('/')}/storage/v1/object/public/$bucket/$objectPath"
             send(UploadProgressState.Success(publicUrl, if (isVideo) "video" else "image", objectPath))
         } else {
             val detail = response.errorBody()?.string()?.take(220).orEmpty()
@@ -136,7 +140,7 @@ class MediaUploadManager(
                 val detail = response.errorBody()?.string().orEmpty()
                 Result.failure(IllegalStateException(detail.ifBlank { "Profile image upload failed (HTTP ${response.code()})." }))
             } else {
-                Result.success("${AppConfig.supabaseUrl}/storage/v1/object/public/avatars/$fileName")
+                Result.success("${AppConfig.supabaseUrl.trimEnd('/')}/storage/v1/object/public/avatars/$fileName")
             }
         } catch (error: Exception) {
             Result.failure(error)
