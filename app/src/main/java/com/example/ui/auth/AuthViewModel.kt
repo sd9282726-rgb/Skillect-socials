@@ -168,7 +168,7 @@ class AuthViewModel(
         val payload = AuthDeepLinkParser.parse(uriString) ?: return
         if (!payload.error.isNullOrBlank() || !payload.errorDescription.isNullOrBlank()) {
             val friendly = payload.errorDescription
-                ?: "This password reset link is invalid or has expired. Request a new one below."
+                ?: "This authentication link is invalid or has expired. Please request a new link."
             _uiState.update {
                 it.copy(
                     mode = AuthMode.RECOVER,
@@ -179,7 +179,7 @@ class AuthViewModel(
             }
             return
         }
-        if (payload.type == "recovery" || !payload.accessToken.isNullOrBlank()) {
+        if (payload.type == "recovery") {
             val token = payload.accessToken.orEmpty()
             if (token.isBlank()) {
                 _uiState.update {
@@ -201,6 +201,19 @@ class AuthViewModel(
                         infoMessage = "Enter a new password for your Skillect account.",
                     )
                 }
+            }
+        } else if (!payload.type.isNullOrBlank()) {
+            _uiState.update {
+                it.copy(
+                    mode = AuthMode.SIGN_IN,
+                    authSheetOpen = true,
+                    infoMessage = if (payload.type == "signup") {
+                        "Email confirmation links are not enabled in this app yet. Skillect currently expects instant sign-in after registration."
+                    } else {
+                        "This authentication link type is not supported. Please sign in or request a password reset."
+                    },
+                    errorMessage = null,
+                )
             }
         }
     }
