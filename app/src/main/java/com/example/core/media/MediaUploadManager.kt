@@ -55,37 +55,39 @@ class MediaUploadManager(
 
         val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
         val isVideo = mimeType.startsWith("video/")
-        if (!isVideo) {
-            send(UploadProgressState.Failed("Images must use Skillect's secure image moderation flow."))
+        val isImage = mimeType.startsWith("image/")
+        if (!isVideo && !isImage) {
+            send(UploadProgressState.Failed("Choose a supported image or video file."))
             return@channelFlow
         }
-        if (bucket != "post-media") {
-            send(UploadProgressState.Failed("Videos must use the post media storage bucket."))
+        if (bucket != "post-media" && bucket != "stories-media") {
+            send(UploadProgressState.Failed("This upload destination is not supported."))
             return@channelFlow
         }
 
         val fileName = resolveFileName(uri) ?: "upload_${UUID.randomUUID()}"
         send(UploadProgressState.Validating(fileName))
-
-        val payload = withContext(Dispatchers.IO) { readVideoBytesValidated(uri) }
-
+        val payload = withContext(Dispatchers.IO) {
+            if (isImage) compressImage(uri) else readVideoBytesValidated(uri)
+        }
         if (payload == null) {
-            send(
-                UploadProgressState.Failed(
-                    "Video exceeds the 50 MB limit or could not be read.",
-                ),
-            )
+            val message = if (isImage) {
+                "Image exceeds the 12 MB limit or could not be prepared."
+            } else {
+                "Video exceeds the 50 MB limit or could not be read."
+            }
+            send(UploadProgressState.Failed(message))
             return@channelFlow
         }
 
-        val ext = when (mimeType.lowercase()) {
-            "video/webm" -> "webm"
-            "video/quicktime" -> "mov"
+        val ext = when {
+            isImage -> "jpg"
+            mimeType.equals("video/webm", ignoreCase = true) -> "webm"
+            mimeType.equals("video/quicktime", ignoreCase = true) -> "mov"
             else -> "mp4"
         }
-        val finalMime = mimeType
+        val finalMime = if (isImage) "image/jpeg" else mimeType
         val objectPath = "$ownerId/${UUID.randomUUID()}.$ext"
-
         send(UploadProgressState.Uploading(0.05f, fileName))
 
         val requestBody = ProgressByteRequestBody(
@@ -104,7 +106,8 @@ class MediaUploadManager(
         )
 
         if (response.isSuccessful) {
-            send(UploadProgressState.Success("", "video", objectPath))
+            val publicUrl = "${AppConfig.supabaseUrl}/storage/v1/object/public/$bucket/$objectPath"
+            send(UploadProgressState.Success(publicUrl, if (isVideo) "video" else "image", objectPath))
         } else {
             val detail = response.errorBody()?.string()?.take(220).orEmpty()
             val suffix = detail.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
