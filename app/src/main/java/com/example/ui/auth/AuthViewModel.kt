@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.config.AppConfig
 import com.example.core.config.CountryOption
+import com.example.core.network.CommunityDto
 import com.example.core.network.ProfileDto
 import com.example.core.network.ProfileUpsertDto
 import com.example.data.repository.SkillectRepository
@@ -74,6 +75,9 @@ data class AuthUiState(
     val headline: String = "",
     val selectedSkills: Set<String> = emptySet(),
     val selectedInterests: Set<String> = emptySet(),
+    val suggestedProfiles: List<ProfileDto> = emptyList(),
+    val suggestedCommunities: List<CommunityDto> = emptyList(),
+    val loadingSuggestions: Boolean = false,
 )
 
 class AuthViewModel(
@@ -306,9 +310,7 @@ class AuthViewModel(
                         onSuccess = { session ->
                             val msg = if (!session.isAuthenticated) {
                                 "Account created, but email confirmation is still enabled on this Supabase project. Disable 'Confirm email' in Supabase Auth settings for instant sign-in."
-                            } else {
-                                null
-                            }
+                            } else null
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
@@ -450,6 +452,76 @@ class AuthViewModel(
                 },
                 onFailure = { err ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = err.message) }
+                },
+            )
+        }
+    }
+
+    fun loadOnboardingSuggestions() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(loadingSuggestions = true, errorMessage = null) }
+            val interests = _uiState.value.selectedInterests.ifEmpty { _uiState.value.selectedSkills }
+            val query = interests.firstOrNull().orEmpty()
+            val profilesResult = if (query.isNotBlank()) {
+                repository.searchProfiles(query)
+            } else {
+                repository.searchProfiles("a")
+            }
+            val communitiesResult = repository.fetchCommunities(
+                category = interests.firstOrNull(),
+                query = "",
+            )
+            val profiles = profilesResult.getOrElse { emptyList() }
+                .filter { it.id != _uiState.value.currentUserId }
+                .take(8)
+            val communities = communitiesResult.getOrElse { emptyList() }.take(8)
+            _uiState.update {
+                it.copy(
+                    loadingSuggestions = false,
+                    suggestedProfiles = profiles,
+                    suggestedCommunities = communities,
+                    errorMessage = when {
+                        profilesResult.isFailure && communitiesResult.isFailure ->
+                            profilesResult.exceptionOrNull()?.message
+                                ?: communitiesResult.exceptionOrNull()?.message
+                        else -> null
+                    },
+                )
+            }
+        }
+    }
+
+    fun followSuggestedCreator(userId: String) {
+        if (userId.isBlank()) return
+        viewModelScope.launch {
+            repository.toggleFollow(userId, currentlyFollowing = false).fold(
+                onSuccess = {
+                    _uiState.update { state ->
+                        state.copy(
+                            suggestedProfiles = state.suggestedProfiles.filterNot { it.id == userId },
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(errorMessage = err.message) }
+                },
+            )
+        }
+    }
+
+    fun joinSuggestedCommunity(communityId: String) {
+        if (communityId.isBlank()) return
+        viewModelScope.launch {
+            repository.joinCommunity(communityId).fold(
+                onSuccess = {
+                    _uiState.update { state ->
+                        state.copy(
+                            suggestedCommunities = state.suggestedCommunities.filterNot { it.id == communityId },
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update { it.copy(errorMessage = err.message) }
                 },
             )
         }
