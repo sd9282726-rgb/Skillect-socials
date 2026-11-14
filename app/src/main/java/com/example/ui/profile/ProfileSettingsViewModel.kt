@@ -19,6 +19,7 @@ import com.example.core.network.SavedCollectionDto
 import com.example.core.network.SavedPostDto
 import com.example.core.network.UserPreferences
 import com.example.data.repository.SkillectRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +54,7 @@ class ProfileSettingsViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileSettingsUiState())
+    private var profileLoadJob: Job? = null
     val uiState: StateFlow<ProfileSettingsUiState> = _uiState.asStateFlow()
 
     init {
@@ -87,6 +89,8 @@ class ProfileSettingsViewModel(
     }
 
     fun clearPrivateState() {
+        profileLoadJob?.cancel()
+        profileLoadJob = null
         _uiState.update {
             it.copy(
                 myProfile = null,
@@ -108,7 +112,8 @@ class ProfileSettingsViewModel(
 
     fun loadProfile(targetUserId: String?) {
         if (!AppConfig.isSupabaseConfigured) return
-        viewModelScope.launch {
+        profileLoadJob?.cancel()
+        profileLoadJob = viewModelScope.launch {
             _uiState.update {
                 it.copy(isLoading = true, errorMessage = null, viewedProfile = null, posts = emptyList(), postsCount = null, followersCount = null, followingCount = null)
             }
