@@ -157,10 +157,15 @@ class ProfileSettingsViewModel(
         interestsCsv: String,
         avatarUrl: String? = null,
         coverUrl: String? = null,
+        onComplete: (Boolean) -> Unit = {},
     ) {
         viewModelScope.launch {
             val uid = repository.sessionStore.currentSession().userId
-            if (uid.isBlank()) return@launch
+            if (uid.isBlank()) {
+                _uiState.update { it.copy(statusMessage = "Sign in to update your profile.") }
+                onComplete(false)
+                return@launch
+            }
             val interests = interestsCsv.split(",").map { it.trim() }.filter { it.isNotBlank() }
             val updates = mutableMapOf<String, Any?>(
                 "display_name" to displayName.trim(),
@@ -181,8 +186,12 @@ class ProfileSettingsViewModel(
                             statusMessage = "Profile updated.",
                         )
                     }
+                    onComplete(true)
                 },
-                onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
+                onFailure = { err ->
+                    _uiState.update { it.copy(statusMessage = err.message) }
+                    onComplete(false)
+                },
             )
         }
     }
