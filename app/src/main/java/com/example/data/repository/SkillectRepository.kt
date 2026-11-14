@@ -392,9 +392,10 @@ class SkillectRepository(
     suspend fun updateProfileFields(userId: String, updates: Map<String, Any?>): Result<ProfileDto> = guardConfigured {
         val uid = requireUserId("edit your profile") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("edit your profile"))
         val sanitized = updates.toMutableMap()
-        if (sanitized.containsKey("region_label") && !sanitized.containsKey("location")) {
-            sanitized["location"] = sanitized["region_label"]
+        if (sanitized.containsKey("location") && !sanitized.containsKey("region_label")) {
+            sanitized["region_label"] = sanitized.remove("location")
         }
+        sanitized.remove("location")
         // Never allow client code to mutate privileged or non-existent profile columns directly
         sanitized.remove("role")
         sanitized.remove("is_verified")
@@ -402,8 +403,6 @@ class SkillectRepository(
         sanitized.remove("followers_count")
         sanitized.remove("following_count")
         sanitized.remove("posts_count")
-        sanitized.remove("headline")
-        sanitized.remove("region_label")
         sanitized.remove("allow_dms_from")
         val resp = postgrestApi.updateProfile(idEq = "eq.$uid", updates = sanitized)
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
@@ -661,6 +660,13 @@ class SkillectRepository(
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
     }
 
+    suspend fun fetchFollowCounts(userId: String): Result<Pair<Int, Int>> = guardConfigured {
+        val followers = postgrestApi.getFollows(followingIdEq = "eq.$userId")
+        if (!followers.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(followers.parseError()))
+        val following = postgrestApi.getFollows(followerIdEq = "eq.$userId")
+        if (!following.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(following.parseError()))
+        Result.success(followers.body().orEmpty().size to following.body().orEmpty().size)
+    }
     suspend fun getFollowingIds(userId: String): Result<List<String>> = guardConfigured {
         val resp = postgrestApi.getFollows(followerIdEq = "eq.$userId")
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
