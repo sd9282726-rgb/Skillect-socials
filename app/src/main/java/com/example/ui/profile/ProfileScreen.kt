@@ -107,6 +107,7 @@ fun ProfileScreen(
     val mediaScope = rememberCoroutineScope()
     val effectiveCurrentUserId = viewModel.authenticatedUserId().ifBlank { currentUserId }
     var mediaStatus by remember { mutableStateOf<String?>(null) }
+    var isSavingProfile by remember { mutableStateOf(false) }
     val isGuestOwnProfile = targetUserId == null && effectiveCurrentUserId.isBlank()
 
     if (isGuestOwnProfile) {
@@ -735,10 +736,16 @@ fun ProfileScreen(
             confirmButton = {
                 SkillectPrimaryButton(
                     text = "Save",
-                    enabled = mediaStatus?.startsWith("Uploading") != true,
+                    enabled = mediaStatus?.startsWith("Uploading") != true && !isSavingProfile,
+                    isLoading = isSavingProfile,
                     onClick = {
-                        viewModel.updateProfile(displayName, website, bio, region, interests, avatarUrlForEdit, coverUrlForEdit)
-                        showEditDialog = false
+                        isSavingProfile = true
+                        viewModel.updateProfile(
+                            displayName, website, bio, region, interests, avatarUrlForEdit, coverUrlForEdit,
+                        ) { saved ->
+                            isSavingProfile = false
+                            if (saved) showEditDialog = false
+                        }
                     },
                 )
             },
