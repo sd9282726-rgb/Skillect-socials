@@ -401,11 +401,9 @@ interface SupabasePostgrestApi {
     @POST("functions/v1/start-conversation")
     suspend fun startConversation(@Body body: StartConversationRequest): Response<StartConversationResponse>
 
-    @Headers("Prefer: resolution=merge-duplicates,return=minimal")
-    @POST("rest/v1/device_tokens")
-    suspend fun upsertDeviceToken(
-        @Query("on_conflict") onConflict: String = "platform,token",
-        @Body body: DeviceTokenUpsertDto,
+    @POST("rest/v1/rpc/upsert_my_device_token")
+    suspend fun upsertMyDeviceToken(
+        @Body params: DeviceTokenRpcParams,
     ): Response<ResponseBody>
 
     @POST("rest/v1/rpc/request_account_deletion")
