@@ -208,7 +208,7 @@ data class CommentDto(
 data class CreateCommentRequest(
     @Json(name = "post_id") val postId: String,
     @Json(name = "author_id") val authorId: String,
-    @Json(name = "parent_id") val parentCommentId: String? = null,
+    @Json(name = "parent_comment_id") val parentCommentId: String? = null,
     val content: String,
 )
 
