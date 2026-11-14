@@ -318,6 +318,16 @@ fun ProfileScreen(
                         }
                     }
 
+                    if (!uiState.statusMessage.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = uiState.statusMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.testTag("profile_status_message"),
+                        )
+                    }
+
                     if (profile?.headline?.isNotBlank() == true) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
