@@ -143,7 +143,7 @@ fun ProfileScreen(
             )
         }
     }
-    val isOwnProfile = targetUserId == null || (currentUserId.isNotBlank() && targetUserId == currentUserId)
+    val isOwnProfile = targetUserId == null || viewModel.isCurrentUser(profile?.id) || (currentUserId.isNotBlank() && profile?.id == currentUserId)
     var selectedTab by remember { mutableIntStateOf(0) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showProjectDialog by remember { mutableStateOf(false) }
