@@ -1,8 +1,5 @@
 package com.example.ui.messages
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +27,6 @@ import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Flag
-import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -48,7 +44,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,10 +63,7 @@ import com.example.core.designsystem.SkillectBrandBadge
 import com.example.core.designsystem.SkillectGradientIconTile
 import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
-import com.example.core.media.MediaUploadManager
-import com.example.core.media.UploadProgressState
 import com.example.ui.feed.ReportContentDialog
-import kotlinx.coroutines.launch
 
 @Composable
 fun MessagesInboxScreen(
@@ -235,29 +227,12 @@ fun ChatDetailScreen(
     currentUserId: String,
     uiState: MessagesNotificationsUiState,
     viewModel: MessagesNotificationsViewModel,
-    mediaUploadManager: MediaUploadManager,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scope = rememberCoroutineScope()
     var draft by remember { mutableStateOf("") }
     var menuOpen by remember { mutableStateOf(false) }
     var reportMessageId by remember { mutableStateOf<String?>(null) }
-
-    val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-    ) { uri ->
-        if (uri != null && currentUserId.isNotBlank()) {
-            scope.launch {
-                mediaUploadManager.uploadMedia(uri, "chat-media", currentUserId).collect { state ->
-                    if (state is UploadProgressState.Success) {
-                        viewModel.sendMessage(conversationId, draft, state.publicUrl)
-                        draft = ""
-                    }
-                }
-            }
-        }
-    }
 
     LaunchedEffect(conversationId) {
         viewModel.loadMessages(conversationId)
@@ -388,11 +363,6 @@ fun ChatDetailScreen(
                     .padding(horizontal = 10.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = {
-                    imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                }) {
-                    Icon(Icons.Rounded.Image, contentDescription = "Attach image")
-                }
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
