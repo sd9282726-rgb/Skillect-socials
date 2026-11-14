@@ -721,13 +721,10 @@ class SkillectRepository(
     suspend fun fetchFollowCounts(userId: String): Result<Pair<Int, Int>> = guardConfigured {
         val followers = postgrestApi.countFollowers(followingIdEq = "eq.$userId")
         val following = postgrestApi.countFollowing(followerIdEq = "eq.$userId")
-        if (!followers.isSuccessful || !following.isSuccessful) {
-            return@guardConfigured Result.failure(IllegalStateException("Could not load network counts."))
-        }
         fun exactCount(response: retrofit2.Response<Void>): Int? =
             response.headers()["Content-Range"]?.substringAfterLast("/")?.toIntOrNull()
-        val followerCount = exactCount(followers)
-        val followingCount = exactCount(following)
+        val followerCount = followers.takeIf { it.isSuccessful }?.let(::exactCount)
+        val followingCount = following.takeIf { it.isSuccessful }?.let(::exactCount)
         if (followerCount == null || followingCount == null) {
             val followerRows = postgrestApi.getFollows(followingIdEq = "eq.$userId")
             val followingRows = postgrestApi.getFollows(followerIdEq = "eq.$userId")
