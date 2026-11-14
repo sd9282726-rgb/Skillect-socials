@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -222,38 +221,67 @@ fun ComposerScreen(
                                 .map { it.trim() }
                                 .filter { it.isNotBlank() }
 
-                            val resolvedType = when {
-                                uploadedUrls.any { it.second == "video" } -> "video"
-                                uploadedUrls.size > 1 -> "carousel"
-                                uploadedUrls.size == 1 && selectedType == "text" -> "image"
+                            val selectedUri = selectedUris.firstOrNull()
+                            val selectedMime = selectedUri?.let { context.contentResolver.getType(it).orEmpty() }.orEmpty()
+                            val mediaTags = (hashtags + skills).distinct().take(10)
+                            val category = when {
+                                selectedMime.startsWith("video/") && selectedType == "text" -> "video"
+                                selectedMime.startsWith("image/") && selectedType == "text" -> "image"
                                 showLinkFields && cleanLink != null && selectedType == "text" -> "link"
                                 else -> selectedType
                             }
 
-                            val req = CreatePostRequest(
-                                authorId = currentUserId,
-                                postType = resolvedType,
-                                content = content.trim(),
-                                mediaUrls = uploadedUrls.map { it.first },
-                                mediaTypes = uploadedUrls.map { it.second },
-                                linkUrl = cleanLink,
-                                linkTitle = linkTitle.trim().takeIf { it.isNotBlank() },
-                                hashtags = hashtags,
-                                mentions = mentions,
-                                skillTags = skills,
-                                communityId = communityId,
-                            )
-
-                            repository.createPost(req, validPolls).fold(
-                                onSuccess = {
+                            if (selectedMime.startsWith("video/")) {
+                                val storagePath = videoStoragePath
+                                if (storagePath.isNullOrBlank()) {
                                     isSubmitting = false
-                                    onPostCreated()
-                                },
-                                onFailure = { err ->
-                                    isSubmitting = false
-                                    errorMessage = err.message
-                                },
-                            )
+                                    errorMessage = "Wait for the secure video upload to finish before publishing."
+                                    return@launch
+                                }
+                                repository.createVideoPost(storagePath, content.trim(), mediaTags, category, communityId).fold(
+                                    onSuccess = {
+                                        isSubmitting = false
+                                        onPostCreated()
+                                    },
+                                    onFailure = { err ->
+                                        isSubmitting = false
+                                        errorMessage = err.message
+                                    },
+                                )
+                            } else if (selectedMime.startsWith("image/") && selectedUri != null) {
+                                mediaUploadManager.uploadImagePost(selectedUri, content.trim(), mediaTags, category, communityId).fold(
+                                    onSuccess = {
+                                        isSubmitting = false
+                                        onPostCreated()
+                                    },
+                                    onFailure = { err ->
+                                        isSubmitting = false
+                                        errorMessage = err.message
+                                    },
+                                )
+                            } else {
+                                val req = CreatePostRequest(
+                                    authorId = currentUserId,
+                                    postType = selectedType,
+                                    content = content.trim(),
+                                    linkUrl = cleanLink,
+                                    linkTitle = linkTitle.trim().takeIf { it.isNotBlank() },
+                                    hashtags = hashtags,
+                                    mentions = mentions,
+                                    skillTags = skills,
+                                    communityId = communityId,
+                                )
+                                repository.createPost(req, validPolls).fold(
+                                    onSuccess = {
+                                        isSubmitting = false
+                                        onPostCreated()
+                                    },
+                                    onFailure = { err ->
+                                        isSubmitting = false
+                                        errorMessage = err.message
+                                    },
+                                )
+                            }
                         }
                     },
                 )
@@ -377,14 +405,26 @@ fun ComposerScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         itemsIndexed(selectedUris) { _, uri ->
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = "Selected media preview",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(96.dp)
-                                    .clip(MaterialTheme.shapes.small),
-                            )
+                            if (context.contentResolver.getType(uri)?.startsWith("video/") == true) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .clip(MaterialTheme.shapes.small)
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(Icons.Rounded.VideoLibrary, contentDescription = "Selected video")
+                                }
+                            } else {
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = "Selected photo preview",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .clip(MaterialTheme.shapes.small),
+                                )
+                            }
                         }
                     }
                 }
