@@ -148,14 +148,24 @@ fun FeedScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SkillectBrandBadge(size = 32.dp)
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "skillect",
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
+                    Column(verticalArrangement = Arrangement.Center) {
+                        Text(
+                            text = "skillect",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.8).sp,
+                                brush = SkillectHorizontalBrandGradient,
+                            ),
+                        )
+                        Text(
+                            text = "CREATE  ·  CONNECT  ·  GROW",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                letterSpacing = 1.15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -363,8 +373,8 @@ fun FeedScreen(
                                     Text("Sign In")
                                 }
                                 SkillectPrimaryButton(
-                                    text = "Join 16+",
-                                    onClick = { onRequireAuth(true, "Create a Skillect account (16+) to post, like, comment, and connect.") },
+                                    text = "Create Account",
+                                    onClick = { onRequireAuth(true, "Create a Skillect account to post, like, comment, and connect.") },
                                     shape = RoundedCornerShape(50),
                                     modifier = Modifier.testTag("guest_banner_create_account"),
                                 )
