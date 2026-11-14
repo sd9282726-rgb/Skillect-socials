@@ -35,6 +35,7 @@ data class ExploreUiState(
     val joinedCommunityIds: Set<String> = emptySet(),
     val communityActionsInProgress: Set<String> = emptySet(),
     val selectedCommunity: CommunityDto? = null,
+    val selectedCommunityId: String? = null,
     val communityMembers: List<CommunityMemberDto> = emptyList(),
     val communityPosts: List<PostDto> = emptyList(),
     val isLoading: Boolean = false,
@@ -207,6 +208,7 @@ class ExploreCommunitiesViewModel(
         _uiState.update {
             it.copy(
                 selectedCommunity = found,
+                selectedCommunityId = communityId,
                 communityMembers = emptyList(),
                 communityPosts = emptyList(),
             )
@@ -219,7 +221,7 @@ class ExploreCommunitiesViewModel(
             val latestCommunity = communitiesResult.getOrNull()?.firstOrNull { it.id == communityId } ?: found
             // Ignore late responses if the user has already opened a different community.
             _uiState.update { state ->
-                if (state.selectedCommunity?.id != communityId) state
+                if (state.selectedCommunityId != communityId) state
                 else state.copy(
                     selectedCommunity = latestCommunity,
                     communities = communitiesResult.getOrNull()?.let { latest ->
