@@ -968,8 +968,11 @@ class SkillectRepository(
     suspend fun startDirectConversation(peerUserId: String): Result<String> = guardConfigured {
         val uid = requireUserId("start a private conversation")
             ?: return@guardConfigured Result.failure(AuthenticationRequiredException("start a private conversation"))
+        if (peerUserId.isBlank()) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Choose a valid profile before starting a conversation."))
+        }
         if (uid == peerUserId) {
-            return@guardConfigured Result.failure(IllegalArgumentException("Cannot message yourself."))
+            return@guardConfigured Result.failure(IllegalArgumentException("This is your own profile. Open another member's profile to message them."))
         }
         val response = postgrestApi.startConversation(StartConversationRequest(recipientId = peerUserId))
         if (!response.isSuccessful) {
