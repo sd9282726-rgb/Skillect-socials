@@ -193,8 +193,21 @@ class MediaUploadManager(
 
     private fun compressImage(uri: Uri): ByteArray? {
         return try {
-            val rawBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
-            if (rawBytes.size > MAX_IMAGE_BYTES) return null
+            val declaredSize = context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
+            if (declaredSize > MAX_IMAGE_BYTES) return null
+            val rawBytes = context.contentResolver.openInputStream(uri)?.use { input ->
+                val output = ByteArrayOutputStream()
+                val buffer = ByteArray(8 * 1024)
+                var total = 0
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    if (total > MAX_IMAGE_BYTES) return null
+                    output.write(buffer, 0, count)
+                }
+                output.toByteArray()
+            } ?: return null
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size, bounds)
             var sampleSize = 1
