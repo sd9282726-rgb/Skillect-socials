@@ -23,7 +23,7 @@ function base64Url(bytes: Uint8Array): string {
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   }
-  return btoa(binary).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
+  return btoa(binary).replaceAll("=", "").replaceAll("+", "-").replaceAll("/", "_");
 }
 
 function encodeJson(value: unknown): string {
@@ -48,9 +48,12 @@ async function createGoogleAccessToken(serviceAccount: {
   ].join(".");
 
   const pem = serviceAccount.private_key
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\\s/g, "");
+    .replaceAll("-----BEGIN PRIVATE KEY-----", "")
+    .replaceAll("-----END PRIVATE KEY-----", "")
+    .replaceAll("\\n", "")
+    .replaceAll("\\r", "")
+    .replaceAll(" ", "")
+    .replaceAll("\\t", "");
   const keyBytes = Uint8Array.from(atob(pem), (char) => char.charCodeAt(0));
   const privateKey = await crypto.subtle.importKey(
     "pkcs8",
