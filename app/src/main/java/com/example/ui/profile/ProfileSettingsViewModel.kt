@@ -267,13 +267,6 @@ class ProfileSettingsViewModel(
         }
     }
 
-    fun authenticatedUserId(): String = repository.sessionStore.currentSession().userId
-
-    fun isCurrentUser(profileId: String?): Boolean {
-        if (profileId.isNullOrBlank()) return false
-        return profileId == repository.sessionStore.currentSession().userId
-    }
-
     fun startDirectConversation(peerUserId: String, onSuccess: (String) -> Unit) {
         viewModelScope.launch {
             repository.startDirectConversation(peerUserId).fold(
