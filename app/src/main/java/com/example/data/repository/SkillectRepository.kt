@@ -1195,9 +1195,16 @@ class SkillectRepository(
         val uid = sessionStore.currentSession().userId
         if (uid.isBlank() || token.isBlank()) return
         try {
-            // The live project stores Android tokens in public.device_tokens
-            // (columns: user_id, platform, token), unique on (platform, token).
-            postgrestApi.upsertMyDeviceToken(DeviceTokenRpcParams(fcmToken = token))
+            // Live Supabase schema: public.device_tokens(user_id, platform, token),
+            // with a unique constraint on (platform, token) and owner-only RLS.
+            val response = postgrestApi.upsertDeviceToken(
+                token = DeviceTokenUpsertDto(userId = uid, fcmToken = token),
+            )
+            if (!response.isSuccessful) {
+                analyticsTracker.recordNonFatal(
+                    IllegalStateException("FCM token registration failed: HTTP ${response.code()}"),
+                )
+            }
         } catch (_: Exception) {
             // Push registration is best-effort; never block sign-in if FCM is unavailable.
         }
