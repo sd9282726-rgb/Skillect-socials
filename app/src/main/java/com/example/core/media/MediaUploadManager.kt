@@ -112,6 +112,34 @@ class MediaUploadManager(
         }
     }
 
+    suspend fun uploadProfileImage(uri: Uri, ownerId: String, kind: String): Result<String> = withContext(Dispatchers.IO) {
+        if (!AppConfig.isSupabaseConfigured) return@withContext Result.failure(IllegalStateException("Supabase is not configured."))
+        if (kind != "avatar" && kind != "cover") return@withContext Result.failure(IllegalArgumentException("Unsupported profile image type."))
+        if (ownerId.isBlank() || ownerId.contains("/") || ownerId.contains("..")) {
+            return@withContext Result.failure(IllegalArgumentException("Invalid profile owner."))
+        }
+        val mimeType = context.contentResolver.getType(uri).orEmpty()
+        if (!mimeType.startsWith("image/")) return@withContext Result.failure(IllegalArgumentException("Choose an image."))
+        val bytes = compressImage(uri) ?: return@withContext Result.failure(IllegalArgumentException("This image could not be prepared. Choose a JPG or PNG under 12 MB."))
+        val fileName = "$ownerId/$kind-${UUID.randomUUID()}.jpg"
+        try {
+            val response = storageApi.uploadObject(
+                bucket = "avatars",
+                path = fileName,
+                contentType = "image/jpeg",
+                body = bytes.toRequestBody("image/jpeg".toMediaType()),
+            )
+            if (!response.isSuccessful) {
+                val detail = response.errorBody()?.string().orEmpty()
+                Result.failure(IllegalStateException(detail.ifBlank { "Profile image upload failed (HTTP ${response.code()})." }))
+            } else {
+                Result.success("${AppConfig.supabaseUrl}/storage/v1/object/public/avatars/$fileName")
+            }
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
     suspend fun uploadImagePost(
         uri: Uri,
         content: String,
