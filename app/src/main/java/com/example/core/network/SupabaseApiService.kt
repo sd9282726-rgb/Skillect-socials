@@ -358,12 +358,12 @@ interface SupabasePostgrestApi {
     @POST("rest/v1/rpc/create_or_get_direct_conversation")
     suspend fun createOrGetDirectConversation(@Body body: CreateDirectConversationParams): Response<String>
 
-    @POST("rest/v1/rpc/upsert_my_device_token")
-    suspend fun upsertDeviceTokenRpc(@Body body: DeviceTokenRpcParams): Response<ResponseBody>
-
-    @Headers("Prefer: resolution=merge-duplicates")
-    @POST("rest/v1/user_device_tokens")
-    suspend fun upsertDeviceToken(@Body body: DeviceTokenUpsertDto): Response<ResponseBody>
+    @Headers("Prefer: resolution=merge-duplicates,return=minimal")
+    @POST("rest/v1/device_tokens")
+    suspend fun upsertDeviceToken(
+        @Query("on_conflict") onConflict: String = "platform,token",
+        @Body body: DeviceTokenUpsertDto,
+    ): Response<ResponseBody>
 
     @POST("rest/v1/rpc/request_account_deletion")
     suspend fun requestAccountDeletionRpc(): Response<ResponseBody>

@@ -456,7 +456,7 @@ data class MuteRowDto(
 @JsonClass(generateAdapter = true)
 data class DeviceTokenUpsertDto(
     @Json(name = "user_id") val userId: String,
-    @Json(name = "fcm_token") val fcmToken: String,
+    @Json(name = "token") val fcmToken: String,
     val platform: String = "android",
 )
 

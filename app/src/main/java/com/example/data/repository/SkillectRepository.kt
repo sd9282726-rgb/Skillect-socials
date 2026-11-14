@@ -1068,11 +1068,11 @@ class SkillectRepository(
         val uid = sessionStore.currentSession().userId
         if (uid.isBlank() || token.isBlank()) return
         try {
-            val rpcResp = postgrestApi.upsertDeviceTokenRpc(DeviceTokenRpcParams(fcmToken = token, platform = "android"))
-            if (!rpcResp.isSuccessful) {
-                postgrestApi.upsertDeviceToken(DeviceTokenUpsertDto(uid, token))
-            }
+            // The live project stores Android tokens in public.device_tokens
+            // (columns: user_id, platform, token), unique on (platform, token).
+            postgrestApi.upsertDeviceToken(DeviceTokenUpsertDto(userId = uid, fcmToken = token))
         } catch (_: Exception) {
+            // Push registration is best-effort; never block sign-in if FCM is unavailable.
         }
     }
 
