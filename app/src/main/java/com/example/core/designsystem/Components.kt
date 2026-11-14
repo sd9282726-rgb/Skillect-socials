@@ -570,7 +570,7 @@ fun MinorSafeBadge(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.width(5.dp))
             Text(
-                text = "16+ Safe Defaults",
+                text = "Privacy-first defaults",
                 style = MaterialTheme.typography.labelSmall,
                 color = SkillectEmerald,
             )
