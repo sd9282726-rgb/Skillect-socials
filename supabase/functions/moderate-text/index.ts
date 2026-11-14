@@ -161,20 +161,48 @@ Deno.serve(async (request: Request) => {
     if (!displayName || !username) return json(400, { error: "Display name and username are required." });
     if (!/^[a-z0-9_.]{3,30}$/.test(username)) return json(400, { error: "Username must be 3–30 characters and use letters, numbers, dots or underscores." });
     const record: Record<string, unknown> = {
-      id: userId, display_name: displayName, username,
-      bio: String(input.bio || "").trim().slice(0, 300),
+      id: userId,
+      display_name: displayName,
+      username,
+      bio: String(input.bio || "").trim().slice(0, 500),
       skills: Array.isArray(input.skills) ? input.skills.map((item: unknown) => String(item).trim().slice(0, 40)).filter(Boolean).slice(0, 20) : [],
+      interests: Array.isArray(input.interests) ? input.interests.map((item: unknown) => String(item).trim().slice(0, 40)).filter(Boolean).slice(0, 20) : [],
       onboarded: true,
     };
     if (Object.prototype.hasOwnProperty.call(input, "location")) record.location = String(input.location || "").trim().slice(0, 100);
     if (Object.prototype.hasOwnProperty.call(input, "country")) record.country = String(input.country || "").trim().slice(0, 100);
     if (Object.prototype.hasOwnProperty.call(input, "date_of_birth")) record.date_of_birth = String(input.date_of_birth || "");
+    if (Object.prototype.hasOwnProperty.call(input, "is_private")) {
+      if (typeof input.is_private !== "boolean") return json(400, { error: "is_private must be a boolean" });
+      record.is_private = input.is_private;
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "website")) {
+      const website = String(input.website || "").trim().slice(0, 500);
+      if (website) {
+        try {
+          const parsed = new URL(website);
+          if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname.includes(".")) {
+            return json(400, { error: "Enter a valid website URL" });
+          }
+        } catch {
+          return json(400, { error: "Enter a valid website URL" });
+        }
+      }
+      record.website = website;
+    }
     if (Object.prototype.hasOwnProperty.call(input, "avatar_url")) {
-      const avatar = String(input.avatar_url || "");
+      const avatar = String(input.avatar_url || "").trim();
       const validPreset = ["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5"].includes(avatar);
       const validPhoto = avatar.toLowerCase().startsWith("https://") && avatar.length <= 500;
       if (!validPreset && !validPhoto) return json(400, { error: "Choose an available Skillect avatar or a secure profile photo URL." });
       record.avatar_url = avatar;
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "cover_url")) {
+      const cover = input.cover_url == null ? "" : String(input.cover_url).trim();
+      if (cover && (!cover.toLowerCase().startsWith("https://") || cover.length > 500)) {
+        return json(400, { error: "Choose a secure HTTPS profile background URL." });
+      }
+      record.cover_url = cover;
     }
     try {
       const response = await fetch(base + "/rest/v1/profiles?on_conflict=id&select=id,onboarded,display_name,username", {
