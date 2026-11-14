@@ -142,7 +142,7 @@ interface SupabasePostgrestApi {
         @Query("user_id") userIdEq: String,
     ): Response<ResponseBody>
 
-    @GET("rest/v1/post_comments")
+    @GET("rest/v1/comments")
     suspend fun getComments(
         @Query("post_id") postIdEq: String,
         @Query("select") select: String = "*,author:profiles(*)",
@@ -150,7 +150,7 @@ interface SupabasePostgrestApi {
     ): Response<List<CommentDto>>
 
     @Headers("Prefer: return=representation")
-    @POST("rest/v1/post_comments")
+    @POST("rest/v1/comments")
     suspend fun createComment(@Body request: CreateCommentRequest): Response<List<CommentDto>>
 
     @GET("rest/v1/stories")
@@ -292,7 +292,7 @@ interface SupabasePostgrestApi {
 
     @GET("rest/v1/notifications")
     suspend fun getNotifications(
-        @Query("recipient_id") recipientIdEq: String,
+        @Query("user_id") recipientIdEq: String,
         @Query("select") select: String = "*,actor:profiles!notifications_actor_id_fkey(*)",
         @Query("order") order: String = "created_at.desc",
         @Query("limit") limit: Int = 40,
@@ -300,7 +300,7 @@ interface SupabasePostgrestApi {
 
     @PATCH("rest/v1/notifications")
     suspend fun markNotificationsRead(
-        @Query("recipient_id") recipientIdEq: String,
+        @Query("user_id") recipientIdEq: String,
         @Query("id") idEq: String? = null,
         @Body updates: Map<String, Boolean>,
     ): Response<ResponseBody>
