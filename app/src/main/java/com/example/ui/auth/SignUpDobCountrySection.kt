@@ -69,7 +69,7 @@ fun SignUpDobCountrySection(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Aged 16+ required. Select Day, Month and Year.",
+            text = "Select your date of birth to confirm eligibility.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -178,7 +178,7 @@ fun SignUpDobCountrySection(
         if (birthDateIso.isNotBlank() && !AppConfig.isEligibleAge16Plus(birthDateIso)) {
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "You must be at least 16 years old to join Skillect.",
+                text = "You do not meet the minimum age requirement to join Skillect.",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
