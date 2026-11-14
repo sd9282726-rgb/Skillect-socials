@@ -68,12 +68,19 @@ class ExploreCommunitiesViewModel(
     }
 
     fun setFilter(filter: ExploreFilter) {
+        searchJob?.cancel()
         _uiState.update { it.copy(filter = filter) }
         refreshExplore()
     }
 
     fun setSort(sort: ExploreSort) {
+        searchJob?.cancel()
         _uiState.update { it.copy(sort = sort) }
+        refreshExplore()
+    }
+
+    fun searchNow() {
+        searchJob?.cancel()
         refreshExplore()
     }
 
