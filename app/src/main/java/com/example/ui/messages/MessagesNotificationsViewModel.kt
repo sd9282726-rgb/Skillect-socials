@@ -20,6 +20,7 @@ data class MessagesNotificationsUiState(
     val messages: List<MessageDto> = emptyList(),
     val notifications: List<NotificationDto> = emptyList(),
     val isLoading: Boolean = false,
+    val isSendingMessage: Boolean = false,
     val errorMessage: String? = null,
     val statusMessage: String? = null,
 ) {
@@ -78,14 +79,26 @@ class MessagesNotificationsViewModel(
         }
     }
 
-    fun sendMessage(conversationId: String, content: String, mediaUrl: String? = null) {
-        if (content.isBlank() && mediaUrl.isNullOrBlank()) return
+    fun sendMessage(
+        conversationId: String,
+        content: String,
+        mediaUrl: String? = null,
+        onComplete: (Boolean) -> Unit = {},
+    ) {
+        if ((content.isBlank() && mediaUrl.isNullOrBlank()) || _uiState.value.isSendingMessage) return
         viewModelScope.launch {
+            _uiState.update { it.copy(isSendingMessage = true, statusMessage = null) }
             repository.sendMessage(conversationId, content.trim(), mediaUrl).fold(
                 onSuccess = { msg ->
-                    _uiState.update { state -> state.copy(messages = state.messages + msg) }
+                    _uiState.update { state ->
+                        state.copy(messages = state.messages + msg, isSendingMessage = false)
+                    }
+                    onComplete(true)
                 },
-                onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
+                onFailure = { err ->
+                    _uiState.update { it.copy(isSendingMessage = false, statusMessage = err.message) }
+                    onComplete(false)
+                },
             )
         }
     }
