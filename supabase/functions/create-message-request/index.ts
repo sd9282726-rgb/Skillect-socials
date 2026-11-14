@@ -18,6 +18,18 @@ function isAtLeast16(value: unknown): boolean {
   if (now.getUTCMonth() < mo - 1 || (now.getUTCMonth() === mo - 1 && now.getUTCDate() < d)) age--;
   return age >= 16 && birth.getTime() <= now.getTime();
 }
+
+function is16To17(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]), birth = new Date(Date.UTC(y, mo - 1, d));
+  if (birth.getUTCFullYear() !== y || birth.getUTCMonth() !== mo - 1 || birth.getUTCDate() !== d) return false;
+  const now = new Date();
+  let age = now.getUTCFullYear() - y;
+  if (now.getUTCMonth() < mo - 1 || (now.getUTCMonth() === mo - 1 && now.getUTCDate() < d)) age--;
+  return age >= 16 && age <= 17;
+}
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -48,6 +60,9 @@ Deno.serve(async (request: Request) => {
     const preferences = await rest(base, service, "user_preferences?select=allow_message_requests&user_id=eq." + recipientId + "&limit=1");
     if (preferences?.[0]?.allow_message_requests === false) return json(403, { error: "This creator is not accepting message requests" });
     const recipientFollowsSender = await rest(base, service, "follows?select=id&follower_id=eq." + recipientId + "&following_id=eq." + senderId + "&limit=1");
+    if (is16To17(recipient.date_of_birth) && (!Array.isArray(recipientFollowsSender) || !recipientFollowsSender.length)) {
+      return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
+    }
     if (Array.isArray(recipientFollowsSender) && recipientFollowsSender.length) return json(409, { error: "This creator can receive a direct message. Refresh the profile and try again." });
     if (recipient.is_private) {
       const senderFollowsRecipient = await rest(base, service, "follows?select=id&follower_id=eq." + senderId + "&following_id=eq." + recipientId + "&limit=1");
