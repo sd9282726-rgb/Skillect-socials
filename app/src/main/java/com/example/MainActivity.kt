@@ -15,12 +15,18 @@ class MainActivity : ComponentActivity() {
     private var deepLinkTypeState by mutableStateOf<String?>(null)
     private var deepLinkEntityIdState by mutableStateOf<String?>(null)
 
+    private fun readNotificationDeepLink(intent: Intent?) {
+        deepLinkTypeState = intent?.getStringExtra("deep_link_type")
+            ?: intent?.getStringExtra("type")
+        deepLinkEntityIdState = intent?.getStringExtra("deep_link_entity_id")
+            ?: intent?.getStringExtra("entity_id")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val app = application as SkillectApplication
-        deepLinkTypeState = intent?.getStringExtra("deep_link_type")
-        deepLinkEntityIdState = intent?.getStringExtra("deep_link_entity_id")
+        readNotificationDeepLink(intent)
         deepLinkUriState = intent?.data?.toString()
 
         setContent {
@@ -42,7 +48,6 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         deepLinkUriState = intent.data?.toString()
-        deepLinkTypeState = intent.getStringExtra("deep_link_type")
-        deepLinkEntityIdState = intent.getStringExtra("deep_link_entity_id")
+        readNotificationDeepLink(intent)
     }
 }
