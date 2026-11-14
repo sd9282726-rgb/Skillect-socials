@@ -57,6 +57,7 @@ class SupabaseRealtimeClient(
                     }
                     joinChannel(ws, "realtime:public:messages", token)
                     joinChannel(ws, "realtime:public:notifications", token)
+                    joinChannel(ws, "realtime:public:posts", token)
                     startHeartbeat(ws)
                 }
 
@@ -138,7 +139,7 @@ class SupabaseRealtimeClient(
                     }
                 }
                 "notifications" -> {
-                    val recipientId = record.optString("recipient_id")
+                    val recipientId = record.optString("user_id").ifBlank { record.optString("recipient_id") }
                     if (recipientId.isNotBlank()) {
                         _events.tryEmit(RealtimeEvent.NewNotification(recipientId))
                     }
