@@ -369,7 +369,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                        StatCounter(maxOf(profile?.postsCount ?: 0, uiState.posts.size), "Posts")
+                        StatCounter(uiState.postsCount ?: maxOf(profile?.postsCount ?: 0, uiState.posts.size), "Posts")
                         StatCounter(uiState.followersCount ?: profile?.followersCount ?: 0, "Networks")
                         StatCounter(uiState.followingCount ?: profile?.followingCount ?: 0, "Following")
                     }
