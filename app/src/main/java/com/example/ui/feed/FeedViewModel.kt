@@ -273,9 +273,9 @@ class FeedViewModel(
                 postType = if (isQuote) "quote" else "repost",
                 content = resolvedContent,
                 mediaUrls = listOfNotNull(resolvedImage),
+                mediaTypes = if (resolvedImage != null) listOf(post.mediaTypes.firstOrNull() ?: "image") else emptyList(),
                 repostedPostId = if (!isQuote) post.id else null,
                 quotedPostId = if (isQuote) post.id else null,
-                imageUrl = resolvedImage,
             )
             repository.createPost(req).fold(
                 onSuccess = {
