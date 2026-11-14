@@ -132,14 +132,17 @@ Deno.serve(async (request: Request) => {
         body: JSON.stringify({
           message: {
             token: fcmToken,
-            notification: { title: "Skillect", body: "You have new activity" },
+            // Use a data-only message so Android always invokes onMessageReceived.
+            // The app creates the notification locally and attaches the deep-link PendingIntent.
             data: {
               notification_id: notificationId,
               type: notificationType,
+              title: "Skillect",
+              body: "You have new activity",
               entity_id: entityId,
               entity_type: entityType,
             },
-            android: { priority: "HIGH", notification: { channel_id: channelId } },
+            android: { priority: "HIGH" },
           },
         }),
       },
