@@ -31,6 +31,7 @@ data class ExploreUiState(
     val projects: List<ProjectDto> = emptyList(),
     val skills: List<SkillDto> = emptyList(),
     val joinedCommunityIds: Set<String> = emptySet(),
+    val communityActionsInProgress: Set<String> = emptySet(),
     val selectedCommunity: CommunityDto? = null,
     val communityMembers: List<CommunityMemberDto> = emptyList(),
     val communityPosts: List<PostDto> = emptyList(),
@@ -134,7 +135,12 @@ class ExploreCommunitiesViewModel(
     }
 
     fun toggleJoinCommunity(communityId: String) {
-        val joined = communityId in _uiState.value.joinedCommunityIds
+        val initial = _uiState.value
+        if (communityId in initial.communityActionsInProgress) return
+        val joined = communityId in initial.joinedCommunityIds
+        _uiState.update {
+            it.copy(communityActionsInProgress = it.communityActionsInProgress + communityId)
+        }
         viewModelScope.launch {
             val res = if (joined) repository.leaveCommunity(communityId) else repository.joinCommunity(communityId)
             res.fold(
@@ -142,13 +148,36 @@ class ExploreCommunitiesViewModel(
                     _uiState.update { state ->
                         val updated = state.joinedCommunityIds.toMutableSet()
                         if (joined) updated.remove(communityId) else updated.add(communityId)
+                        val memberDelta = if (joined) -1 else 1
+                        val updatedCommunities = state.communities.map { community ->
+                            if (community.id == communityId) {
+                                community.copy(membersCount = (community.membersCount + memberDelta).coerceAtLeast(0))
+                            } else community
+                        }
+                        val updatedSelected = state.selectedCommunity?.let { community ->
+                            if (community.id == communityId) {
+                                community.copy(membersCount = (community.membersCount + memberDelta).coerceAtLeast(0))
+                            } else community
+                        }
                         state.copy(
                             joinedCommunityIds = updated,
+                            communities = updatedCommunities,
+                            selectedCommunity = updatedSelected,
+                            communityActionsInProgress = state.communityActionsInProgress - communityId,
                             statusMessage = if (joined) "Left community." else "Joined community.",
                         )
                     }
+                    // Refresh the member list and authoritative community details after the action.
+                    openCommunityDetail(communityId)
                 },
-                onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(
+                            communityActionsInProgress = it.communityActionsInProgress - communityId,
+                            statusMessage = err.message,
+                        )
+                    }
+                },
             )
         }
     }
