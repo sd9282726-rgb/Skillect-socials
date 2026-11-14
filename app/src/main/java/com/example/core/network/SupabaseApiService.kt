@@ -355,8 +355,8 @@ interface SupabasePostgrestApi {
     @POST("rest/v1/moderation_appeals")
     suspend fun submitModerationAppeal(@Body request: CreateAppealRequest): Response<List<ModerationAppealDto>>
 
-    @POST("rest/v1/rpc/create_or_get_direct_conversation")
-    suspend fun createOrGetDirectConversation(@Body body: CreateDirectConversationParams): Response<String>
+    @POST("functions/v1/start-conversation")
+    suspend fun startConversation(@Body body: StartConversationRequest): Response<StartConversationResponse>
 
     @Headers("Prefer: resolution=merge-duplicates,return=minimal")
     @POST("rest/v1/device_tokens")

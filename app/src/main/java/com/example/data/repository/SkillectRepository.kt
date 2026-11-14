@@ -889,23 +889,25 @@ class SkillectRepository(
         if (uid == peerUserId) {
             return@guardConfigured Result.failure(IllegalArgumentException("Cannot message yourself."))
         }
-        val resp = postgrestApi.createOrGetDirectConversation(CreateDirectConversationParams(peerUserId))
-        if (resp.isSuccessful) {
-            val convId = resp.body()?.trim().orEmpty()
-            return@guardConfigured if (convId.isBlank()) {
-                Result.failure(IllegalStateException("Conversation could not be created."))
-            } else {
-                Result.success(convId)
-            }
+        val response = postgrestApi.startConversation(StartConversationRequest(recipientId = peerUserId))
+        if (!response.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
         }
-        if (resp.code() == 404) {
-            val existing = postgrestApi.getConversations().body().orEmpty().firstOrNull { conv ->
-                val ids = conv.participants.map { it.userId }.toSet()
-                ids.size == 2 && uid in ids && peerUserId in ids
+        val result = response.body()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Messaging service returned an empty response."))
+        when (result.status) {
+            "created", "existing" -> {
+                val conversationId = result.conversationId.orEmpty()
+                if (conversationId.isBlank()) {
+                    Result.failure(IllegalStateException("Conversation could not be created."))
+                } else {
+                    Result.success(conversationId)
+                }
             }
-            if (existing != null) return@guardConfigured Result.success(existing.id)
+            "request_pending" -> Result.failure(IllegalStateException("Your message request is already pending."))
+            "request_required" -> Result.failure(IllegalStateException("A message request is required before you can start this conversation."))
+            else -> Result.failure(IllegalStateException(result.error ?: "Messaging could not be started."))
         }
-        Result.failure(IllegalStateException(resp.parseError()))
     }
 
     suspend fun fetchConversations(): Result<List<ConversationDto>> = guardConfigured {

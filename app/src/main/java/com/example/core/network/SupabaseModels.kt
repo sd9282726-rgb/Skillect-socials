@@ -519,6 +519,20 @@ data class CreateAppealRequest(
 )
 
 @JsonClass(generateAdapter = true)
+data class StartConversationRequest(
+    @Json(name = "recipient_id") val recipientId: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class StartConversationResponse(
+    val status: String = "",
+    @Json(name = "conversation_id") val conversationId: String? = null,
+    @Json(name = "request_id") val requestId: String? = null,
+    @Json(name = "recipient_id") val recipientId: String? = null,
+    val error: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
 data class CreateDirectConversationParams(
     @Json(name = "peer_id") val peerId: String,
 )
