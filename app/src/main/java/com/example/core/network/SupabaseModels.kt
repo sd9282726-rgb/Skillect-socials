@@ -197,7 +197,7 @@ data class CommentDto(
     val id: String,
     @Json(name = "post_id") val postId: String,
     @Json(name = "author_id") val authorId: String,
-    @Json(name = "parent_id") val parentCommentId: String? = null,
+    @Json(name = "parent_comment_id") val parentCommentId: String? = null,
     val content: String,
     @Json(name = "moderation_status") val moderationStatus: String = "approved",
     @Json(name = "created_at") val createdAt: String = "",
@@ -385,13 +385,13 @@ data class SendMessageRequest(
 @JsonClass(generateAdapter = true)
 data class NotificationDto(
     val id: String,
-    @Json(name = "user_id") val recipientId: String = "",
+    @Json(name = "recipient_id") val recipientId: String = "",
     @Json(name = "actor_id") val actorId: String? = null,
     val type: String = "activity",
     @Json(name = "entity_id") val entityId: String? = null,
     val title: String = "",
-    @Json(name = "message") val body: String = "",
-    @Json(name = "read") val isRead: Boolean = false,
+    val body: String = "",
+    @Json(name = "is_read") val isRead: Boolean = false,
     @Json(name = "created_at") val createdAt: String = "",
     val actor: ProfileDto? = null,
 )
