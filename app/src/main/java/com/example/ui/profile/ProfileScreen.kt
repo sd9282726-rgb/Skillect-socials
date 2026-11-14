@@ -1,6 +1,9 @@
 package com.example.ui.profile
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,7 +85,9 @@ import com.example.core.designsystem.SkillectGradientIconTile
 import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.core.designsystem.VerifiedCreatorBadge
+import com.example.core.media.MediaUploadManager
 import com.example.ui.feed.ReportContentDialog
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -90,6 +96,7 @@ fun ProfileScreen(
     currentUserId: String,
     uiState: ProfileSettingsUiState,
     viewModel: ProfileSettingsViewModel,
+    mediaUploadManager: MediaUploadManager,
     onOpenSettings: () -> Unit,
     onOpenConversation: (conversationId: String, peerName: String) -> Unit = { _, _ -> },
     onRequireAuth: (createAccount: Boolean, reason: String) -> Unit = { _, _ -> },
@@ -97,6 +104,8 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val mediaScope = rememberCoroutineScope()
+    var mediaStatus by remember { mutableStateOf<String?>(null) }
     val isGuestOwnProfile = targetUserId == null && currentUserId.isBlank()
 
     if (isGuestOwnProfile) {
@@ -114,6 +123,26 @@ fun ProfileScreen(
     }
 
     val profile = if (targetUserId == null) uiState.myProfile ?: uiState.viewedProfile else uiState.viewedProfile
+    var avatarUrlForEdit by remember(profile?.id, profile?.avatarUrl) { mutableStateOf(profile?.avatarUrl) }
+    var coverUrlForEdit by remember(profile?.id, profile?.coverUrl) { mutableStateOf(profile?.coverUrl) }
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) mediaScope.launch {
+            mediaStatus = "Uploading profile photo..."
+            mediaUploadManager.uploadProfileImage(uri, currentUserId, "avatar").fold(
+                onSuccess = { url -> avatarUrlForEdit = url; mediaStatus = "Profile photo ready to save." },
+                onFailure = { error -> mediaStatus = error.message ?: "Profile photo upload failed." },
+            )
+        }
+    }
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) mediaScope.launch {
+            mediaStatus = "Uploading profile background..."
+            mediaUploadManager.uploadProfileImage(uri, currentUserId, "cover").fold(
+                onSuccess = { url -> coverUrlForEdit = url; mediaStatus = "Profile background ready to save." },
+                onFailure = { error -> mediaStatus = error.message ?: "Profile background upload failed." },
+            )
+        }
+    }
     val isOwnProfile = targetUserId == null || (currentUserId.isNotBlank() && targetUserId == currentUserId)
     var selectedTab by remember { mutableIntStateOf(0) }
     var showEditDialog by remember { mutableStateOf(false) }
@@ -659,18 +688,26 @@ fun ProfileScreen(
                     OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, minLines = 2)
                     OutlinedTextField(value = region, onValueChange = { region = it }, label = { Text("Country / Region (privacy-safe)") })
                     OutlinedTextField(value = interests, onValueChange = { interests = it }, label = { Text("Interests (comma-separated)") })
-                    Text(
-                        "Profile photo and background uploads need a secure server-side media endpoint before they can be enabled.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SkillectOutlinedButton(
+                            text = "Choose photo",
+                            leadingIcon = Icons.Rounded.Person,
+                            onClick = { avatarPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        )
+                        SkillectOutlinedButton(
+                            text = "Choose background",
+                            leadingIcon = Icons.Rounded.Edit,
+                            onClick = { coverPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        )
+                    }
+                    mediaStatus?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
             },
             confirmButton = {
                 SkillectPrimaryButton(
                     text = "Save",
                     onClick = {
-                        viewModel.updateProfile(displayName, website, bio, region, interests)
+                        viewModel.updateProfile(displayName, website, bio, region, interests, avatarUrlForEdit, coverUrlForEdit)
                         showEditDialog = false
                     },
                 )
