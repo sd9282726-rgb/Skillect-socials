@@ -44,7 +44,7 @@ import java.lang.reflect.Proxy
 import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [35])
 class SkillectUnitAndRobolectricTest {
 
     @get:Rule
