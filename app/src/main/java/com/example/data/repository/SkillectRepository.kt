@@ -339,7 +339,8 @@ class SkillectRepository(
         }
         val safeLinks = profile.portfolioLinks.filter { AppConfig.isValidHttpUrl(it.url) }
         val resolvedWebsite = profile.website.trim().ifBlank { safeLinks.firstOrNull()?.url.orEmpty() }
-        val countryName = profile.regionLabel.trim().ifBlank { profile.countryCode.trim() }
+        val countryCode = profile.countryCode.trim().ifBlank { "US" }
+        val countryName = profile.regionLabel.trim().ifBlank { countryCode }
 
         // The live database requires moderated profile writes to pass through this
         // server-side gateway; direct authenticated profile upserts are rejected.
@@ -350,7 +351,7 @@ class SkillectRepository(
             "bio" to profile.bio.trim().take(AppConfig.MAX_BIO_LENGTH),
             "skills" to profile.skills,
             "interests" to profile.interests,
-            "country" to countryName,
+            "country" to countryCode,
             "location" to countryName,
             "website" to resolvedWebsite,
             "date_of_birth" to birth,
