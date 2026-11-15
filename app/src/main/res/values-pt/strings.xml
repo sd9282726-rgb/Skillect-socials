@@ -40,4 +40,38 @@
     <string name="password_reset_confirm">Confirmar nova senha</string>
     <string name="password_reset_update">Atualizar senha</string>
     <string name="password_reset_back">Voltar para entrar</string>
+    <string name="community_guidelines_body">NOSSA COMUNIDADE
+Skillect é um espaço para aprender criar compartilhar ideias e construir boas conexões
+
+RESPEITE CADA MEMBRO
+Trate todos com gentileza e respeite diferenças de origem habilidade e opinião
+
+MANTENHA AS PESSOAS SEGURAS
+Não ameace assedie intimide manipule explore ou ataque outras pessoas
+
+PROTEJA OS JOVENS
+Conteúdo sexual envolvendo menores exploração aliciamento e pedidos de imagens privadas não são permitidos
+
+COMPARTILHE COM RESPONSABILIDADE
+Publique conteúdo próprio ou autorizado e respeite a privacidade e os direitos autorais
+
+NÃO COMPARTILHE CONTEÚDO PREJUDICIAL
+Não publique discurso de ódio ameaças material sexual explícito incentivo à automutilação ou instruções perigosas
+
+SEJA HONESTO
+Não se passe por outras pessoas engane membros aplique golpes ou apresente trabalhos alheios como seus
+
+EVITE SPAM E ABUSO
+Evite spam engajamento falso mensagens indesejadas e links maliciosos
+
+RESPEITE A PRIVACIDADE
+Não publique informações privadas nem imagens sem permissão
+
+DENUNCIE PROBLEMAS
+Use a opção de denúncia quando algo parecer inseguro e forneça detalhes claros
+
+ANÁLISE JUSTA
+As denúncias são analisadas com justiça violações graves podem remover conteúdo restringir contas ou banir membros e decisões elegíveis podem ser contestadas</string>
+    <string name="community_guidelines_title">Diretrizes da comunidade Skillect</string>
+    <string name="community_guidelines_understood">Entendi</string>
 </resources>
