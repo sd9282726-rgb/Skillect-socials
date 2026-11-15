@@ -410,6 +410,17 @@ interface SupabasePostgrestApi {
     @POST("rest/v1/moderation_appeals")
     suspend fun submitModerationAppeal(@Body request: CreateAppealRequest): Response<List<ModerationAppealDto>>
 
+    @PATCH("rest/v1/moderation_appeals")
+    suspend fun updateModerationAppeal(
+        @Query("id") idEq: String,
+        @Body updates: Map<String, String>,
+    ): Response<ResponseBody>
+
+    @DELETE("rest/v1/account_enforcements")
+    suspend fun restoreAccountAfterAppeal(
+        @Query("user_id") userIdEq: String,
+    ): Response<ResponseBody>
+
     @POST("functions/v1/start-conversation")
     suspend fun startConversation(@Body body: StartConversationRequest): Response<StartConversationResponse>
 
