@@ -358,46 +358,15 @@ fun SettingsScreen(
     if (showGuidelinesDialog) {
         AlertDialog(
             onDismissRequest = { showGuidelinesDialog = false },
-            title = { Text("Skillect Safety & Community Guidelines (16+)") },
+            title = { Text(stringResource(R.string.community_guidelines_title)) },
             text = {
                 Text(
-                    """OUR COMMUNITY
-Skillect is a place to learn create share ideas and build meaningful connections
-
-RESPECT EVERY MEMBER
-Treat people with kindness and respect differences in background skill and opinion
-
-KEEP PEOPLE SAFE
-Never threaten bully harass groom exploit or target another member
-
-PROTECT YOUNG PEOPLE
-Sexual content involving minors exploitation grooming and requests for private images are not allowed
-
-SHARE RESPONSIBLY
-Post content you own or have permission to share and respect privacy and copyright
-
-NO HARMFUL CONTENT
-Do not share hate speech violent threats explicit sexual material self harm promotion or dangerous instructions
-
-BE HONEST
-Do not impersonate others deceive members run scams or misrepresent your work
-
-NO SPAM OR ABUSE
-Avoid spam fake engagement repeated unwanted messages and malicious links
-
-RESPECT PRIVACY
-Do not publish private information or images without permission
-
-REPORT CONCERNS
-Use the report option when something feels unsafe and provide clear details
-
-FAIR REVIEW
-Reports are reviewed fairly serious violations may lead to content removal account restrictions or a ban members may appeal eligible decisions""",
+                    stringResource(R.string.community_guidelines_body),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
             confirmButton = {
-                SkillectPrimaryButton(text = "Understood", onClick = { showGuidelinesDialog = false })
+                SkillectPrimaryButton(text = stringResource(R.string.community_guidelines_understood), onClick = { showGuidelinesDialog = false })
             },
         )
     }
