@@ -12,6 +12,7 @@ import com.example.data.repository.SkillectRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -92,7 +93,7 @@ class AuthViewModel(
             repository.refreshSessionIfNeeded()
         }
         viewModelScope.launch {
-            repository.sessionFlow.collect { session ->
+            repository.sessionFlow.distinctUntilChangedBy { it.userId to it.accessToken }.collect { session ->
                 if (session.isAuthenticated) {
                     repository.realtimeClient.connect(session.userId)
                     repository.syncTelemetryAndPushToken(session.userId)
