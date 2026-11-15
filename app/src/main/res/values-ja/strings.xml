@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Skillect</string>
+    <string name="tagline">つながる 創る 発見する 成長する</string>
+    <string name="age_gate_notice">Skillectは16歳以上の方のためのグローバルコミュニティです</string>
+    <string name="backend_setup_banner">Connect your Skillect service to sync live community data</string>
+    <string name="nav_feed">ホーム</string>
+    <string name="nav_explore">見つける</string>
+    <string name="nav_create">作成</string>
+    <string name="nav_communities">グループ</string>
+    <string name="nav_groups">グループ</string>
+    <string name="nav_messages">メッセージ</string>
+    <string name="nav_profile">プロフィール</string>
+    <string name="nav_notifications">通知</string>
+    <string name="channel_messages_name">ダイレクトメッセージ</string>
+    <string name="channel_social_name">コミュニティ活動</string>
+    <string name="channel_safety_name">安全とアカウント</string>
+</resources>
