@@ -25,6 +25,7 @@ import com.example.core.network.ExperienceDto
 import com.example.core.network.FollowRowDto
 import com.example.core.network.MessageDto
 import com.example.core.network.ModerationAppealDto
+import com.example.core.network.ModerationMediaDto
 import com.example.core.network.ModerationAuditLogDto
 import com.example.core.network.MuteRowDto
 import com.example.core.network.NotificationDto
@@ -1276,6 +1277,24 @@ class SkillectRepository(
         } catch (_: Exception) {
             false
         }
+    }
+
+    suspend fun fetchModerationMedia(): Result<List<ModerationMediaDto>> = guardConfigured {
+        requireUserId("access media moderation queue")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access media moderation queue"))
+        val response = postgrestApi.getModerationMediaQueue()
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        Result.success(response.body().orEmpty())
+    }
+
+    suspend fun resolveModerationMedia(mediaAssetId: String, approved: Boolean): Result<Unit> = guardConfigured {
+        requireUserId("review uploaded media")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("review uploaded media"))
+        val response = postgrestApi.reviewModerationMedia(
+            mapOf("media_asset_id" to mediaAssetId, "decision" to if (approved) "approve" else "reject"),
+        )
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        Result.success(Unit)
     }
 
     suspend fun fetchModerationReports(): Result<List<ReportDto>> = guardConfigured {
