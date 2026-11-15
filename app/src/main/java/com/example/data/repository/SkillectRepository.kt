@@ -9,6 +9,7 @@ import com.example.core.network.CommunityMemberDto
 import com.example.core.network.ConversationDto
 import com.example.core.network.CreateAchievementRequest
 import com.example.core.network.CreateAppealRequest
+import com.example.core.network.AccountEnforcementDto
 import com.example.core.network.CreateAuditLogRequest
 import com.example.core.network.CreateCommentRequest
 import com.example.core.network.CreateCommunityRequest
@@ -1292,13 +1293,20 @@ class SkillectRepository(
         Result.success(resp.body().orEmpty())
     }
 
+    suspend fun fetchMyEnforcement(): Result<AccountEnforcementDto?> = guardConfigured {
+        val uid = requireUserId("check account status") ?: return@guardConfigured Result.success(null)
+        val resp = postgrestApi.getMyEnforcement("eq.$uid")
+        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+        Result.success(resp.body().orEmpty().firstOrNull())
+    }
+
     suspend fun submitModerationAppeal(reason: String): Result<ModerationAppealDto> = guardConfigured {
         val uid = requireUserId("submit moderation appeals") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("submit moderation appeals"))
         val clean = reason.trim()
-        if (clean.length < 5) {
-            return@guardConfigured Result.failure(IllegalArgumentException("Please describe your appeal reason (5+ characters)."))
+        if (clean.length < 20) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Please explain your appeal in at least 20 characters."))
         }
-        val resp = postgrestApi.submitModerationAppeal(CreateAppealRequest(uid, clean.take(1000)))
+        val resp = postgrestApi.submitModerationAppeal(CreateAppealRequest(uid, uid, clean.take(5000)))
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
         Result.success(resp.body()!!.first())
     }
