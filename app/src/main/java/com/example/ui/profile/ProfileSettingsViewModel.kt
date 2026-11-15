@@ -123,14 +123,33 @@ class ProfileSettingsViewModel(
                 _uiState.update { it.copy(isLoading = false) }
                 return@launch
             }
-            val profile = repository.fetchProfileById(effectiveId).getOrNull()
-            val posts = repository.fetchPostsByAuthor(effectiveId).getOrDefault(emptyList())
-            val projects = repository.fetchProjects(effectiveId).getOrDefault(emptyList())
-            val experiences = repository.fetchExperiences(effectiveId).getOrDefault(emptyList())
-            val achievements = repository.fetchAchievements(effectiveId).getOrDefault(emptyList())
-            val followingIds = if (myId.isNotBlank()) repository.getFollowingIds(myId).getOrDefault(emptyList()) else emptyList()
-            val postCount = repository.fetchPostCount(effectiveId).getOrNull()
-            val followCounts = repository.fetchFollowCounts(effectiveId).getOrNull()
+            val profileResult = repository.fetchProfileById(effectiveId)
+            val postsResult = repository.fetchPostsByAuthor(effectiveId)
+            val projectsResult = repository.fetchProjects(effectiveId)
+            val experiencesResult = repository.fetchExperiences(effectiveId)
+            val achievementsResult = repository.fetchAchievements(effectiveId)
+            val followingResult = if (myId.isNotBlank()) repository.getFollowingIds(myId) else Result.success(emptyList())
+            val postCountResult = repository.fetchPostCount(effectiveId)
+            val followCountsResult = repository.fetchFollowCounts(effectiveId)
+
+            val profile = profileResult.getOrNull()
+            val posts = postsResult.getOrDefault(emptyList())
+            val projects = projectsResult.getOrDefault(emptyList())
+            val experiences = experiencesResult.getOrDefault(emptyList())
+            val achievements = achievementsResult.getOrDefault(emptyList())
+            val followingIds = followingResult.getOrDefault(emptyList())
+            val postCount = postCountResult.getOrNull()
+            val followCounts = followCountsResult.getOrNull()
+            val loadError = listOfNotNull(
+                profileResult.exceptionOrNull()?.message,
+                postsResult.exceptionOrNull()?.message,
+                projectsResult.exceptionOrNull()?.message,
+                experiencesResult.exceptionOrNull()?.message,
+                achievementsResult.exceptionOrNull()?.message,
+                followingResult.exceptionOrNull()?.message,
+                postCountResult.exceptionOrNull()?.message,
+                followCountsResult.exceptionOrNull()?.message,
+            ).firstOrNull()
 
             _uiState.update {
                 it.copy(
@@ -144,6 +163,7 @@ class ProfileSettingsViewModel(
                     followersCount = followCounts?.first,
                     followingCount = followCounts?.second,
                     isLoading = false,
+                    errorMessage = loadError,
                 )
             }
         }
