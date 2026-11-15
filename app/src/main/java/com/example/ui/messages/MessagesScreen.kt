@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.core.config.AppConfig
 import com.example.core.util.TimeCompat
-import com.example.core.designsystem.BackendConfigBanner
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.ErrorRetryCard
 import com.example.core.designsystem.MinorSafeBadge
