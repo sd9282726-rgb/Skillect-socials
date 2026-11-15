@@ -27,6 +27,7 @@ data class FeedUiState(
     val pendingLikePostIds: Set<String> = emptySet(),
     val savedPostIds: Set<String> = emptySet(),
     val followingIds: Set<String> = emptySet(),
+    val pendingFollowUserIds: Set<String> = emptySet(),
     val votedPollOptions: Map<String, String> = emptyMap(),
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
@@ -84,6 +85,7 @@ class FeedViewModel(
                 pendingLikePostIds = emptySet(),
                 savedPostIds = emptySet(),
                 followingIds = emptySet(),
+                pendingFollowUserIds = emptySet(),
                 votedPollOptions = emptyMap(),
                 activeCommentsPost = null,
                 comments = emptyList(),
@@ -263,17 +265,28 @@ class FeedViewModel(
     }
 
     fun toggleFollow(authorId: String) {
-        val wasFollowing = authorId in _uiState.value.followingIds
+        if (authorId in _uiState.value.pendingFollowUserIds) return
+        _uiState.update { it.copy(pendingFollowUserIds = it.pendingFollowUserIds + authorId) }
         viewModelScope.launch {
-            repository.toggleFollow(authorId, wasFollowing).fold(
-                onSuccess = { nowFollowing ->
+            repository.toggleFollow(authorId).fold(
+                onSuccess = { result ->
                     _uiState.update { state ->
                         val updated = state.followingIds.toMutableSet()
-                        if (nowFollowing) updated.add(authorId) else updated.remove(authorId)
-                        state.copy(followingIds = updated)
+                        if (result.isFollowing) updated.add(authorId) else updated.remove(authorId)
+                        state.copy(
+                            followingIds = updated,
+                            pendingFollowUserIds = state.pendingFollowUserIds - authorId,
+                        )
                     }
                 },
-                onFailure = { err -> _uiState.update { it.copy(snackbarMessage = err.message) } },
+                onFailure = { err ->
+                    _uiState.update {
+                        it.copy(
+                            pendingFollowUserIds = it.pendingFollowUserIds - authorId,
+                            snackbarMessage = err.message,
+                        )
+                    }
+                },
             )
         }
     }
