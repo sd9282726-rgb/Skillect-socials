@@ -22,7 +22,7 @@ Deno.serve(async (request: Request) => {
   if (!["moderator", "admin"].includes(user?.app_metadata?.role)) return json(403, { error: "Moderator access required" });
 
   const response = await fetch(
-    base + "/rest/v1/media_assets?select=id,owner_id,storage_path,status,media_type,mime_type,post_content,post_id,created_at,decision_reason&status=in.(pending,quarantined)&reviewed_at=is.null&order=created_at.asc&limit=50",
+    base + "/rest/v1/media_assets?select=id,owner_id,storage_path,status,media_type,mime_type,post_content,post_id,created_at,decision_reason&status=eq.quarantined&reviewed_at=is.null&order=created_at.asc&limit=50",
     { headers: headers(service) },
   );
   if (!response.ok) return json(503, { error: "Could not load media moderation queue" });
