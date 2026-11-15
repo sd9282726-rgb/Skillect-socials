@@ -18,7 +18,7 @@ Deno.serve(async (request: Request) => {
   try { body = await request.json(); } catch { return json(400, { error: "Expected JSON request body" }); }
   const id = body.media_asset_id;
   if (typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) return json(400, { error: "Invalid media_asset_id" });
-  const assetResponse = await fetch(base + "/rest/v1/media_assets?select=id,owner_id,storage_path,status,media_type,mime_type,reviewed_at&id=eq." + id + "&status=in.(pending,rejected)&reviewed_at=is.null&limit=1", {
+  const assetResponse = await fetch(base + "/rest/v1/media_assets?select=id,owner_id,storage_path,status,media_type,mime_type,reviewed_at&id=eq." + id + "&status=in.(pending,quarantined,rejected)&reviewed_at=is.null&limit=1", {
     headers: { apikey: service, Authorization: "Bearer " + service },
   });
   if (!assetResponse.ok) return json(503, { error: "Could not load moderation case" });
