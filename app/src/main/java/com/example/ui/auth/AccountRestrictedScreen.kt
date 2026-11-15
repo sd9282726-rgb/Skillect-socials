@@ -44,6 +44,9 @@ fun AccountRestrictedScreen(
         }
     }
 
+    val permanent = uiState.accountEnforcement?.status == "permanent"
+    val title = if (permanent) "Account permanently banned" else "Account temporarily suspended"
+
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -55,9 +58,9 @@ fun AccountRestrictedScreen(
         ) {
             EmptyStateCard(
                 icon = Icons.Rounded.Gavel,
-                title = "Account temporarily restricted",
+                title = title,
                 subtitle = uiState.accountEnforcement?.reason?.takeIf { it.isNotBlank() }
-                    ?: "Your account access has been restricted following a safety review. You can review the decision and submit an appeal below.",
+                    ?: if (permanent) "Your account has been permanently banned following a safety review. If an appeal is available, you can request a review below." else "Your account has been temporarily suspended following a safety review. If an appeal is available, you can request a review below.",
             )
 
             if (uiState.isCheckingAccountStatus) {
