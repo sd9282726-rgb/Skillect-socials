@@ -1,8 +1,6 @@
 package com.example.data.repository
 
 import android.util.Base64
-import org.json.JSONObject
-
 import com.example.core.config.AppConfig
 import com.example.core.network.AchievementDto
 import com.example.core.network.BlockRowDto
@@ -39,6 +37,7 @@ import com.example.core.network.ProjectDto
 import com.example.core.network.RecoverPasswordRequest
 import com.example.core.network.RefreshTokenRequest
 import com.example.core.network.ReportDto
+import com.example.core.network.ResolveModerationAppealRequest
 import com.example.core.network.SavedCollectionDto
 import com.example.core.network.SavedPostDto
 import com.example.core.network.SendMessageRequest
