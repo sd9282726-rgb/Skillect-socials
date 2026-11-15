@@ -17,6 +17,30 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
+    // Read client configuration from the ignored CI/local .env file, falling back
+    // to documented placeholders so lint and unit tests can compile without secrets.
+    val appEnv = Properties().apply {
+      val envFile = rootProject.file(".env")
+      val fallbackFile = rootProject.file(".env.example")
+      val source = if (envFile.isFile) envFile else fallbackFile
+      if (source.isFile) source.inputStream().use { load(it) }
+    }
+    fun String.asBuildConfigString(): String =
+      "\"" + replace("\\\\", "\\\\\\\\")
+        .replace("\"", "\\\"")
+        .replace("\\n", "\\\\n") + "\""
+
+    buildConfigField(
+      "String",
+      "SUPABASE_URL",
+      appEnv.getProperty("SUPABASE_URL", "").asBuildConfigString(),
+    )
+    buildConfigField(
+      "String",
+      "SUPABASE_ANON_KEY",
+      appEnv.getProperty("SUPABASE_ANON_KEY", "").asBuildConfigString(),
+    )
+
     applicationId = "com.skillect.app"
     minSdk = 24
     targetSdk = 36
@@ -103,6 +127,7 @@ dependencies {
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
+  implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
