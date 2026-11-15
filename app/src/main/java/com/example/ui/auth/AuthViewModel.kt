@@ -302,6 +302,24 @@ class AuthViewModel(
         }
     }
 
+    fun signOut() {
+        viewModelScope.launch {
+            repository.signOut().fold(
+                onSuccess = {
+                    _uiState.update {
+                        AuthUiState(
+                            isRestoringSession = false,
+                            infoMessage = "You have been signed out.",
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(errorMessage = error.message ?: "Could not sign out.") }
+                },
+            )
+        }
+    }
+
     fun setMode(mode: AuthMode) {
         _uiState.update { it.copy(mode = mode, errorMessage = null, infoMessage = null) }
     }
