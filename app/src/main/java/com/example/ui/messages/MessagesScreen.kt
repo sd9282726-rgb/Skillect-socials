@@ -91,7 +91,7 @@ fun MessagesInboxScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SkillectBrandBadge(size = 28.dp)
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text("Messages", style = MaterialTheme.typography.headlineMedium)
+                    Text("Messages", style = MaterialTheme.typography.titleLarge)
                 }
                 MinorSafeBadge()
             }
