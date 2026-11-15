@@ -447,10 +447,13 @@ class SkillectRepository(
             "date_of_birth" to existing.birthDate,
             "is_private" to existing.isPrivate,
             "onboarded" to existing.onboarded,
-            "avatar_url" to existing.avatarUrl,
+            // Null avatar URLs must be omitted: the moderation gateway only accepts
+            // a preset avatar or a secure HTTPS photo when the field is supplied.
             "cover_url" to existing.coverUrl,
         )
+        if (sanitized["avatar_url"]?.toString()?.isBlank() == true) sanitized.remove("avatar_url")
         body.putAll(sanitized)
+        existing.avatarUrl?.takeIf { it.isNotBlank() }?.let { body.putIfAbsent("avatar_url", it) }
         val content = listOf(
             body["display_name"]?.toString(),
             body["username"]?.toString(),
