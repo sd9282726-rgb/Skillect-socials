@@ -410,6 +410,9 @@ interface SupabasePostgrestApi {
     @POST("rest/v1/moderation_appeals")
     suspend fun submitModerationAppeal(@Body request: CreateAppealRequest): Response<List<ModerationAppealDto>>
 
+    @POST("rest/v1/rpc/resolve_moderation_appeal")
+    suspend fun resolveModerationAppeal(@Body request: ResolveModerationAppealRequest): Response<ResponseBody>
+
     @PATCH("rest/v1/moderation_appeals")
     suspend fun updateModerationAppeal(
         @Query("id") idEq: String,
