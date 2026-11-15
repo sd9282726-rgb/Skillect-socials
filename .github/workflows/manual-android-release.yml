@@ -67,9 +67,8 @@ jobs:
           test -s "$GITHUB_WORKSPACE/skillect-release.jks"
           chmod 600 "$GITHUB_WORKSPACE/skillect-release.jks"
 
-      - name: Assemble signed release APK
+      - name: Verify release signing secrets
         env:
-          KEYSTORE_PATH: skillect-release.jks
           STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
@@ -81,15 +80,41 @@ jobs:
               exit 1
             fi
           done
-          gradle --no-daemon --no-configuration-cache :app:assembleRelease
 
-      - name: Upload release APK artifact
+      - name: Run release lint and unit tests
+        run: gradle --no-daemon --no-configuration-cache :app:lintRelease :app:testDebugUnitTest
+
+      - name: Assemble signed release APK and AAB
+        env:
+          KEYSTORE_PATH: skillect-release.jks
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --no-configuration-cache :app:assembleRelease :app:bundleRelease
+
+      - name: Verify APK and AAB signatures
+        run: |
+          set -euo pipefail
+          APK="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -print -quit)"
+          AAB="$(find app/build/outputs/bundle/release -maxdepth 1 -name '*.aab' -print -quit)"
+          test -n "$APK" && test -s "$APK"
+          test -n "$AAB" && test -s "$AAB"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+          jarsigner -verify -verbose -certs "$AAB"
+          sha256sum "$APK" "$AAB"
+          ls -lh "$APK" "$AAB"
+
+      - name: Upload signed release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: skillect-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          name: skillect-production-release
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
 
       - name: Remove restored keystore
         if: always()
