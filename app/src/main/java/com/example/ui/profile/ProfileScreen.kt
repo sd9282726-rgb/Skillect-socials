@@ -76,6 +76,7 @@ import com.example.R
 import com.example.core.config.AppConfig
 import com.example.core.designsystem.BackendConfigBanner
 import com.example.core.designsystem.EmptyStateCard
+import com.example.core.designsystem.ErrorRetryCard
 import com.example.core.designsystem.MinorSafeBadge
 import com.example.core.designsystem.SkillChip
 import com.example.core.designsystem.SkillectAvatar
@@ -288,6 +289,13 @@ fun ProfileScreen(
                         BackendConfigBanner()
                         Spacer(modifier = Modifier.height(14.dp))
                     }
+                    if (!uiState.errorMessage.isNullOrBlank()) {
+                        ErrorRetryCard(
+                            message = uiState.errorMessage,
+                            onRetry = { viewModel.loadProfile(targetUserId) },
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -298,7 +306,7 @@ fun ProfileScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = profile?.displayName ?: "Skillect Member",
-                                    style = MaterialTheme.typography.headlineSmall,
+                                    style = MaterialTheme.typography.titleLarge,
                                 )
                                 if (profile?.isVerified == true) {
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -971,7 +979,7 @@ fun GuestProfileView(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Your skills, projects, followers, and posts in one global profile. Create an account or sign in to get started.",
+                            text = "Your skills, projects, networks, and posts in one global profile. Create an account or sign in to get started.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
