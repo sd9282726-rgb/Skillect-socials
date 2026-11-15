@@ -142,7 +142,11 @@ class MessagesNotificationsViewModel(
                 onSuccess = { msg ->
                     _uiState.update { state ->
                         state.copy(
-                            messages = state.messages + msg,
+                            messages = if (state.activeConversationId == conversationId) {
+                                (state.messages.filterNot { it.id == msg.id } + msg).sortedBy { it.createdAt }
+                            } else {
+                                state.messages
+                            },
                             isSendingMessage = false,
                         )
                     }
