@@ -52,6 +52,16 @@ data class ProfileSettingsUiState(
     val errorMessage: String? = null,
 )
 
+private data class ProfileSectionsResult(
+    val posts: Result<List<PostDto>>,
+    val projects: Result<List<ProjectDto>>,
+    val experiences: Result<List<ExperienceDto>>,
+    val achievements: Result<List<AchievementDto>>,
+    val followingIds: Result<List<String>>,
+    val postCount: Result<Int>,
+    val followCounts: Result<Pair<Int, Int>>,
+)
+
 class ProfileSettingsViewModel(
     private val repository: SkillectRepository,
 ) : ViewModel() {
@@ -162,20 +172,34 @@ class ProfileSettingsViewModel(
             }
 
             // Secondary profile sections load concurrently and never block the header.
-            val (postsResult, projectsResult, experiencesResult, achievementsResult, followingResult, postCountResult, followCountsResult) =
-                coroutineScope {
-                    val posts = async { repository.fetchPostsByAuthor(effectiveId) }
-                    val projects = async { repository.fetchProjects(effectiveId) }
-                    val experiences = async { repository.fetchExperiences(effectiveId) }
-                    val achievements = async { repository.fetchAchievements(effectiveId) }
-                    val following = async {
-                        if (myId.isNotBlank()) repository.getFollowingIds(myId)
-                        else Result.success(emptyList<String>())
-                    }
-                    val postCount = async { repository.fetchPostCount(effectiveId) }
-                    val followCounts = async { repository.fetchFollowCounts(effectiveId) }
-                    listOf(posts.await(), projects.await(), experiences.await(), achievements.await(), following.await(), postCount.await(), followCounts.await())
+            val sections = coroutineScope {
+                val posts = async { repository.fetchPostsByAuthor(effectiveId) }
+                val projects = async { repository.fetchProjects(effectiveId) }
+                val experiences = async { repository.fetchExperiences(effectiveId) }
+                val achievements = async { repository.fetchAchievements(effectiveId) }
+                val following = async {
+                    if (myId.isNotBlank()) repository.getFollowingIds(myId)
+                    else Result.success(emptyList<String>())
                 }
+                val postCount = async { repository.fetchPostCount(effectiveId) }
+                val followCounts = async { repository.fetchFollowCounts(effectiveId) }
+                ProfileSectionsResult(
+                    posts = posts.await(),
+                    projects = projects.await(),
+                    experiences = experiences.await(),
+                    achievements = achievements.await(),
+                    followingIds = following.await(),
+                    postCount = postCount.await(),
+                    followCounts = followCounts.await(),
+                )
+            }
+            val postsResult = sections.posts
+            val projectsResult = sections.projects
+            val experiencesResult = sections.experiences
+            val achievementsResult = sections.achievements
+            val followingResult = sections.followingIds
+            val postCountResult = sections.postCount
+            val followCountsResult = sections.followCounts
 
             val loadError = listOfNotNull(
                 profileResult.exceptionOrNull()?.message,
