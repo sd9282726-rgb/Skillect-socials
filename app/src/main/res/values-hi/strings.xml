@@ -74,4 +74,16 @@ Skillect सीखने बनाने विचार साझा करन�
 रिपोर्ट की निष्पक्ष समीक्षा होती है गंभीर उल्लंघन पर कंटेंट हटाया जा सकता है खाते सीमित या प्रतिबंधित हो सकते हैं और योग्य फैसलों के खिलाफ अपील की जा सकती है</string>
     <string name="community_guidelines_title">Skillect समुदाय दिशानिर्देश</string>
     <string name="community_guidelines_understood">समझ गया</string>
+    <string name="account_restricted_title">खाता अस्थायी रूप से प्रतिबंधित है</string>
+    <string name="account_restricted_description">सुरक्षा समीक्षा के बाद आपके खाते की पहुंच सीमित कर दी गई है आप नीचे निर्णय देख सकते हैं और अपील भेज सकते हैं</string>
+    <string name="account_request_review">समीक्षा का अनुरोध करें</string>
+    <string name="account_appeal_explanation">बताएं कि आपके अनुसार इस निर्णय की समीक्षा क्यों होनी चाहिए और जरूरी संदर्भ दें</string>
+    <string name="account_appeal_label">आपका विवरण</string>
+    <string name="account_submit_appeal">अपील जमा करें</string>
+    <string name="account_sign_out">साइन आउट</string>
+    <string name="account_appeal_status">अपील की स्थिति</string>
+    <string name="account_review_update">समीक्षा अपडेट</string>
+    <string name="account_check_updates">यह पेज अपने आप अपडेट जांचता है</string>
+    <string name="account_appeal_min_chars">कम से कम 20 अक्षरों में अपनी अपील समझाएं</string>
+    <string name="account_appeals_unavailable">इस प्रतिबंध के लिए अपील उपलब्ध नहीं है यदि आपको लगता है कि यह गलती है तो Skillect सहायता से संपर्क करें</string>
 </resources>
