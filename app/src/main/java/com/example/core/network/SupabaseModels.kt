@@ -520,6 +520,20 @@ data class CreateAchievementRequest(
 )
 
 @JsonClass(generateAdapter = true)
+data class ModerationMediaDto(
+    val id: String,
+    @Json(name = "owner_id") val ownerId: String,
+    val status: String,
+    @Json(name = "media_type") val mediaType: String,
+    @Json(name = "mime_type") val mimeType: String = "",
+    @Json(name = "post_content") val postContent: String = "",
+    @Json(name = "post_id") val postId: String? = null,
+    @Json(name = "created_at") val createdAt: String = "",
+    @Json(name = "decision_reason") val decisionReason: String = "",
+    @Json(name = "preview_url") val previewUrl: String? = null,
+)
+
+@JsonClass(generateAdapter = true)
 data class ModerationAppealDto(
     val id: String,
     @Json(name = "user_id") val userId: String,
