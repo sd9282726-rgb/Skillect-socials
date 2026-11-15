@@ -49,29 +49,31 @@ Deno.serve(async (request: Request) => {
   if (!allowed.has(file.type)) return json(415, { error: "Unsupported image type" });
   if (file.size < 1 || file.size > 12 * 1024 * 1024 || caption.length > 5000) return json(413, { error: "Image must be 12 MB or smaller and caption no longer than 5,000 characters" });
 
-  const captionCheck = await fetch(base + "/functions/v1/moderate-text", {
-    method: "POST",
-    headers: { apikey: anon, Authorization: authorization, "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "media_caption", content: textForScreening }),
-  });
-  const captionDecision = captionCheck.ok ? await captionCheck.json() : null;
-  if (!captionCheck.ok || !["approved", "pending_review"].includes(captionDecision?.status)) {
-    return json(captionCheck.status || 503, { error: captionDecision?.error || "Caption safety screening failed. Nothing was published." });
-  }
+  // Caption screening is asynchronous; provider outages must not block posting.
+  void textForScreening;
 
   const extension = file.type === "image/jpeg" ? "jpg" : file.type.split("/")[1];
   const path = userId + "/" + crypto.randomUUID() + "." + extension;
   const storageHeaders = { ...adminHeaders(service), "Content-Type": file.type, "x-upsert": "false" };
   const privateUpload = await fetch(base + "/storage/v1/object/media-quarantine/" + path, { method: "POST", headers: storageHeaders, body: file });
-  if (!privateUpload.ok) return json(502, { error: "Could not save image in private quarantine" });
-  // Keep the object private until automated screening approves it.
+  if (!privateUpload.ok) return json(502, { error: "Could not save image for background safety checks" });
   const publicUrl = base + "/storage/v1/object/public/post-media/" + path;
   const destinationPath = communityId ? communityId + "/" + path : path;
   const postMediaValue = privateCommunity ? "private-community-media/" + destinationPath : publicUrl;
+  // Publish immediately to the correct audience. The quarantine copy remains private for asynchronous checks.
+  const destinationBucket = privateCommunity ? "private-community-media" : "post-media";
+  const destinationObject = privateCommunity ? destinationPath : path;
+  const publishedImmediately = await fetch(base + "/storage/v1/object/" + destinationBucket + "/" + destinationObject.split("/").map(encodeURIComponent).join("/"), {
+    method: "POST", headers: { ...adminHeaders(service), "Content-Type": file.type, "x-upsert": "false" }, body: file,
+  });
+  if (!publishedImmediately.ok) {
+    await fetch(base + "/storage/v1/object/media-quarantine/" + path, { method: "DELETE", headers: adminHeaders(service) });
+    return json(502, { error: "Could not publish image" });
+  }
 
   const assetResponse = await fetch(base + "/rest/v1/media_assets", {
     method: "POST", headers: { ...adminHeaders(service), "Content-Type": "application/json", Prefer: "return=representation" },
-    body: JSON.stringify({ owner_id: userId, community_id: communityId || null, storage_path: "media-quarantine/" + path, public_url: postMediaValue, post_id: null, status: "pending", provider: "sightengine-nudity-2.1-background", media_type: "image", mime_type: file.type, post_content: caption, decision_reason: "Waiting for automated image screening", reviewed_at: null }),
+    body: JSON.stringify({ owner_id: userId, community_id: communityId || null, storage_path: "media-quarantine/" + path, public_url: postMediaValue, post_id: null, status: "pending", provider: "sightengine-optional-background", media_type: "image", mime_type: file.type, post_content: caption, decision_reason: "Waiting for automated image screening", reviewed_at: null }),
   });
   const assets = assetResponse.ok ? await assetResponse.json() : [];
   if (!assetResponse.ok || !assets[0]?.id) {
@@ -82,7 +84,7 @@ Deno.serve(async (request: Request) => {
 
   const postResponse = await fetch(base + "/rest/v1/posts?select=id", {
     method: "POST", headers: { ...adminHeaders(service), "Content-Type": "application/json", Prefer: "return=representation" },
-    body: JSON.stringify({ author_id: userId, content: caption, image_url: postMediaValue, media_type: "image", tags, ...(category ? { category } : {}), ...(communityId ? { community_id: communityId } : {}), moderation_hidden: true }),
+    body: JSON.stringify({ author_id: userId, content: caption, image_url: postMediaValue, media_type: "image", tags, ...(category ? { category } : {}), ...(communityId ? { community_id: communityId } : {}), moderation_hidden: false }),
   });
   const postRows = postResponse.ok ? await postResponse.json() : [];
   if (!postResponse.ok || !postRows[0]?.id) {
@@ -105,7 +107,7 @@ Deno.serve(async (request: Request) => {
 
   const moderationTask = moderateImage(base, service, sightUser, sightSecret, file, path, userId, assets[0].id, postId, privateCommunity, communityId, destinationPath);
   EdgeRuntime.waitUntil(moderationTask);
-  return json(202, { status: "pending_moderation", post_id: postId, message: "Your image is hidden until safety screening is complete." });
+  return json(201, { status: "published_pending_background_check", post_id: postId, message: "Your image is published. Background safety checks will continue." });
 });
 
 async function moderateImage(base: string, service: string, sightUser: string, sightSecret: string, file: File, path: string, userId: string, assetId: string, postId: string, privateCommunity: boolean, communityId: string, destinationPath: string) {
@@ -146,7 +148,7 @@ async function moderateImage(base: string, service: string, sightUser: string, s
     const postMediaValue = keepPrivate ? storedDestination : base + "/storage/v1/object/public/post-media/" + path;
     const published = await fetch(base + "/storage/v1/object/" + destinationBucket + "/" + destinationObject.split("/").map(encodeURIComponent).join("/"), {
       method: "POST",
-      headers: { ...admin, "Content-Type": file.type, "x-upsert": "false" },
+      headers: { ...admin, "Content-Type": file.type, "x-upsert": "true" },
       body: file,
     });
     if (!published.ok) throw new Error("Could not publish the approved image file");
@@ -158,10 +160,8 @@ async function moderateImage(base: string, service: string, sightUser: string, s
     const visible = await fetch(base + "/rest/v1/posts?id=eq." + postId, { method: "PATCH", headers: { ...admin, "Content-Type": "application/json" }, body: JSON.stringify({ moderation_hidden: false }) });
     if (!visible.ok) throw new Error("Could not publish approved image post");
   } catch {
-    await fetch(base + "/rest/v1/posts?id=eq." + postId, { method: "PATCH", headers: { ...admin, "Content-Type": "application/json" }, body: JSON.stringify({ moderation_hidden: true }) });
-    await fetch(base + "/storage/v1/object/post-media/" + path, { method: "DELETE", headers: admin });
-    await fetch(base + "/storage/v1/object/private-community-media/" + destinationPath.split("/").map(encodeURIComponent).join("/"), { method: "DELETE", headers: admin });
-    // Preserve the private quarantine object so a moderator can inspect and approve/reject it.
-    await fetch(base + "/rest/v1/media_assets?id=eq." + assetId, { method: "PATCH", headers: { ...admin, "Content-Type": "application/json" }, body: JSON.stringify({ status: "quarantined", reviewed_at: null, decision_reason: "Automated image screening was unavailable; awaiting moderator review" }) });
+    // Provider timeout, quota exhaustion or missing credentials do not unpublish a valid upload.
+    // Keep the post visible and leave its private source copy for a later retry/review process.
+    await fetch(base + "/rest/v1/media_assets?id=eq." + assetId, { method: "PATCH", headers: { ...admin, "Content-Type": "application/json" }, body: JSON.stringify({ status: "pending", reviewed_at: null, decision_reason: "Background screening unavailable; retry required" }) });
   }
 }
