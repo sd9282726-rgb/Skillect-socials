@@ -1306,24 +1306,17 @@ class SkillectRepository(
         approved: Boolean,
         moderatorNote: String,
     ): Result<Unit> = guardConfigured {
-        val moderatorId = requireUserId("review account appeals")
+        requireUserId("review account appeals")
             ?: return@guardConfigured Result.failure(AuthenticationRequiredException("review account appeals"))
-        val status = if (approved) "approved" else "rejected"
-        val updates = mapOf(
-            "status" to status,
-            "moderator_note" to moderatorNote.trim().take(1000),
-            "reviewed_by" to moderatorId,
-            "reviewed_at" to java.time.Instant.now().toString(),
+        val response = postgrestApi.resolveModerationAppeal(
+            ResolveModerationAppealRequest(
+                appealId = appealId,
+                accept = approved,
+                moderatorNote = moderatorNote.trim().take(1000),
+            ),
         )
-        val appealResponse = postgrestApi.updateModerationAppeal("eq.$appealId", updates)
-        if (!appealResponse.isSuccessful) {
-            return@guardConfigured Result.failure(IllegalStateException(appealResponse.parseError()))
-        }
-        if (approved) {
-            val restoreResponse = postgrestApi.restoreAccountAfterAppeal("eq.$enforcementUserId")
-            if (!restoreResponse.isSuccessful) {
-                return@guardConfigured Result.failure(IllegalStateException(restoreResponse.parseError()))
-            }
+        if (!response.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
         }
         Result.success(Unit)
     }
