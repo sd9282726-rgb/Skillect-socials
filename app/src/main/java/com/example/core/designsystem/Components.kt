@@ -218,6 +218,7 @@ fun SkillectCard(
         modifier = cardModifier,
         shape = shape,
         color = containerColor,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.dp, borderColor),
     ) {
         Column(modifier = Modifier.padding(contentPadding), content = content)
