@@ -102,4 +102,5 @@ Les signalements sont examinés équitablement les violations graves peuvent ent
     <string name="permission_body">Autorisez les notifications pour les messages l’activité de la communauté et les alertes importantes du compte Vous pouvez modifier ce choix dans les paramètres Android</string>
     <string name="permission_continue">Continuer</string>
     <string name="permission_not_now">Pas maintenant</string>
+    <string name="account_permanent_ban_title">Compte définitivement banni</string>
 </resources>
