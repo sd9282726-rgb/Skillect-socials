@@ -216,6 +216,7 @@ interface SupabasePostgrestApi {
     suspend fun getFollows(
         @Query("follower_id") followerIdEq: String? = null,
         @Query("following_id") followingIdEq: String? = null,
+        @Query("limit") limit: Int = 1000,
     ): Response<List<FollowRowDto>>
 
     @Headers("Prefer: resolution=ignore-duplicates")
