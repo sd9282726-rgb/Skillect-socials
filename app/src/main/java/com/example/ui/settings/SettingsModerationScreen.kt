@@ -58,6 +58,8 @@ import com.example.core.designsystem.SkillectCard
 import com.example.core.designsystem.SkillectCrimson
 import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
+import com.example.R
+import androidx.compose.ui.res.stringResource
 import com.example.ui.profile.ProfileSettingsUiState
 import com.example.ui.profile.ProfileSettingsViewModel
 
@@ -99,7 +101,7 @@ fun SettingsScreen(
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                         }
-                        Text("Settings, Privacy & Safety", style = MaterialTheme.typography.titleLarge)
+                        Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge)
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
@@ -109,7 +111,7 @@ fun SettingsScreen(
             // Theme Preferences (Dark-First + Light Mode support)
             item {
                 SkillectCard(modifier = Modifier.fillMaxWidth()) {
-                    Text("Appearance", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.settings_appearance), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ThemeMode.entries.forEach { mode ->
@@ -127,7 +129,7 @@ fun SettingsScreen(
             // International Language Preferences
             item {
                 SkillectCard(modifier = Modifier.fillMaxWidth()) {
-                    Text("Language & International Formatting", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -182,7 +184,7 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                         SkillectOutlinedButton(
-                            text = "Community Guidelines",
+                            text = stringResource(R.string.settings_guidelines),
                             onClick = { showGuidelinesDialog = true },
                         )
                     }
@@ -277,11 +279,11 @@ fun SettingsScreen(
                 // Blocked Accounts
                 item {
                     SkillectCard(modifier = Modifier.fillMaxWidth()) {
-                        Text("Blocked Accounts (${uiState.blockedAccounts.size})", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.settings_blocked_accounts, uiState.blockedAccounts.size), style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(6.dp))
                         if (uiState.blockedAccounts.isEmpty()) {
                             Text(
-                                "No blocked accounts.",
+                                stringResource(R.string.settings_no_blocked),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -294,7 +296,7 @@ fun SettingsScreen(
                                 ) {
                                     Text("@${block.blocked?.username ?: block.blockedId}")
                                     TextButton(onClick = { viewModel.unblockUser(block.blockedId) }) {
-                                        Text("Unblock")
+                                        Text(stringResource(R.string.settings_unblock))
                                     }
                                 }
                             }
@@ -308,7 +310,7 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.Policy, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Safety Policy, Terms & Governance", style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.settings_safety_policy), style = MaterialTheme.typography.titleMedium)
                         }
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -317,7 +319,7 @@ fun SettingsScreen(
                                 onClick = { showGuidelinesDialog = true },
                             )
                             SkillectOutlinedButton(
-                                text = "Moderation Hub",
+                                text = stringResource(R.string.settings_moderation_hub),
                                 leadingIcon = Icons.Rounded.AdminPanelSettings,
                                 onClick = onOpenAdminModeration,
                                 modifier = Modifier.testTag("open_admin_moderation_button"),
@@ -333,7 +335,7 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         SkillectOutlinedButton(
-                            text = "Sign Out",
+                            text = stringResource(R.string.settings_sign_out),
                             leadingIcon = Icons.AutoMirrored.Rounded.Logout,
                             onClick = {
                                 viewModel.signOut()
@@ -342,7 +344,7 @@ fun SettingsScreen(
                             modifier = Modifier.weight(1f).testTag("sign_out_button"),
                         )
                         SkillectOutlinedButton(
-                            text = "Delete Account",
+                            text = stringResource(R.string.settings_delete_account),
                             leadingIcon = Icons.Rounded.DeleteForever,
                             onClick = { showDeleteConfirm = true },
                             modifier = Modifier.weight(1f),
@@ -470,7 +472,7 @@ fun ModerationAdminScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
-                    Text("Moderation Hub", style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.settings_moderation_hub), style = MaterialTheme.typography.titleLarge)
                 }
             }
 
@@ -484,8 +486,18 @@ fun ModerationAdminScreen(
                 }
             }
 
+            if (isAuthorizedMod && uiState.moderationReports.isEmpty()) {
+                item {
+                    EmptyStateCard(
+                        icon = Icons.Rounded.Gavel,
+                        title = stringResource(R.string.moderation_no_reports),
+                        subtitle = "New reports will appear here when members raise a safety concern",
+                    )
+                }
+            }
+
             if (uiState.moderationReports.isNotEmpty()) {
-                item { Text("Reports Queue", style = MaterialTheme.typography.titleMedium) }
+                item { Text(stringResource(R.string.moderation_reports), style = MaterialTheme.typography.titleMedium) }
                 items(uiState.moderationReports, key = { it.id }) { report ->
                     SkillectCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
@@ -505,11 +517,11 @@ fun ModerationAdminScreen(
                             Spacer(modifier = Modifier.height(10.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 SkillectPrimaryButton(
-                                    text = "Take Action",
+                                    text = stringResource(R.string.moderation_take_action),
                                     onClick = { viewModel.resolveReport(report.id, "action_taken") },
                                 )
                                 SkillectOutlinedButton(
-                                    text = "Dismiss",
+                                    text = stringResource(R.string.moderation_dismiss),
                                     onClick = { viewModel.resolveReport(report.id, "dismissed") },
                                 )
                             }
@@ -518,8 +530,18 @@ fun ModerationAdminScreen(
                 }
             }
 
+            if (isAuthorizedMod && uiState.moderationAppeals.isEmpty()) {
+                item {
+                    EmptyStateCard(
+                        icon = Icons.Rounded.Gavel,
+                        title = stringResource(R.string.moderation_no_appeals),
+                        subtitle = "Account appeals will appear here when a member requests a review",
+                    )
+                }
+            }
+
             if (uiState.moderationAppeals.isNotEmpty()) {
-                item { Text("Moderation Appeals", style = MaterialTheme.typography.titleMedium) }
+                item { Text(stringResource(R.string.moderation_appeals), style = MaterialTheme.typography.titleMedium) }
                 items(uiState.moderationAppeals, key = { "appeal_${it.id}" }) { appeal ->
                     SkillectCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
@@ -543,12 +565,12 @@ fun ModerationAdminScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 SkillectPrimaryButton(
-                                    text = "Accept and restore",
+                                    text = stringResource(R.string.moderation_accept_restore),
                                     onClick = { viewModel.resolveAppeal(appeal, approved = true) },
                                     modifier = Modifier.weight(1f),
                                 )
                                 SkillectOutlinedButton(
-                                    text = "Decline",
+                                    text = stringResource(R.string.moderation_decline),
                                     onClick = { viewModel.resolveAppeal(appeal, approved = false) },
                                     modifier = Modifier.weight(1f),
                                 )
@@ -559,7 +581,7 @@ fun ModerationAdminScreen(
             }
 
             if (uiState.auditLogs.isNotEmpty()) {
-                item { Text("Moderation Audit Logs", style = MaterialTheme.typography.titleMedium) }
+                item { Text(stringResource(R.string.moderation_audit), style = MaterialTheme.typography.titleMedium) }
                 items(uiState.auditLogs, key = { "audit_${it.id}" }) { log ->
                     SkillectCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
