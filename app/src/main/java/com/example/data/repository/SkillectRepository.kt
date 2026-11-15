@@ -81,8 +81,8 @@ class SkillectRepository(
     private val postgrestApi: SupabasePostgrestApi,
     val realtimeClient: SupabaseRealtimeClient,
     private val analyticsTracker: AnalyticsTracker,
-    private val storageApi: SupabaseStorageApi? = null,
     private val isConfiguredCheck: () -> Boolean = { AppConfig.isSupabaseConfigured },
+    private val storageApi: SupabaseStorageApi? = null,
 ) {
     val sessionFlow: Flow<PersistedSession> = sessionStore.sessionFlow
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
