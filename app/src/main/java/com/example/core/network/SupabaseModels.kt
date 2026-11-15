@@ -522,6 +522,7 @@ data class CreateAchievementRequest(
 data class ModerationAppealDto(
     val id: String,
     @Json(name = "user_id") val userId: String,
+    @Json(name = "enforcement_user_id") val enforcementUserId: String = userId,
     @Json(name = "explanation") val reason: String = "",
     val status: String = "pending",
     @Json(name = "moderator_note") val reviewerNote: String? = null,
