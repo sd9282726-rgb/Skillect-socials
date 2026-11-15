@@ -82,7 +82,7 @@ fun ExploreScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "Explore",
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.titleLarge,
                         )
                     }
                     Surface(
