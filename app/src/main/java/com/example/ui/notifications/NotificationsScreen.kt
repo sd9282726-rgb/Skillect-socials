@@ -107,7 +107,7 @@ fun NotificationsScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Get real-time alerts for new followers, replies, mentions, reposts, and community activity.",
+                            text = "Get real-time alerts for new network connections, replies, mentions, reposts, and community activity.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -163,7 +163,7 @@ fun NotificationsScreen(
                         EmptyStateCard(
                             icon = Icons.Rounded.NotificationsNone,
                             title = "In-App & Push Alert Centre",
-                            subtitle = "Follows, likes, comments, mentions, reposts, messages, community activity, and project interactions appear here in real time via Supabase + FCM.",
+                            subtitle = "Networks, likes, comments, mentions, reposts, messages, community activity, and project interactions appear here in real time via Supabase + FCM.",
                         )
                     }
                 } else {
@@ -195,13 +195,15 @@ fun NotificationsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
+                                    val isNetworkNotification = notif.type.equals("follow", ignoreCase = true)
                                     Text(
-                                        text = notif.title.ifBlank { notif.type.replaceFirstChar { it.uppercase() } },
+                                        text = if (isNetworkNotification) "New network connection" else notif.title.ifBlank { notif.type.replaceFirstChar { it.uppercase() } },
                                         style = MaterialTheme.typography.titleSmall,
                                     )
-                                    if (notif.body.isNotBlank()) {
+                                    val visibleBody = if (isNetworkNotification) "Connected with your Skillect profile." else notif.body
+                                    if (visibleBody.isNotBlank()) {
                                         Text(
-                                            text = notif.body,
+                                            text = visibleBody,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
