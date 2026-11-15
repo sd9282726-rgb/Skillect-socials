@@ -102,4 +102,5 @@ Skillectは学び 創作し アイデアを共有し 有意義なつながりを
     <string name="permission_body">メッセージ コミュニティの活動 重要なアカウント更新の通知を許可してください Androidの設定からいつでも変更できます</string>
     <string name="permission_continue">続行</string>
     <string name="permission_not_now">後で</string>
+    <string name="account_permanent_ban_title">アカウントは永久に停止されています</string>
 </resources>
