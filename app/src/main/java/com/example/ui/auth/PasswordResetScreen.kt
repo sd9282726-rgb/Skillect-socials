@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.core.designsystem.SkillectBrandBadge
 import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.core.designsystem.SkillectOutlinedButton
@@ -37,9 +39,9 @@ fun PasswordResetScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             SkillectBrandBadge(size = 44.dp)
-            Text("Create a new password", style = MaterialTheme.typography.headlineSmall)
+            Text(stringResource(R.string.password_reset_title), style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Choose a new password for your Skillect account",
+                stringResource(R.string.password_reset_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -47,7 +49,7 @@ fun PasswordResetScreen(
                 value = uiState.newPassword,
                 onValueChange = viewModel::updateNewPassword,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("New password") },
+                label = { Text(stringResource(R.string.password_reset_new)) },
                 placeholder = { Text("At least 8 characters") },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
@@ -56,7 +58,7 @@ fun PasswordResetScreen(
                 value = uiState.confirmNewPassword,
                 onValueChange = viewModel::updateConfirmNewPassword,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Confirm new password") },
+                label = { Text(stringResource(R.string.password_reset_confirm)) },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
             )
@@ -68,7 +70,7 @@ fun PasswordResetScreen(
             }
             Spacer(Modifier.height(4.dp))
             SkillectPrimaryButton(
-                text = "Update password",
+                text = stringResource(R.string.password_reset_update),
                 onClick = viewModel::submitAuth,
                 enabled = uiState.newPassword.length >= 8 &&
                     uiState.newPassword == uiState.confirmNewPassword &&
@@ -77,7 +79,7 @@ fun PasswordResetScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             SkillectOutlinedButton(
-                text = "Back to sign in",
+                text = stringResource(R.string.password_reset_back),
                 onClick = { viewModel.setMode(AuthMode.SIGN_IN) },
                 modifier = Modifier.fillMaxWidth(),
             )
