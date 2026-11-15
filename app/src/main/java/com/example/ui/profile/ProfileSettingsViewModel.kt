@@ -20,6 +20,8 @@ import com.example.core.network.SavedPostDto
 import com.example.core.network.UserPreferences
 import com.example.data.repository.SkillectRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +58,7 @@ class ProfileSettingsViewModel(
 
     private val _uiState = MutableStateFlow(ProfileSettingsUiState())
     private var profileLoadJob: Job? = null
+    private val profileCache = mutableMapOf<String, ProfileDto>()
     val uiState: StateFlow<ProfileSettingsUiState> = _uiState.asStateFlow()
 
     init {
@@ -92,6 +95,7 @@ class ProfileSettingsViewModel(
     fun clearPrivateState() {
         profileLoadJob?.cancel()
         profileLoadJob = null
+        profileCache.clear()
         _uiState.update {
             it.copy(
                 myProfile = null,
@@ -116,32 +120,63 @@ class ProfileSettingsViewModel(
         if (!AppConfig.isSupabaseConfigured) return
         profileLoadJob?.cancel()
         profileLoadJob = viewModelScope.launch {
-            _uiState.update {
-                it.copy(isLoading = true, isFollowActionPending = false, errorMessage = null, viewedProfile = null, posts = emptyList(), postsCount = null, followersCount = null, followingCount = null)
-            }
             val myId = repository.sessionStore.currentSession().userId
             val effectiveId = targetUserId?.takeIf { it.isNotBlank() } ?: myId
             if (effectiveId.isBlank()) {
                 _uiState.update { it.copy(isLoading = false) }
                 return@launch
             }
-            val profileResult = repository.fetchProfileById(effectiveId)
-            val postsResult = repository.fetchPostsByAuthor(effectiveId)
-            val projectsResult = repository.fetchProjects(effectiveId)
-            val experiencesResult = repository.fetchExperiences(effectiveId)
-            val achievementsResult = repository.fetchAchievements(effectiveId)
-            val followingResult = if (myId.isNotBlank()) repository.getFollowingIds(myId) else Result.success(emptyList<String>())
-            val postCountResult = repository.fetchPostCount(effectiveId)
-            val followCountsResult = repository.fetchFollowCounts(effectiveId)
 
-            val profile = profileResult.getOrNull()
-            val posts = postsResult.getOrDefault(emptyList())
-            val projects = projectsResult.getOrDefault(emptyList())
-            val experiences = experiencesResult.getOrDefault(emptyList())
-            val achievements = achievementsResult.getOrDefault(emptyList())
-            val followingIds = followingResult.getOrDefault(emptyList())
-            val postCount = postCountResult.getOrNull()
-            val followCounts = followCountsResult.getOrNull()
+            val isOwnProfile = effectiveId == myId
+            val current = _uiState.value
+            val cachedProfile = profileCache[effectiveId]
+                ?: if (isOwnProfile) current.myProfile else current.viewedProfile?.takeIf { it.id == effectiveId }
+            _uiState.update { state ->
+                state.copy(
+                    isLoading = cachedProfile == null,
+                    isFollowActionPending = false,
+                    errorMessage = null,
+                    viewedProfile = cachedProfile,
+                    posts = if (state.viewedProfile?.id == effectiveId) state.posts else emptyList(),
+                    postsCount = if (state.viewedProfile?.id == effectiveId) state.postsCount else cachedProfile?.postsCount,
+                    followersCount = if (state.viewedProfile?.id == effectiveId) state.followersCount else cachedProfile?.followersCount,
+                    followingCount = if (state.viewedProfile?.id == effectiveId) state.followingCount else cachedProfile?.followingCount,
+                )
+            }
+
+            // Fetch the identity first so the profile header can render immediately.
+            val profileResult = repository.fetchProfileById(effectiveId)
+            val profile = profileResult.getOrNull() ?: cachedProfile
+            if (profile != null) {
+                profileCache[effectiveId] = profile
+                _uiState.update { state ->
+                    state.copy(
+                        viewedProfile = profile,
+                        myProfile = if (isOwnProfile) profile else state.myProfile,
+                        postsCount = state.postsCount ?: profile.postsCount,
+                        followersCount = state.followersCount ?: profile.followersCount,
+                        followingCount = state.followingCount ?: profile.followingCount,
+                        isLoading = false,
+                    )
+                }
+            }
+
+            // Secondary profile sections load concurrently and never block the header.
+            val (postsResult, projectsResult, experiencesResult, achievementsResult, followingResult, postCountResult, followCountsResult) =
+                coroutineScope {
+                    val posts = async { repository.fetchPostsByAuthor(effectiveId) }
+                    val projects = async { repository.fetchProjects(effectiveId) }
+                    val experiences = async { repository.fetchExperiences(effectiveId) }
+                    val achievements = async { repository.fetchAchievements(effectiveId) }
+                    val following = async {
+                        if (myId.isNotBlank()) repository.getFollowingIds(myId)
+                        else Result.success(emptyList<String>())
+                    }
+                    val postCount = async { repository.fetchPostCount(effectiveId) }
+                    val followCounts = async { repository.fetchFollowCounts(effectiveId) }
+                    listOf(posts.await(), projects.await(), experiences.await(), achievements.await(), following.await(), postCount.await(), followCounts.await())
+                }
+
             val loadError = listOfNotNull(
                 profileResult.exceptionOrNull()?.message,
                 postsResult.exceptionOrNull()?.message,
@@ -153,17 +188,18 @@ class ProfileSettingsViewModel(
                 followCountsResult.exceptionOrNull()?.message,
             ).firstOrNull()
 
-            _uiState.update {
-                it.copy(
-                    viewedProfile = profile,
-                    posts = posts,
-                    projects = projects,
-                    experiences = experiences,
-                    achievements = achievements,
-                    isFollowing = effectiveId in followingIds,
-                    postsCount = postCount,
-                    followersCount = followCounts?.first,
-                    followingCount = followCounts?.second,
+            _uiState.update { state ->
+                state.copy(
+                    viewedProfile = profile ?: state.viewedProfile,
+                    myProfile = if (isOwnProfile) profile ?: state.myProfile else state.myProfile,
+                    posts = postsResult.getOrDefault(state.posts),
+                    projects = projectsResult.getOrDefault(state.projects),
+                    experiences = experiencesResult.getOrDefault(state.experiences),
+                    achievements = achievementsResult.getOrDefault(state.achievements),
+                    isFollowing = effectiveId in followingResult.getOrDefault(emptyList()),
+                    postsCount = postCountResult.getOrNull() ?: state.postsCount,
+                    followersCount = followCountsResult.getOrNull()?.first ?: state.followersCount,
+                    followingCount = followCountsResult.getOrNull()?.second ?: state.followingCount,
                     isLoading = false,
                     errorMessage = loadError,
                 )
