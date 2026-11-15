@@ -183,10 +183,10 @@ fun MessagesInboxScreen(
                     items(uiState.conversations, key = { it.id }) { conv ->
                         val peer = conv.participants.firstOrNull { it.userId != currentUserId }?.profile
                         val peerName = peer?.displayName ?: "Direct Conversation"
-                        val myParticipant = conv.participants.firstOrNull { it.userId == currentUserId }
+                        val myReadMarker = conv.readMarkers.firstOrNull { it.userId == currentUserId }
                         val latestActivity = runCatching { Instant.parse(conv.updatedAt) }.getOrNull()
                         val readBaseline = runCatching {
-                            Instant.parse(myParticipant?.lastReadAt ?: conv.createdAt)
+                            Instant.parse(myReadMarker?.lastReadAt ?: conv.createdAt)
                         }.getOrNull()
                         val hasUnreadMessages = latestActivity != null &&
                             readBaseline != null && latestActivity.isAfter(readBaseline)

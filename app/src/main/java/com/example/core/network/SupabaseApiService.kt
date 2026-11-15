@@ -321,7 +321,7 @@ interface SupabasePostgrestApi {
 
     @GET("rest/v1/conversations")
     suspend fun getConversations(
-        @Query("select") select: String = "*,participants:conversation_participants(*,profile:profiles(*))",
+        @Query("select") select: String = "*,participants:conversation_participants(*,profile:profiles(*)),read_markers:conversation_reads(*)",
         @Query("order") order: String = "created_at.desc",
     ): Response<List<ConversationDto>>
 

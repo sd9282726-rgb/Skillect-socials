@@ -360,6 +360,14 @@ data class ConversationDto(
     @Json(name = "created_at") val createdAt: String = "",
     @Json(name = "updated_at") val updatedAt: String = "",
     val participants: List<ConversationParticipantDto> = emptyList(),
+    @Json(name = "read_markers") val readMarkers: List<ConversationReadDto> = emptyList(),
+)
+
+@JsonClass(generateAdapter = true)
+data class ConversationReadDto(
+    @Json(name = "conversation_id") val conversationId: String,
+    @Json(name = "user_id") val userId: String,
+    @Json(name = "last_read_at") val lastReadAt: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

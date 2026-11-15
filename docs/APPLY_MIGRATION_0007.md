@@ -1,24 +1,8 @@
-# Apply migration 0007 (DM last_read_at)
+# Apply migration 0007 (DM read cursor)
 
-**Approved:** 2026-11-15 (owner requested all remaining steps)
+Migration 0007 now targets `public.conversation_reads`, the existing canonical read-marker table.
 
-## What it does
-- Lets authenticated users **UPDATE only** `conversation_participants.last_read_at` on **their own** row
-- Required for persistent DM unread badges after app restart
+It preserves the existing participant-scoped UPDATE RLS policy and restricts authenticated clients to updating only `last_read_at`. It does not alter `conversation_participants`.
 
-## How to apply (Supabase Dashboard)
-1. Open project `chohswyxsckpwyzlbzav`
-2. SQL Editor → New query
-3. Paste the full contents of `supabase/migrations/0007_conversation_participants_read_update.sql`
-4. Run
-5. Confirm policy exists:
-   `select * from pg_policies where tablename = 'conversation_participants';`
+The Android client reads the embedded `conversation_reads` markers in the inbox and updates the current user's marker when a chat is opened or a message is sent.
 
-## Verify from the app
-1. Account A messages Account B
-2. B opens the chat (marks read)
-3. Force-stop app, reopen inbox → conversation should not show unread for B
-4. A sends again → B should see unread until open
-
-## Agent limitation
-This environment has no Supabase service role / CLI login, so the SQL cannot be executed from the agent.

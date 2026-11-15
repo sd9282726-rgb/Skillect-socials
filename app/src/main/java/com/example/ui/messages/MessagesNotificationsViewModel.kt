@@ -81,9 +81,7 @@ class MessagesNotificationsViewModel(
                     conversations = state.conversations.map { conv ->
                         if (conv.id != conversationId) conv
                         else conv.copy(
-                            participants = conv.participants.map { part ->
-                                if (part.userId == uid) part.copy(lastReadAt = optimisticReadAt) else part
-                            },
+                            readMarkers = conv.readMarkers.filterNot { it.userId == uid } + com.example.core.network.ConversationReadDto(conversationId, uid, optimisticReadAt),
                         )
                     },
                 )
@@ -96,9 +94,7 @@ class MessagesNotificationsViewModel(
                             conversations = state.conversations.map { conv ->
                                 if (conv.id != conversationId) conv
                                 else conv.copy(
-                                    participants = conv.participants.map { part ->
-                                        if (part.userId == uid) part.copy(lastReadAt = persistedReadAt) else part
-                                    },
+                                    readMarkers = conv.readMarkers.filterNot { it.userId == uid } + com.example.core.network.ConversationReadDto(conversationId, uid, persistedReadAt),
                                 )
                             },
                         )
@@ -159,9 +155,7 @@ class MessagesNotificationsViewModel(
                                     conversations = state.conversations.map { conv ->
                                         if (conv.id != conversationId) conv
                                         else conv.copy(
-                                            participants = conv.participants.map { part ->
-                                                if (part.userId == uid) part.copy(lastReadAt = persistedReadAt) else part
-                                            },
+                                            readMarkers = conv.readMarkers.filterNot { it.userId == uid } + com.example.core.network.ConversationReadDto(conversationId, uid, persistedReadAt),
                                         )
                                     },
                                 )

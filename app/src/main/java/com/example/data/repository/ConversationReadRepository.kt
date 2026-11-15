@@ -1,7 +1,7 @@
 package com.example.data.repository
 
 import com.example.core.config.AppConfig
-import com.example.core.network.ConversationParticipantDto
+import com.example.core.network.ConversationReadDto
 import com.example.core.network.SupabaseClientFactory
 import kotlinx.coroutines.CancellationException
 import retrofit2.Response
@@ -13,17 +13,17 @@ import java.time.Instant
 
 private interface ConversationReadApi {
     @Headers("Prefer: return=representation")
-    @PATCH("rest/v1/conversation_participants")
-    suspend fun markParticipantRead(
+    @PATCH("rest/v1/conversation_reads")
+    suspend fun markConversationRead(
         @Query("conversation_id") conversationIdEq: String,
         @Query("user_id") userIdEq: String,
         @Body updates: Map<String, String>,
-    ): Response<List<ConversationParticipantDto>>
+    ): Response<List<ConversationReadDto>>
 }
 
 /**
  * Persists the signed-in participant's read cursor.
- * The matching RLS policy and column-level UPDATE grant are staged in migration 0007.
+ * The existing conversation_reads RLS policy scopes updates to the signed-in participant; migration 0007 restricts column-level UPDATE to last_read_at.
  */
 suspend fun SkillectRepository.markConversationRead(conversationId: String): Result<String> {
     if (!AppConfig.isSupabaseConfigured) {
