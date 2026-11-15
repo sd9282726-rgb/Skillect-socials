@@ -86,4 +86,20 @@ Skillect는 배우고 만들고 아이디어를 나누며 의미 있는 관계�
     <string name="account_check_updates">이 페이지는 업데이트를 자동으로 확인합니다</string>
     <string name="account_appeal_min_chars">20자 이상으로 설명하세요</string>
     <string name="account_appeals_unavailable">이 제한에는 이의를 제기할 수 없습니다 오류라고 생각되면 Skillect 지원팀에 문의하세요</string>
+    <string name="settings_notifications_title">푸시 및 앱 내 알림</string>
+    <string name="settings_notifications_enable">이 기기에서 알림 사용</string>
+    <string name="settings_notifications_likes">좋아요 및 재게시</string>
+    <string name="settings_notifications_comments">댓글 및 답글</string>
+    <string name="settings_notifications_messages">다이렉트 메시지</string>
+    <string name="settings_notifications_communities">커뮤니티 및 프로젝트</string>
+    <string name="notifications_screen_title">알림</string>
+    <string name="notifications_mark_all_read">모두 읽음으로 표시</string>
+    <string name="notifications_guest_title">알림을 보려면 로그인하세요</string>
+    <string name="notifications_guest_description">연결 답글 메시지 커뮤니티 활동에 대한 업데이트를 받으세요</string>
+    <string name="notifications_empty_title">새 알림이 없습니다</string>
+    <string name="notifications_empty_description">새 좋아요 댓글 메시지 커뮤니티 업데이트가 여기에 표시됩니다</string>
+    <string name="permission_title">Skillect 소식을 받아보세요</string>
+    <string name="permission_body">메시지 커뮤니티 활동 중요한 계정 업데이트에 대한 알림을 허용하세요 Android 설정에서 언제든지 변경할 수 있습니다</string>
+    <string name="permission_continue">계속</string>
+    <string name="permission_not_now">나중에</string>
 </resources>
