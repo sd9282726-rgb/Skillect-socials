@@ -2,11 +2,11 @@
 
 Project: `chohswyxsckpwyzlbzav`
 
-Read-only inventory captured from the live database on 2026-11-14.
+Live database inventory updated on 2026-11-15 after applying the avatar and private-story migrations.
 
 ## Migration history
 
-The live `supabase_migrations.schema_migrations` table contains **61 recorded application migrations**, from `20261106114348` through `20261111055659`.
+The live `supabase_migrations.schema_migrations` table contains **66 recorded application migrations**, from `20261106114348` through `20261111055659`.
 
 | Version | Migration name |
 |---|---|
@@ -87,11 +87,12 @@ This file is an inventory of applied migration identifiers, **not the original m
 
 Before establishing a reproducible migration baseline, export the actual current schema (tables, types, constraints, indexes, functions, triggers, grants, policies, publications, and storage policies) using the Supabase CLI or Dashboard schema export. Keep production data and secrets out of Git.
 
-## Staged Android follow-up (not applied)
+## Android follow-up migration status
 
-- `0006_profile_avatar_storage.sql` adds the public `avatars` bucket with owner-scoped upload and delete policies for profile photos and cover images.
-- `0007_conversation_participants_read_update.sql` stages an owner-scoped UPDATE policy and a column-level grant for `last_read_at` only.
-- Both migrations are staged in the repository only. Neither has been applied to the live Supabase project.
-- The live migration history already includes `conversation_read_markers_for_unread_counts`; inspect production columns, grants, and policies before deciding whether `0007` is needed. Do not apply it blindly.
+- `0006_profile_avatar_storage.sql` is applied. The live `avatars` bucket is public for profile-image display, limited to JPEGs up to 12 MiB, with owner-scoped uploads and deletes.
+- `0007_conversation_participants_read_update.sql` was not run as a separate local migration because the live database already has the equivalent column-only `last_read_at` grant recorded as `20261115060635`.
+- `0008_conversation_activity_timestamp.sql` is represented by the live `20261115060739` migration.
+- `0009_story_media_storage.sql` is applied. It creates the missing `stories` table and a **private** `stories-media` bucket. Story reads respect public/private profiles, follows, expiry, and blocks. Media is delivered through short-lived signed URLs.
+- `0010_restrict_story_table_privileges.sql` is applied. It removes broad default grants and leaves only SELECT for guests, and SELECT/INSERT/DELETE for authenticated users.
 
-No live database changes were made during this inventory.
+The old `0001`–`0005` files are an inspection/bootstrap sequence for a different schema baseline. Do not run them against the evolved live project. No user rows were deleted or rewritten by these follow-up migrations.
