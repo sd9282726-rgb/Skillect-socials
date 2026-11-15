@@ -156,7 +156,7 @@ class SessionStore internal constructor(
         if (userId.isBlank()) return null
         val prefs = context.skillectDataStore.data.first()
         if (prefs[Keys.CACHED_PROFILE_USER_ID] != userId) return null
-        val json = prefs[Keys.CACHED_PROFILE_JSON].orEmpty()
+        val json = tokenCipher.decrypt(prefs[Keys.CACHED_PROFILE_JSON].orEmpty())
         if (json.isBlank()) return null
         return try {
             SupabaseClientFactory.moshi.adapter(ProfileDto::class.java).fromJson(json)
@@ -169,7 +169,7 @@ class SessionStore internal constructor(
         val json = SupabaseClientFactory.moshi.adapter(ProfileDto::class.java).toJson(profile)
         context.skillectDataStore.edit { prefs ->
             prefs[Keys.CACHED_PROFILE_USER_ID] = profile.id
-            prefs[Keys.CACHED_PROFILE_JSON] = json
+            prefs[Keys.CACHED_PROFILE_JSON] = tokenCipher.encrypt(json)
         }
     }
 
