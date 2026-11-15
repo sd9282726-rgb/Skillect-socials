@@ -117,6 +117,7 @@ class ProfileSettingsViewModel(
                 moderationReports = emptyList(),
                 auditLogs = emptyList(),
                 moderationAppeals = emptyList(),
+                isModerator = false,
                 isFollowing = false,
                 isFollowActionPending = false,
                 postsCount = null,
