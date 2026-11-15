@@ -420,10 +420,13 @@ class ProfileSettingsViewModel(
 
     fun unblockUser(targetUserId: String) {
         viewModelScope.launch {
-            repository.unblockUser(targetUserId).onSuccess {
-                loadMyProfileAndSaved()
-                _uiState.update { it.copy(statusMessage = "Account unblocked.") }
-            }
+            repository.unblockUser(targetUserId).fold(
+                onSuccess = {
+                    loadMyProfileAndSaved()
+                    _uiState.update { it.copy(statusMessage = "Account unblocked.") }
+                },
+                onFailure = { error -> _uiState.update { it.copy(statusMessage = error.message ?: "Could not unblock this account.") } },
+            )
         }
     }
 
