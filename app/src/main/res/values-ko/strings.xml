@@ -74,4 +74,16 @@ Skillect는 배우고 만들고 아이디어를 나누며 의미 있는 관계�
 신고는 공정하게 검토되며 심각한 위반은 콘텐츠 삭제 계정 제한 또는 차단으로 이어질 수 있고 이의 제기가 가능한 결정에는 항소할 수 있습니다</string>
     <string name="community_guidelines_title">Skillect 커뮤니티 가이드라인</string>
     <string name="community_guidelines_understood">확인했습니다</string>
+    <string name="account_restricted_title">계정이 일시적으로 제한되었습니다</string>
+    <string name="account_restricted_description">안전 검토 후 계정 접근이 제한되었습니다 아래에서 결정을 확인하고 이의를 제기할 수 있습니다</string>
+    <string name="account_request_review">검토 요청</string>
+    <string name="account_appeal_explanation">이 결정이 다시 검토되어야 하는 이유와 필요한 상황을 설명하세요</string>
+    <string name="account_appeal_label">설명</string>
+    <string name="account_submit_appeal">이의 제기 제출</string>
+    <string name="account_sign_out">로그아웃</string>
+    <string name="account_appeal_status">이의 제기 상태</string>
+    <string name="account_review_update">검토 업데이트</string>
+    <string name="account_check_updates">이 페이지는 업데이트를 자동으로 확인합니다</string>
+    <string name="account_appeal_min_chars">20자 이상으로 설명하세요</string>
+    <string name="account_appeals_unavailable">이 제한에는 이의를 제기할 수 없습니다 오류라고 생각되면 Skillect 지원팀에 문의하세요</string>
 </resources>
