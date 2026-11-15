@@ -163,6 +163,13 @@ class AuthViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            repository.realtimeClient.events.collect { event ->
+                if (event is com.example.core.network.RealtimeEvent.AccountStatusChanged) {
+                    refreshAccountEnforcement()
+                }
+            }
+        }
         // Refresh in the background; do not hold the first authenticated frame for it.
         viewModelScope.launch {
             repository.refreshSessionIfNeeded()
