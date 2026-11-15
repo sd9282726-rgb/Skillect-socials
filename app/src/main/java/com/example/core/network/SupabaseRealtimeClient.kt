@@ -56,7 +56,7 @@ class SupabaseRealtimeClient(
             val wsBase = AppConfig.supabaseUrl
                 .replace("https://", "wss://")
                 .replace("http://", "ws://")
-            val url = "\$wsBase/realtime/v1/websocket?apikey=\${AppConfig.supabaseAnonKey}&vsn=1.0.0"
+            val url = "$wsBase/realtime/v1/websocket?apikey=${AppConfig.supabaseAnonKey}&vsn=1.0.0"
             val request = Request.Builder().url(url).build()
             webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(ws: WebSocket, response: Response) {
@@ -69,7 +69,7 @@ class SupabaseRealtimeClient(
                         AppConfig.supabaseAnonKey.takeIf { !it.startsWith("sb_publishable_") }.orEmpty()
                     }
                     joinChannel(ws, "realtime:public:messages", "messages", token)
-                    joinChannel(ws, "realtime:public:notifications", "notifications", token, filter = "user_id=eq.\$userId")
+                    joinChannel(ws, "realtime:public:notifications", "notifications", token, filter = "user_id=eq.$userId")
                     joinChannel(ws, "realtime:public:posts", "posts", token)
                     startHeartbeat(ws)
                 }
@@ -104,6 +104,7 @@ class SupabaseRealtimeClient(
             }
         }
     }
+
     private fun joinChannel(
         ws: WebSocket,
         topic: String,
