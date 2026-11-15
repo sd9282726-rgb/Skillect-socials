@@ -344,6 +344,7 @@ fun ProfileScreen(
                                 )
                                 SkillectPrimaryButton(
                                     text = if (uiState.isFollowing) "Following" else "Follow",
+                                    enabled = !uiState.isFollowActionPending,
                                     onClick = {
                                         if (effectiveCurrentUserId.isBlank()) {
                                             onRequireAuth(false, "Sign in to follow creators and build your network.")
