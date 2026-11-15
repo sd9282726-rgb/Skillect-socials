@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Skillect</string>
+    <string name="tagline">تواصل وابتكر واكتشف وتطور</string>
+    <string name="age_gate_notice">Skillect مجتمع عالمي للأشخاص من عمر 16 عاما فما فوق</string>
+    <string name="backend_setup_banner">Connect your Skillect service to sync live community data</string>
+    <string name="nav_feed">الرئيسية</string>
+    <string name="nav_explore">استكشف</string>
+    <string name="nav_create">إنشاء</string>
+    <string name="nav_communities">المجموعات</string>
+    <string name="nav_groups">المجموعات</string>
+    <string name="nav_messages">الرسائل</string>
+    <string name="nav_profile">الملف الشخصي</string>
+    <string name="nav_notifications">الإشعارات</string>
+    <string name="channel_messages_name">الرسائل المباشرة</string>
+    <string name="channel_social_name">النشاط الاجتماعي</string>
+    <string name="channel_safety_name">الأمان والحساب</string>
+</resources>
