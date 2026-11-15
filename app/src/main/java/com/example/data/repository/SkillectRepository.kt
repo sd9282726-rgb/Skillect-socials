@@ -477,6 +477,35 @@ class SkillectRepository(
         if (!savedResponse.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(savedResponse.parseError()))
         val saved = savedResponse.body()?.firstOrNull()
             ?: return@guardConfigured Result.failure(IllegalStateException("Profile update returned no profile."))
+
+        val unpersistedFields = sanitized.keys.filter { key ->
+            val expected = sanitized[key]
+            val actual: Any? = when (key) {
+                "display_name" -> saved.displayName
+                "website" -> saved.website
+                "bio" -> saved.bio
+                "location" -> saved.regionLabel
+                "interests" -> saved.interests
+                "skills" -> saved.skills
+                "avatar_url" -> saved.avatarUrl
+                "cover_url" -> saved.coverUrl
+                "is_private" -> saved.isPrivate
+                else -> expected
+            }
+            when (expected) {
+                is String -> actual?.toString().orEmpty().trim() != expected.trim()
+                is List<*> -> (actual as? List<*>)?.map { it?.toString().orEmpty().trim() } !=
+                    expected.map { it?.toString().orEmpty().trim() }
+                else -> actual != expected
+            }
+        }
+        if (unpersistedFields.isNotEmpty()) {
+            return@guardConfigured Result.failure(
+                IllegalStateException(
+                    "These profile fields were not saved: ${unpersistedFields.joinToString(", ")}. Please retry.",
+                ),
+            )
+        }
         Result.success(saved)
     }
 
