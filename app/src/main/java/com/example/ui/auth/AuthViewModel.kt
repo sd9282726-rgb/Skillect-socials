@@ -60,6 +60,7 @@ data class AuthUiState(
     val birthDateIso: String = "",
     val selectedCountry: CountryOption = AppConfig.supportedCountries.first(),
     val isLoading: Boolean = false,
+    val isRestoringSession: Boolean = true,
     val errorMessage: String? = null,
     val infoMessage: String? = null,
     val isAuthenticated: Boolean = false,
@@ -89,22 +90,32 @@ class AuthViewModel(
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
+        // Restore the saved identity before waiting for any profile/network request.
+        // This prevents a returning member from briefly landing in guest mode.
         viewModelScope.launch {
-            repository.refreshSessionIfNeeded()
-        }
-        viewModelScope.launch {
-            repository.sessionFlow.distinctUntilChangedBy { it.userId to it.accessToken }.collect { session ->
-                if (session.isAuthenticated) {
+            repository.sessionFlow.distinctUntilChangedBy { it.userId }.collect { session ->
+                val authenticated = session.isAuthenticated
+                _uiState.update { state ->
+                    state.copy(
+                        isRestoringSession = false,
+                        isAuthenticated = authenticated,
+                        currentUserId = if (authenticated) session.userId else "",
+                        currentProfile = if (authenticated && state.currentUserId == session.userId) {
+                            state.currentProfile
+                        } else {
+                            null
+                        },
+                        needsOnboarding = false,
+                    )
+                }
+
+                if (authenticated) {
                     repository.realtimeClient.connect(session.userId)
                     repository.syncTelemetryAndPushToken(session.userId)
                     val profile = repository.fetchMyProfile().getOrNull()
-                    if (profile == null) {
-                        hydrateMetadataIfMissing()
-                    }
-                    _uiState.update {
-                        it.copy(
-                            isAuthenticated = true,
-                            currentUserId = session.userId,
+                    if (profile == null) hydrateMetadataIfMissing()
+                    _uiState.update { state ->
+                        if (state.currentUserId != session.userId) state else state.copy(
                             currentProfile = profile,
                             needsOnboarding = AppConfig.isSupabaseConfigured && (profile == null || !profile.onboarded),
                             authSheetOpen = false,
@@ -114,14 +125,16 @@ class AuthViewModel(
                 } else {
                     _uiState.update {
                         it.copy(
-                            isAuthenticated = false,
-                            currentUserId = "",
                             currentProfile = null,
                             needsOnboarding = false,
                         )
                     }
                 }
             }
+        }
+        // Refresh in the background; do not hold the first authenticated frame for it.
+        viewModelScope.launch {
+            repository.refreshSessionIfNeeded()
         }
     }
 

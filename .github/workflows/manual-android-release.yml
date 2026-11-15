@@ -1,9 +1,6 @@
 name: Manual Android release build
 
 on:
-  push:
-    branches:
-      - fix/onboarding
   workflow_dispatch:
 
 permissions:

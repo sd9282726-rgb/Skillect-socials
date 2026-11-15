@@ -36,6 +36,7 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -56,6 +57,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
@@ -204,7 +206,10 @@ fun SkillectApp(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val currentUserId = if (authState.isAuthenticated) {
-        authState.currentProfile?.id ?: profileState.myProfile?.id ?: ""
+        authState.currentUserId.takeIf { it.isNotBlank() }
+            ?: authState.currentProfile?.id
+            ?: profileState.myProfile?.id
+            ?: ""
     } else {
         ""
     }
@@ -296,6 +301,27 @@ fun SkillectApp(
     }
 
     SkillectTheme(themeMode = profileState.preferences.themeMode) {
+        if (authState.isRestoringSession) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(24.dp),
+                ) {
+                    SkillectBrandBadge(size = 44.dp)
+                    CircularProgressIndicator(modifier = Modifier.padding(top = 20.dp))
+                    Text(
+                        text = "Opening your account",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+            }
+            return@SkillectTheme
+        }
+
         if (authState.isAuthenticated && authState.needsOnboarding) {
             OnboardingScreen(
                 uiState = authState,
