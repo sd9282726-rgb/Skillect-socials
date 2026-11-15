@@ -102,4 +102,5 @@ Skillect는 배우고 만들고 아이디어를 나누며 의미 있는 관계�
     <string name="permission_body">메시지 커뮤니티 활동 중요한 계정 업데이트에 대한 알림을 허용하세요 Android 설정에서 언제든지 변경할 수 있습니다</string>
     <string name="permission_continue">계속</string>
     <string name="permission_not_now">나중에</string>
+    <string name="account_permanent_ban_title">계정이 영구 정지되었습니다</string>
 </resources>
