@@ -120,8 +120,8 @@ Deno.serve(async (request: Request) => {
     try {
       const initialReadAt = new Date().toISOString();
       await rest(base, service, "conversation_participants", "POST", [
-        { conversation_id: conversationId, user_id: senderId, last_read_at: initialReadAt },
-        { conversation_id: conversationId, user_id: recipientId, last_read_at: initialReadAt },
+        { conversation_id: conversationId, user_id: senderId },
+        { conversation_id: conversationId, user_id: recipientId },
       ]);
       await rest(base, service, "conversation_reads", "POST", [
         { conversation_id: conversationId, user_id: senderId, last_read_at: initialReadAt },
