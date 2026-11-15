@@ -333,9 +333,9 @@ fun SkillectPrimaryButton(
         shape = shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.White,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.36f),
-            disabledContentColor = Color.White.copy(alpha = 0.55f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f),
         ),
         modifier = modifier
             .heightIn(min = 48.dp)
@@ -346,7 +346,7 @@ fun SkillectPrimaryButton(
             CircularProgressIndicator(
                 modifier = Modifier.size(18.dp),
                 strokeWidth = 2.dp,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
             )
             Spacer(modifier = Modifier.width(8.dp))
         } else if (leadingIcon != null) {
