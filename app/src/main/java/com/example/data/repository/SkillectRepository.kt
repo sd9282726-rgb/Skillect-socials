@@ -1300,6 +1300,34 @@ class SkillectRepository(
         Result.success(resp.body().orEmpty().firstOrNull())
     }
 
+    suspend fun resolveModerationAppeal(
+        appealId: String,
+        enforcementUserId: String,
+        approved: Boolean,
+        moderatorNote: String,
+    ): Result<Unit> = guardConfigured {
+        val moderatorId = requireUserId("review account appeals")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("review account appeals"))
+        val status = if (approved) "approved" else "rejected"
+        val updates = mapOf(
+            "status" to status,
+            "moderator_note" to moderatorNote.trim().take(1000),
+            "reviewed_by" to moderatorId,
+            "reviewed_at" to java.time.Instant.now().toString(),
+        )
+        val appealResponse = postgrestApi.updateModerationAppeal("eq.$appealId", updates)
+        if (!appealResponse.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(appealResponse.parseError()))
+        }
+        if (approved) {
+            val restoreResponse = postgrestApi.restoreAccountAfterAppeal("eq.$enforcementUserId")
+            if (!restoreResponse.isSuccessful) {
+                return@guardConfigured Result.failure(IllegalStateException(restoreResponse.parseError()))
+            }
+        }
+        Result.success(Unit)
+    }
+
     suspend fun submitModerationAppeal(reason: String): Result<ModerationAppealDto> = guardConfigured {
         val uid = requireUserId("submit moderation appeals") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("submit moderation appeals"))
         val clean = reason.trim()
