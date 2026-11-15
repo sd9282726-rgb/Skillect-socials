@@ -583,7 +583,7 @@ fun FeedScreen(
                                 else viewModel.toggleSave(post)
                             },
                             onFollowClick = {
-                                if (isGuest) onRequireAuth(false, "Sign in to follow creators.")
+                                if (isGuest) onRequireAuth(false, "Sign in to connect with creators.")
                                 else viewModel.toggleFollow(post.authorId)
                             },
                             onVotePoll = { optionId ->

@@ -347,7 +347,7 @@ fun ProfileScreen(
                                     enabled = !uiState.isFollowActionPending && !uiState.isLoading,
                                     onClick = {
                                         if (effectiveCurrentUserId.isBlank()) {
-                                            onRequireAuth(false, "Sign in to follow creators and build your network.")
+                                            onRequireAuth(false, "Sign in to connect with creators and build your network.")
                                         } else {
                                             viewModel.toggleFollow(profile.id)
                                         }
