@@ -86,4 +86,20 @@ Las denuncias se revisan de forma justa las infracciones graves pueden causar la
     <string name="account_check_updates">Esta página comprueba las actualizaciones automáticamente</string>
     <string name="account_appeal_min_chars">Explica tu apelación con al menos 20 caracteres</string>
     <string name="account_appeals_unavailable">No se permiten apelaciones para esta restricción. Contacta con el equipo de Skillect si crees que es un error.</string>
+    <string name="settings_notifications_title">Notificaciones push y dentro de la app</string>
+    <string name="settings_notifications_enable">Activar notificaciones en este dispositivo</string>
+    <string name="settings_notifications_likes">Me gusta y republicaciones</string>
+    <string name="settings_notifications_comments">Comentarios y respuestas</string>
+    <string name="settings_notifications_messages">Mensajes directos</string>
+    <string name="settings_notifications_communities">Comunidades y proyectos</string>
+    <string name="notifications_screen_title">Notificaciones</string>
+    <string name="notifications_mark_all_read">Marcar todo como leído</string>
+    <string name="notifications_guest_title">Inicia sesión para ver tus notificaciones</string>
+    <string name="notifications_guest_description">Recibe novedades sobre conexiones respuestas mensajes y actividad de la comunidad</string>
+    <string name="notifications_empty_title">Estás al día</string>
+    <string name="notifications_empty_description">Aquí aparecerán los nuevos me gusta comentarios mensajes y novedades de la comunidad</string>
+    <string name="permission_title">Mantente al día en Skillect</string>
+    <string name="permission_body">Permite notificaciones de mensajes actividad de la comunidad y avisos importantes de tu cuenta Puedes cambiarlo cuando quieras en los ajustes de Android</string>
+    <string name="permission_continue">Continuar</string>
+    <string name="permission_not_now">Ahora no</string>
 </resources>
