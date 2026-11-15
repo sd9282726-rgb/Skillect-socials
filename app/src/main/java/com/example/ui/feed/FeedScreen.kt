@@ -559,6 +559,7 @@ fun FeedScreen(
                             post = post,
                             currentUserId = currentUserId,
                             isLiked = post.id in uiState.likedPostIds,
+                            isLikePending = post.id in uiState.pendingLikePostIds,
                             isSaved = post.id in uiState.savedPostIds,
                             isFollowingAuthor = post.authorId in uiState.followingIds,
                             votedOptionId = uiState.votedPollOptions[post.id],
