@@ -22,13 +22,6 @@ set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
-drop policy if exists "Public read profile avatars" on storage.objects;
-create policy "Public read profile avatars"
-on storage.objects
-for select
-to public
-using (bucket_id = 'avatars');
-
 drop policy if exists "Users can upload own profile avatars" on storage.objects;
 create policy "Users can upload own profile avatars"
 on storage.objects
