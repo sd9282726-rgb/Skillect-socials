@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Skillect</string>
+    <string name="tagline">Verbinden Gestalten Entdecken Wachsen</string>
+    <string name="age_gate_notice">Skillect ist eine globale Community für Menschen ab 16 Jahren</string>
+    <string name="backend_setup_banner">Connect your Skillect service to sync live community data</string>
+    <string name="nav_feed">Start</string>
+    <string name="nav_explore">Entdecken</string>
+    <string name="nav_create">Erstellen</string>
+    <string name="nav_communities">Gruppen</string>
+    <string name="nav_groups">Gruppen</string>
+    <string name="nav_messages">Nachrichten</string>
+    <string name="nav_profile">Profil</string>
+    <string name="nav_notifications">Benachrichtigungen</string>
+    <string name="channel_messages_name">Direktnachrichten</string>
+    <string name="channel_social_name">Soziale Aktivitäten</string>
+    <string name="channel_safety_name">Sicherheit und Konto</string>
+</resources>
