@@ -40,4 +40,38 @@
     <string name="password_reset_confirm">Confirmer le nouveau mot de passe</string>
     <string name="password_reset_update">Mettre à jour le mot de passe</string>
     <string name="password_reset_back">Retour à la connexion</string>
+    <string name="community_guidelines_body">NOTRE COMMUNAUTÉ
+Skillect est un espace pour apprendre créer partager des idées et construire des liens utiles
+
+RESPECTEZ CHAQUE MEMBRE
+Traitez chacun avec gentillesse et respectez les différences de parcours de compétences et d’opinions
+
+PROTÉGEZ LES PERSONNES
+Ne menacez pas ne harcelez pas n’intimidez pas et n’exploitez pas les autres
+
+PROTÉGEZ LES JEUNES
+Tout contenu sexuel impliquant des mineurs ainsi que l’exploitation et les demandes d’images privées sont interdits
+
+PARTAGEZ DE FAÇON RESPONSABLE
+Publiez vos propres contenus ou ceux que vous êtes autorisé à partager et respectez la vie privée et les droits d’auteur
+
+AUCUN CONTENU NUISIBLE
+Ne partagez pas de haine de menaces de contenu sexuel explicite de promotion de l’automutilation ni d’instructions dangereuses
+
+SOYEZ HONNÊTE
+N’usurpez pas d’identité ne trompez pas les membres ne faites pas d’arnaques et ne revendiquez pas le travail d’autrui
+
+ÉVITEZ LES ABUS
+Pas de spam de faux engagement de messages insistants ni de liens malveillants
+
+RESPECTEZ LA VIE PRIVÉE
+Ne publiez pas d’informations privées ni d’images sans autorisation
+
+SIGNALEZ LES PROBLÈMES
+Utilisez le signalement lorsqu’un contenu semble dangereux et donnez des détails clairs
+
+EXAMEN ÉQUITABLE
+Les signalements sont examinés équitablement les violations graves peuvent entraîner le retrait du contenu des restrictions ou une exclusion et les décisions éligibles peuvent être contestées</string>
+    <string name="community_guidelines_title">Règles de la communauté Skillect</string>
+    <string name="community_guidelines_understood">Compris</string>
 </resources>
