@@ -481,6 +481,14 @@ class ProfileSettingsViewModel(
 
     fun loadModerationDashboard() {
         if (!AppConfig.isSupabaseConfigured) return
+        _uiState.update {
+            it.copy(
+                isModerator = false,
+                moderationReports = emptyList(),
+                auditLogs = emptyList(),
+                moderationAppeals = emptyList(),
+            )
+        }
         viewModelScope.launch {
             val canModerate = repository.currentUserCanModerate()
             if (!canModerate) {
