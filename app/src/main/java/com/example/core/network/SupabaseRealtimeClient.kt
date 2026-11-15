@@ -173,7 +173,7 @@ class SupabaseRealtimeClient(
             val payload = root.optJSONObject("payload") ?: return
             val data = payload.optJSONObject("data") ?: return
             val table = data.optString("table")
-            val record = data.optJSONObject("record") ?: return
+            val record = data.optJSONObject("record") ?: data.optJSONObject("old_record") ?: return
 
             when (table) {
                 "messages" -> {
