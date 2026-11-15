@@ -285,7 +285,7 @@ fun ExploreScreen(
                                     color = MaterialTheme.colorScheme.primary,
                                 ) {
                                     Text(
-                                        text = "${AppConfig.formatCompactCount(person.followersCount)}",
+                                        text = "${AppConfig.formatCompactCount(person.followersCount)} networks",
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
