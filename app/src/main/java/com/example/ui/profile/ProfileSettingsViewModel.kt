@@ -41,6 +41,7 @@ data class ProfileSettingsUiState(
     val moderationReports: List<ReportDto> = emptyList(),
     val auditLogs: List<ModerationAuditLogDto> = emptyList(),
     val moderationAppeals: List<ModerationAppealDto> = emptyList(),
+    val isModerator: Boolean = false,
     val preferences: UserPreferences = UserPreferences(),
     val isFollowing: Boolean = false,
     val isFollowActionPending: Boolean = false,
@@ -480,11 +481,24 @@ class ProfileSettingsViewModel(
     fun loadModerationDashboard() {
         if (!AppConfig.isSupabaseConfigured) return
         viewModelScope.launch {
+            val canModerate = repository.currentUserCanModerate()
+            if (!canModerate) {
+                _uiState.update {
+                    it.copy(
+                        isModerator = false,
+                        moderationReports = emptyList(),
+                        auditLogs = emptyList(),
+                        moderationAppeals = emptyList(),
+                    )
+                }
+                return@launch
+            }
             val reports = repository.fetchModerationReports().getOrDefault(emptyList())
             val logs = repository.fetchAuditLogs().getOrDefault(emptyList())
             val appeals = repository.fetchModerationAppeals().getOrDefault(emptyList())
             _uiState.update {
                 it.copy(
+                    isModerator = true,
                     moderationReports = reports,
                     auditLogs = logs,
                     moderationAppeals = appeals,
