@@ -11,6 +11,8 @@ import com.example.core.network.ModerationAppealDto
 import com.example.core.network.ProfileDto
 import com.example.core.network.ProfileUpsertDto
 import com.example.data.repository.SkillectRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -121,10 +123,13 @@ class AuthViewModel(
                 if (authenticated) {
                     repository.realtimeClient.connect(session.userId)
                     repository.syncTelemetryAndPushToken(session.userId)
-                    val profile = repository.fetchMyProfile().getOrNull()
+                    val (profile, enforcement) = coroutineScope {
+                        val profileTask = async { repository.fetchMyProfile().getOrNull() }
+                        val enforcementTask = async { repository.fetchMyEnforcement().getOrNull() }
+                        profileTask.await() to enforcementTask.await()
+                    }
                     if (profile != null) repository.sessionStore.saveCachedProfile(profile)
                     if (profile == null) hydrateMetadataIfMissing()
-                    val enforcement = repository.fetchMyEnforcement().getOrNull()
                     val latestAppeal = if (enforcement?.appealAllowed == true) {
                         repository.fetchModerationAppeals().getOrDefault(emptyList())
                             .firstOrNull { it.userId == session.userId }
