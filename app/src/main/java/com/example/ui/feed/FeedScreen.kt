@@ -156,9 +156,11 @@ fun FeedScreen(
                     Column(verticalArrangement = Arrangement.Center) {
                         Text(
                             text = "skillect",
-                            style = MaterialTheme.typography.headlineSmall.copy(
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 16.sp,
+                                lineHeight = 20.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = (-0.8).sp,
+                                letterSpacing = (-0.5).sp,
                                 brush = SkillectHorizontalBrandGradient,
                             ),
                         )
@@ -214,7 +216,7 @@ fun FeedScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .height(154.dp)
+                    .height(112.dp)
                     .clip(RoundedCornerShape(22.dp)),
             ) {
                 Image(
@@ -235,7 +237,7 @@ fun FeedScreen(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(18.dp),
+                        .padding(12.dp),
                 ) {
                     Text(
                         "A SPACE FOR WHAT YOU CREATE",
@@ -248,7 +250,7 @@ fun FeedScreen(
                     Spacer(modifier = Modifier.height(5.dp))
                     Text(
                         "Show what you're learning.",
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White,
                     )
                     Text(
