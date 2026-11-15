@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.core.config.AppConfig
 import com.example.core.config.CountryOption
 import com.example.core.network.CommunityDto
+import com.example.core.network.AccountEnforcementDto
+import com.example.core.network.ModerationAppealDto
 import com.example.core.network.ProfileDto
 import com.example.core.network.ProfileUpsertDto
 import com.example.data.repository.SkillectRepository
@@ -67,6 +69,10 @@ data class AuthUiState(
     val currentUserId: String = "",
     val needsOnboarding: Boolean = false,
     val currentProfile: ProfileDto? = null,
+    val accountEnforcement: AccountEnforcementDto? = null,
+    val accountAppeal: ModerationAppealDto? = null,
+    val isCheckingAccountStatus: Boolean = false,
+    val accountAppealSubmitting: Boolean = false,
     val authSheetOpen: Boolean = false,
     val authPromptReason: String? = null,
     val displayName: String = "",
@@ -118,6 +124,11 @@ class AuthViewModel(
                     val profile = repository.fetchMyProfile().getOrNull()
                     if (profile != null) repository.sessionStore.saveCachedProfile(profile)
                     if (profile == null) hydrateMetadataIfMissing()
+                    val enforcement = repository.fetchMyEnforcement().getOrNull()
+                    val latestAppeal = if (enforcement?.appealAllowed == true) {
+                        repository.fetchModerationAppeals().getOrDefault(emptyList())
+                            .firstOrNull { it.userId == session.userId }
+                    } else null
                     _uiState.update { state ->
                         if (state.currentUserId != session.userId) state else {
                             val resolvedProfile = profile ?: state.currentProfile
@@ -125,6 +136,9 @@ class AuthViewModel(
                                 currentProfile = resolvedProfile,
                                 needsOnboarding = AppConfig.isSupabaseConfigured &&
                                     (resolvedProfile == null || !resolvedProfile.onboarded),
+                                accountEnforcement = enforcement,
+                                accountAppeal = latestAppeal,
+                                isCheckingAccountStatus = false,
                                 authSheetOpen = false,
                                 authPromptReason = null,
                             )
@@ -135,6 +149,9 @@ class AuthViewModel(
                     _uiState.update {
                         it.copy(
                             currentProfile = null,
+                            accountEnforcement = null,
+                            accountAppeal = null,
+                            isCheckingAccountStatus = false,
                             needsOnboarding = false,
                         )
                     }
@@ -238,6 +255,38 @@ class AuthViewModel(
                     errorMessage = null,
                 )
             }
+        }
+    }
+
+    fun refreshAccountEnforcement() {
+        viewModelScope.launch {
+            val uid = repository.sessionStore.currentSession().userId
+            if (uid.isBlank()) return@launch
+            repository.fetchMyEnforcement().fold(
+                onSuccess = { enforcement ->
+                    val appeal = if (enforcement?.appealAllowed == true) {
+                        repository.fetchModerationAppeals().getOrDefault(emptyList())
+                            .firstOrNull { it.userId == uid }
+                    } else null
+                    _uiState.update { it.copy(accountEnforcement = enforcement, accountAppeal = appeal, isCheckingAccountStatus = false) }
+                },
+                onFailure = { _uiState.update { it.copy(isCheckingAccountStatus = false) } },
+            )
+        }
+    }
+
+    fun submitAccountAppeal(reason: String) {
+        if (_uiState.value.accountAppealSubmitting) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(accountAppealSubmitting = true, errorMessage = null, infoMessage = null) }
+            repository.submitModerationAppeal(reason).fold(
+                onSuccess = { appeal ->
+                    _uiState.update { it.copy(accountAppealSubmitting = false, accountAppeal = appeal, infoMessage = "Your appeal has been submitted for review.") }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(accountAppealSubmitting = false, errorMessage = error.message ?: "Your appeal could not be submitted.") }
+                },
+            )
         }
     }
 
