@@ -50,7 +50,7 @@ suspend fun SkillectRepository.markConversationRead(conversationId: String): Res
             Result.failure(IllegalStateException(detail ?: "Conversation read status could not be saved (HTTP ${response.code()})."))
         } else {
             val saved = response.body()?.firstOrNull()
-            if (saved?.conversationId != conversationId || saved.userId != uid) {
+            if (saved == null || saved.conversationId != conversationId || saved.userId != uid) {
                 Result.failure(IllegalStateException("The server did not confirm the conversation read update."))
             } else {
                 Result.success(saved.lastReadAt ?: readAt)
