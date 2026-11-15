@@ -102,4 +102,5 @@ Skillect सीखने बनाने विचार साझा करन�
     <string name="permission_body">संदेश समुदाय की गतिविधि और जरूरी खाता अपडेट के लिए सूचनाओं की अनुमति दें आप इसे Android सेटिंग्स में कभी भी बदल सकते हैं</string>
     <string name="permission_continue">जारी रखें</string>
     <string name="permission_not_now">अभी नहीं</string>
+    <string name="account_permanent_ban_title">खाता स्थायी रूप से प्रतिबंधित है</string>
 </resources>
