@@ -29,8 +29,12 @@ Deno.serve(async (request: Request) => {
   const violation = findUnsafe(payload.data ?? payload), finished = status === "finished", failed = status === "failure" || status === "stopped";
   if (violation || failed) {
     const reason = violation ? "Automated screening detected prohibited sexual content: " + violation : "Automated video screening ended with status " + status + "; moderator review required";
-    if (asset.post_id) await fetch(base + "/rest/v1/posts?id=eq." + asset.post_id, { method: "PATCH", headers: { ...headers(service), "Content-Type": "application/json" }, body: JSON.stringify({ moderation_hidden: true }) });
-    await fetch(base + "/rest/v1/media_assets?id=eq." + asset.id, { method: "PATCH", headers: { ...headers(service), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ provider_reference: mediaId, ...(violation ? { status: "rejected", reviewed_at: new Date().toISOString() } : {}), decision_reason: reason, callback_token: null }) });
+    if (violation && asset.post_id) await fetch(base + "/rest/v1/posts?id=eq." + asset.post_id, { method: "PATCH", headers: { ...headers(service), "Content-Type": "application/json" }, body: JSON.stringify({ moderation_hidden: true }) });
+    await fetch(base + "/rest/v1/media_assets?id=eq." + asset.id, { method: "PATCH", headers: { ...headers(service), "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({
+      provider_reference: mediaId,
+      ...(violation ? { status: "rejected", reviewed_at: new Date().toISOString(), callback_token: null } : { status: "pending" }),
+      decision_reason: reason
+    }) });
     const quarantinePrefix = "media-quarantine/";
     const storedPath = String(asset.storage_path || "");
     if (violation && storedPath.startsWith(quarantinePrefix)) {
