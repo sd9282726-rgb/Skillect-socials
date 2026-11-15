@@ -531,7 +531,17 @@ data class ModerationAppealDto(
 @JsonClass(generateAdapter = true)
 data class CreateAppealRequest(
     @Json(name = "user_id") val userId: String,
+    @Json(name = "enforcement_user_id") val enforcementUserId: String,
     @Json(name = "explanation") val reason: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class AccountEnforcementDto(
+    @Json(name = "user_id") val userId: String,
+    val status: String,
+    val reason: String,
+    @Json(name = "issued_at") val issuedAt: String = "",
+    @Json(name = "appeal_allowed") val appealAllowed: Boolean = true,
 )
 
 @JsonClass(generateAdapter = true)
