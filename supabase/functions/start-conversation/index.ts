@@ -114,15 +114,6 @@ Deno.serve(async (request: Request) => {
       return json(200, { status: "request_required", recipient_id: recipientId });
     }
 
-    const ownRows = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + senderId);
-    const existingIds = [...new Set((ownRows || []).map((row: any) => row.conversation_id))];
-    if (existingIds.length) {
-      const matches = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + recipientId + "&conversation_id=in.(" + existingIds.join(",") + ")&limit=1");
-      if (Array.isArray(matches) && matches.length) {
-        return json(200, { status: "existing", conversation_id: matches[0].conversation_id });
-      }
-    }
-
     const created = await rest(base, service, "conversations?select=id", "POST", { created_by: senderId });
     const conversationId = Array.isArray(created) ? created[0]?.id : null;
     if (!conversationId) return json(503, { error: "Could not start the conversation" });
@@ -132,9 +123,10 @@ Deno.serve(async (request: Request) => {
         { conversation_id: conversationId, user_id: senderId, last_read_at: initialReadAt },
         { conversation_id: conversationId, user_id: recipientId, last_read_at: initialReadAt },
       ]);
-      await rest(base, service, "conversation_reads", "POST", {
-        conversation_id: conversationId, user_id: senderId, last_read_at: initialReadAt,
-      });
+      await rest(base, service, "conversation_reads", "POST", [
+        { conversation_id: conversationId, user_id: senderId, last_read_at: initialReadAt },
+        { conversation_id: conversationId, user_id: recipientId, last_read_at: initialReadAt },
+      ]);
     } catch {
       await rest(base, service, "conversations?id=eq." + conversationId, "DELETE");
       return json(503, { error: "Conversation setup failed; please try again" });
