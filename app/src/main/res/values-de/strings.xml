@@ -86,4 +86,20 @@ Meldungen werden fair geprüft schwere Verstöße können zur Entfernung von Inh
     <string name="account_check_updates">Diese Seite prüft automatisch auf Aktualisierungen</string>
     <string name="account_appeal_min_chars">Erkläre deinen Einspruch mit mindestens 20 Zeichen</string>
     <string name="account_appeals_unavailable">Für diese Einschränkung ist kein Einspruch möglich. Wende dich an den Skillect Support wenn du einen Fehler vermutest.</string>
+    <string name="settings_notifications_title">Push- und In-App-Benachrichtigungen</string>
+    <string name="settings_notifications_enable">Benachrichtigungen auf diesem Gerät aktivieren</string>
+    <string name="settings_notifications_likes">Gefällt mir und Reposts</string>
+    <string name="settings_notifications_comments">Kommentare und Antworten</string>
+    <string name="settings_notifications_messages">Direktnachrichten</string>
+    <string name="settings_notifications_communities">Communities und Projekte</string>
+    <string name="notifications_screen_title">Benachrichtigungen</string>
+    <string name="notifications_mark_all_read">Alle als gelesen markieren</string>
+    <string name="notifications_guest_title">Melde dich an, um deine Benachrichtigungen zu sehen</string>
+    <string name="notifications_guest_description">Erhalte Updates zu Kontakten, Antworten, Nachrichten und Community-Aktivitäten</string>
+    <string name="notifications_empty_title">Du bist auf dem neuesten Stand</string>
+    <string name="notifications_empty_description">Neue Likes, Kommentare, Nachrichten und Community-Updates erscheinen hier</string>
+    <string name="permission_title">Bleib bei Skillect auf dem Laufenden</string>
+    <string name="permission_body">Erlaube Benachrichtigungen für Nachrichten, Community-Aktivitäten und wichtige Konto-Updates. Du kannst dies jederzeit in den Android-Einstellungen ändern</string>
+    <string name="permission_continue">Weiter</string>
+    <string name="permission_not_now">Nicht jetzt</string>
 </resources>
