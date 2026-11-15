@@ -77,19 +77,30 @@ Deno.serve(async (request: Request) => {
   if (fileSize > 50 * 1024 * 1024) return json(413, { error: "Video must be 50 MB or smaller" });
   if (fileSize === 0) return json(400, { error: "The uploaded video is empty or could not be checked" });
 
-  // Keep the video in private quarantine until screening or moderator approval.
+  // Keep a private source copy for asynchronous screening, but publish immediately.
   const publicUrl = base + "/storage/v1/object/public/post-media/" + storagePath;
   const destinationPath = communityId ? communityId + "/" + storagePath : storagePath;
   const postMediaValue = privateCommunity ? "private-community-media/" + destinationPath : publicUrl;
+  const destinationBucket = privateCommunity ? "private-community-media" : "post-media";
+  const destinationObject = privateCommunity ? destinationPath : storagePath;
+  const sourceFile = await fetch(base + "/storage/v1/object/media-quarantine/" + encoded, { headers: adminHeaders(service) });
+  if (!sourceFile.ok) return json(502, { error: "Could not read uploaded video" });
+  const videoBytes = await sourceFile.arrayBuffer();
+  const published = await fetch(base + "/storage/v1/object/" + destinationBucket + "/" + safePath(destinationObject), {
+    method: "POST",
+    headers: { ...adminHeaders(service), "Content-Type": mimeByExt[extension], "x-upsert": "false" },
+    body: videoBytes,
+  });
+  if (!published.ok) return json(502, { error: "Could not publish video" });
   const callbackToken = crypto.randomUUID() + crypto.randomUUID();
   const assetResponse = await fetch(base + "/rest/v1/media_assets", {
     method: "POST",
     headers: { ...adminHeaders(service), "Content-Type": "application/json", Prefer: "return=representation" },
     body: JSON.stringify({
       owner_id: userId, community_id: communityId || null, storage_path: "media-quarantine/" + storagePath, public_url: postMediaValue,
-      status: "quarantined", provider: "manual-review", media_type: "video",
+      status: "pending", provider: "sightengine-optional-background", media_type: "video",
       mime_type: mimeByExt[extension], post_content: caption, post_id: null,
-      callback_token: null, reviewed_at: null, decision_reason: "Video awaiting moderator review",
+      callback_token: callbackToken, reviewed_at: null, decision_reason: "Published; background screening pending",
     }),
   });
   const assetRows = assetResponse.ok ? await assetResponse.json() : [];
@@ -101,7 +112,7 @@ Deno.serve(async (request: Request) => {
   const postResponse = await fetch(base + "/rest/v1/posts?select=id", {
     method: "POST",
     headers: { ...adminHeaders(service), "Content-Type": "application/json", Prefer: "return=representation" },
-    body: JSON.stringify({ author_id: userId, content: caption, image_url: postMediaValue, media_type: "video", tags, ...(category ? { category } : {}), ...(communityId ? { community_id: communityId } : {}), moderation_hidden: true }),
+    body: JSON.stringify({ author_id: userId, content: caption, image_url: postMediaValue, media_type: "video", tags, ...(category ? { category } : {}), ...(communityId ? { community_id: communityId } : {}), moderation_hidden: false }),
   });
   const postRows = postResponse.ok ? await postResponse.json() : [];
   if (!postResponse.ok || !postRows[0]?.id) {
@@ -120,11 +131,11 @@ Deno.serve(async (request: Request) => {
     return json(503, { error: "Video post remains hidden because its moderation record could not be linked" });
   }
 
-  // Videos use the in-app moderator queue, not a paid automated provider quota.
-  return json(202, {
-    status: "pending_moderation",
+  // The post is visible immediately. The private original remains available for background screening.
+  return json(201, {
+    status: "published_pending_background_check",
     post_id: postId,
-    message: "Your video was uploaded and is waiting for moderator review before it appears.",
+    message: "Your video is published. Background safety checks may continue.",
   });
 });
 
