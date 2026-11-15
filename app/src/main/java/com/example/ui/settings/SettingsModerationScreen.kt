@@ -536,14 +536,14 @@ fun ModerationAdminScreen(
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
-                        if (isAuthorizedMod && appeal.status == "pending") {
+                        if (isAuthorizedMod && appeal.status in setOf("pending", "under_review")) {
                             Spacer(modifier = Modifier.height(10.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
                                 SkillectPrimaryButton(
-                                    text = "Approve and restore",
+                                    text = "Accept and restore",
                                     onClick = { viewModel.resolveAppeal(appeal, approved = true) },
                                     modifier = Modifier.weight(1f),
                                 )
