@@ -88,6 +88,7 @@ class ProfileSettingsViewModel(
                 return@launch
             }
             val my = repository.fetchMyProfile().getOrNull()
+            if (my != null) repository.sessionStore.saveCachedProfile(my)
             val collections = repository.fetchSavedCollections().getOrDefault(emptyList())
             val saved = repository.fetchSavedPosts().getOrDefault(emptyList())
             val blocks = repository.fetchBlockedAccounts().getOrDefault(emptyList())
@@ -139,7 +140,13 @@ class ProfileSettingsViewModel(
 
             val isOwnProfile = effectiveId == myId
             val current = _uiState.value
+            val persistedProfile = if (isOwnProfile) {
+                repository.sessionStore.cachedProfile(effectiveId)
+            } else {
+                null
+            }
             val cachedProfile = profileCache[effectiveId]
+                ?: persistedProfile
                 ?: if (isOwnProfile) current.myProfile else current.viewedProfile?.takeIf { it.id == effectiveId }
             _uiState.update { state ->
                 state.copy(
@@ -158,6 +165,7 @@ class ProfileSettingsViewModel(
             val profileResult = repository.fetchProfileById(effectiveId)
             val profile = profileResult.getOrNull() ?: cachedProfile
             if (profile != null) {
+                if (isOwnProfile && profileResult.isSuccess) repository.sessionStore.saveCachedProfile(profile)
                 profileCache[effectiveId] = profile
                 _uiState.update { state ->
                     state.copy(

@@ -115,6 +115,8 @@ class SessionStore internal constructor(
         val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
         val USER_ID = stringPreferencesKey("user_id")
         val EMAIL = stringPreferencesKey("email")
+        val CACHED_PROFILE_USER_ID = stringPreferencesKey("cached_profile_user_id")
+        val CACHED_PROFILE_JSON = stringPreferencesKey("cached_profile_json")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val LANGUAGE_CODE = stringPreferencesKey("language_code")
         val PUSH_LIKES = booleanPreferencesKey("push_likes")
@@ -149,6 +151,34 @@ class SessionStore internal constructor(
     }
 
     suspend fun currentSession(): PersistedSession = sessionFlow.first()
+
+    suspend fun cachedProfile(userId: String): ProfileDto? {
+        if (userId.isBlank()) return null
+        val prefs = context.skillectDataStore.data.first()
+        if (prefs[Keys.CACHED_PROFILE_USER_ID] != userId) return null
+        val json = prefs[Keys.CACHED_PROFILE_JSON].orEmpty()
+        if (json.isBlank()) return null
+        return try {
+            SupabaseClientFactory.moshi.adapter(ProfileDto::class.java).fromJson(json)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun saveCachedProfile(profile: ProfileDto) {
+        val json = SupabaseClientFactory.moshi.adapter(ProfileDto::class.java).toJson(profile)
+        context.skillectDataStore.edit { prefs ->
+            prefs[Keys.CACHED_PROFILE_USER_ID] = profile.id
+            prefs[Keys.CACHED_PROFILE_JSON] = json
+        }
+    }
+
+    suspend fun clearCachedProfile() {
+        context.skillectDataStore.edit { prefs ->
+            prefs.remove(Keys.CACHED_PROFILE_USER_ID)
+            prefs.remove(Keys.CACHED_PROFILE_JSON)
+        }
+    }
 
     suspend fun saveSession(session: PersistedSession) {
         context.skillectDataStore.edit { prefs ->

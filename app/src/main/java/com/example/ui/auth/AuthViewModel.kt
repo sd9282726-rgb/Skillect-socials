@@ -95,17 +95,20 @@ class AuthViewModel(
         viewModelScope.launch {
             repository.sessionFlow.distinctUntilChangedBy { it.userId }.collect { session ->
                 val authenticated = session.isAuthenticated
+                val cachedProfile = if (authenticated) {
+                    repository.sessionStore.cachedProfile(session.userId)
+                } else {
+                    null
+                }
                 _uiState.update { state ->
                     state.copy(
                         isRestoringSession = false,
                         isAuthenticated = authenticated,
                         currentUserId = if (authenticated) session.userId else "",
-                        currentProfile = if (authenticated && state.currentUserId == session.userId) {
-                            state.currentProfile
-                        } else {
-                            null
-                        },
-                        needsOnboarding = false,
+                        currentProfile = if (authenticated) cachedProfile else null,
+                        needsOnboarding = cachedProfile?.let {
+                            AppConfig.isSupabaseConfigured && !it.onboarded
+                        } ?: false,
                     )
                 }
 
@@ -113,6 +116,7 @@ class AuthViewModel(
                     repository.realtimeClient.connect(session.userId)
                     repository.syncTelemetryAndPushToken(session.userId)
                     val profile = repository.fetchMyProfile().getOrNull()
+                    if (profile != null) repository.sessionStore.saveCachedProfile(profile)
                     if (profile == null) hydrateMetadataIfMissing()
                     _uiState.update { state ->
                         if (state.currentUserId != session.userId) state else state.copy(
@@ -123,6 +127,7 @@ class AuthViewModel(
                         )
                     }
                 } else {
+                    repository.sessionStore.clearCachedProfile()
                     _uiState.update {
                         it.copy(
                             currentProfile = null,
