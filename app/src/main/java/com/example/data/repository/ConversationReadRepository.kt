@@ -40,7 +40,7 @@ suspend fun SkillectRepository.markConversationRead(conversationId: String): Res
         val readAt = Instant.now().toString()
         val api = SupabaseClientFactory.createRetrofit(sessionStore)
             .create(ConversationReadApi::class.java)
-        val response = api.markParticipantRead(
+        val response = api.markConversationRead(
             conversationIdEq = "eq.$conversationId",
             userIdEq = "eq.$uid",
             updates = mapOf("last_read_at" to readAt),
