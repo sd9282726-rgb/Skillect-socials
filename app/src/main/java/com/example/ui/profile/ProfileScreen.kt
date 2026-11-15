@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -58,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberScrollState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -416,11 +418,17 @@ fun ProfileScreen(
 
                     if (profile?.interests?.isNotEmpty() == true) {
                         Spacer(modifier = Modifier.height(12.dp))
-                        FlowRow(
+                        val visibleInterests = profile.interests.distinct().take(3)
+                        val extraInterests = (profile.interests.distinct().size - visibleInterests.size).coerceAtLeast(0)
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            profile.interests.forEach { SkillChip(label = it) }
+                            visibleInterests.forEach { SkillChip(label = it) }
+                            if (extraInterests > 0) {
+                                SkillChip(label = "+$extraInterests more", showCheckWhenSelected = false)
+                            }
                         }
                     }
                 }
