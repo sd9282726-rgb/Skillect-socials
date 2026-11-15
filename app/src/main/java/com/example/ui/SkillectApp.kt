@@ -2,6 +2,7 @@ package com.example.ui
 
 import android.Manifest
 import android.content.Context
+import android.content.res.Configuration
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -50,8 +51,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +64,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -76,6 +83,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
+import java.util.Locale
 import com.example.AppContainer
 import com.example.core.config.ThemeMode
 import com.example.core.designsystem.SkillectBrandBadge
@@ -302,6 +310,21 @@ fun SkillectApp(
         profileVm.setThemeMode(if (isDarkActive) ThemeMode.LIGHT else ThemeMode.DARK)
     }
 
+    val selectedLanguage = profileState.preferences.languageCode
+    val baseConfiguration = LocalConfiguration.current
+    val localizedConfiguration = remember(selectedLanguage, baseConfiguration) {
+        Configuration(baseConfiguration).apply {
+            setLocale(Locale.forLanguageTag(selectedLanguage))
+        }
+    }
+    SideEffect {
+        Locale.setDefault(Locale.forLanguageTag(selectedLanguage))
+    }
+
+    CompositionLocalProvider(
+        LocalConfiguration provides localizedConfiguration,
+        LocalLayoutDirection provides if (selectedLanguage == "ar") LayoutDirection.Rtl else LayoutDirection.Ltr,
+    ) {
     SkillectTheme(themeMode = profileState.preferences.themeMode) {
         if (authState.isRestoringSession) {
             Box(
@@ -364,11 +387,11 @@ fun SkillectApp(
         }
 
         val navItems = listOf(
-            TopNavItem(SkillectRoute.Feed, "Feed", Icons.Rounded.Home, Icons.Outlined.Home, "nav_feed"),
-            TopNavItem(SkillectRoute.Explore, "Explore", Icons.Rounded.Explore, Icons.Outlined.Explore, "nav_explore"),
-            TopNavItem(SkillectRoute.Composer(), "Create", Icons.Rounded.AddBox, Icons.Outlined.AddBox, "nav_create"),
-            TopNavItem(SkillectRoute.Messages, "Messages", Icons.Rounded.ChatBubble, Icons.Outlined.ChatBubbleOutline, "nav_messages"),
-            TopNavItem(SkillectRoute.Profile(), "Profile", Icons.Rounded.Person, Icons.Outlined.PersonOutline, "nav_profile"),
+            TopNavItem(SkillectRoute.Feed, stringResource(com.example.R.string.nav_feed), Icons.Rounded.Home, Icons.Outlined.Home, "nav_feed"),
+            TopNavItem(SkillectRoute.Explore, stringResource(com.example.R.string.nav_explore), Icons.Rounded.Explore, Icons.Outlined.Explore, "nav_explore"),
+            TopNavItem(SkillectRoute.Composer(), stringResource(com.example.R.string.nav_create), Icons.Rounded.AddBox, Icons.Outlined.AddBox, "nav_create"),
+            TopNavItem(SkillectRoute.Messages, stringResource(com.example.R.string.nav_messages), Icons.Rounded.ChatBubble, Icons.Outlined.ChatBubbleOutline, "nav_messages"),
+            TopNavItem(SkillectRoute.Profile(), stringResource(com.example.R.string.nav_profile), Icons.Rounded.Person, Icons.Outlined.PersonOutline, "nav_profile"),
         )
 
         val onSelectNavItem: (TopNavItem) -> Unit = { item ->
@@ -692,5 +715,6 @@ fun SkillectApp(
                 }
             }
         }
+     }
     }
 }
