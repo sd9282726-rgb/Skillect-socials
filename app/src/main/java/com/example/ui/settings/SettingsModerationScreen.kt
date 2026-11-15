@@ -470,12 +470,12 @@ fun ModerationAdminScreen(
                 items(uiState.moderationReports, key = { it.id }) { report ->
                     SkillectCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "${report.targetType.uppercase()} · ${report.reason}",
+                            text = "${report.targetType.replaceFirstChar { it.uppercase() }} · ${report.reason}",
                             style = MaterialTheme.typography.titleSmall,
                             color = SkillectCrimson,
                         )
                         Text(
-                            text = "Status: ${report.status} · ${AppConfig.formatRelativeTimestamp(report.createdAt)}",
+                            text = "Status: ${report.status.replace('_', ' ').replaceFirstChar { it.uppercase() }} · ${AppConfig.formatRelativeTimestamp(report.createdAt)}",
                             style = MaterialTheme.typography.labelSmall,
                         )
                         if (report.details.isNotBlank()) {
@@ -514,7 +514,7 @@ fun ModerationAdminScreen(
                 items(uiState.moderationAppeals, key = { "appeal_${it.id}" }) { appeal ->
                     SkillectCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Appeal (${appeal.status})",
+                            text = "Appeal · ${appeal.status.replace('_', ' ').replaceFirstChar { it.uppercase() }}",
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
