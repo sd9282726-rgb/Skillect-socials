@@ -1,14 +1,13 @@
 # Networks and DM read-state patch status
 
-Branch: `fix/onboarding`  
-Latest implementation: `f126793a5b6c2288e310564cc421e37b2b028422`
+Branch: `fix/onboarding`
 
 ## Networks terminology
 
-Applied to the remote branch in:
+Applied on the branch:
 
-- `PostCard.kt`: Connect / Connected action
-- `ProfileScreen.kt`: Connect / Connected action and Connected count label
+- `PostCard.kt`: Connect / Connected
+- `ProfileScreen.kt`: Connect / Connected and Connected count label
 - `FeedScreen.kt`: Network tab and Connect wording in guest prompts
 - `AuthScreen.kt`: Connect action for onboarding suggestions
 
@@ -16,26 +15,33 @@ Internal database and Kotlin identifiers such as `follows`, `followingIds`, and 
 
 ## DM read state
 
-Implemented in code on `fix/onboarding`:
+Implemented on the branch:
 
-- `ConversationReadRepository.kt`: authenticated PATCH of the current user's `last_read_at`, with representation verification
-- `MessagesNotificationsViewModel.kt`: persist read state when a conversation opens; show an error and refresh the inbox if the server rejects the update
-- `MessagesScreen.kt`: show a New marker when conversation activity is newer than the current user's read cursor
-- `0007_conversation_participants_read_update.sql`: staged RLS policy plus column-level UPDATE grant for `last_read_at` only
+- `ConversationReadRepository.kt`: create a missing marker in `conversation_reads`; if it already exists, PATCH only `last_read_at`.
+- `SupabaseApiService.kt`: embed `conversation_reads` in conversation inbox responses.
+- `SupabaseModels.kt`: add the `ConversationReadDto` and read-marker list.
+- `MessagesNotificationsViewModel.kt`: update the local marker when a chat opens or the user sends a message.
+- `MessagesScreen.kt`: compare the newest conversation activity with the current user's marker.
+- `0007_conversation_participants_read_update.sql`: corrected to restrict UPDATE on the canonical `conversation_reads` table.
 
-The extension uses the repository's existing session store and Supabase client configuration. It does not expose service-role credentials.
+## Conversation activity timestamp
 
-## Production and verification status
+- `0008_conversation_activity_timestamp.sql` adds `conversations.updated_at`.
+- A database trigger advances it when a new message is inserted.
+- This fixes the inbox's activity comparison; the live `conversations` table previously had no `updated_at` column.
 
-- Migration `0007` has **not** been applied to production.
-- The live migration inventory already contains a migration named `conversation_read_markers_for_unread_counts`. Inspect the current production columns, grants, and RLS policies before considering `0007`; do not apply it blindly.
-- No live messaging E2E has been run with two accounts.
-- No Android compile or unit-test run has been completed for these changes.
+## Production verification
 
-The Android CI workflow now supports manual dispatch. In GitHub Actions, select **Android CI**, choose branch `fix/onboarding`, and run the workflow. It executes unit tests and assembles a debug APK on a GitHub-hosted runner. The workflow uses repository Supabase client secrets when present; otherwise it uses `.env.example` placeholders for compile and unit tests only.
+Both migrations were applied to project `chohswyxsckpwyzlbzav`.
 
-All source commits retain `[skip ci]`; manual dispatch is therefore the intended way to run CI for this patch set.
+Verified:
+- Authenticated UPDATE permission is limited to `conversation_reads.last_read_at`.
+- The existing participant-scoped UPDATE RLS policy remains in place.
+- `conversations.updated_at` exists as NOT NULL with a `now()` default.
+- The message activity trigger and its function exist.
 
-## CI runner configuration
+No two-account live messaging test has been performed. The production database currently has zero conversation participant rows, so there was no existing DM data to validate or migrate.
 
-The manual Android CI workflow uses a GitHub-hosted Ubuntu runner. It can run unit tests and assemble a debug APK without production Supabase credentials: when repository client secrets are absent, it copies `.env.example` to `.env`. Placeholder credentials are suitable only for compilation/unit tests; they do not enable live backend testing. The release build still requires valid Supabase client configuration and the existing release signing setup.
+## Composer media
+
+`ComposerMediaAttachmentPanel.kt` is now connected in `ComposerScreen.kt`; remove, cancel and retry are wired to the upload state and job.
