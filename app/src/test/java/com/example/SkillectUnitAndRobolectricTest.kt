@@ -260,9 +260,9 @@ class SkillectUnitAndRobolectricTest {
 
         // 1. Guest mutations & private reads are rejected immediately with AuthenticationRequiredException
         assertTrue(repo.createPost(CreatePostRequest("", "text", "hello")).exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.toggleLike("post-1", false).exceptionOrNull() is AuthenticationRequiredException)
+        assertTrue(repo.toggleLike("post-1").exceptionOrNull() is AuthenticationRequiredException)
         assertTrue(repo.addComment("post-1", "nice").exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.toggleFollow("user-2", false).exceptionOrNull() is AuthenticationRequiredException)
+        assertTrue(repo.toggleFollow("user-2").exceptionOrNull() is AuthenticationRequiredException)
         assertTrue(repo.toggleSavePost("post-1", false).exceptionOrNull() is AuthenticationRequiredException)
         assertTrue(repo.fetchConversations().exceptionOrNull() is AuthenticationRequiredException)
         assertTrue(repo.sendMessage("conv-1", "hi").exceptionOrNull() is AuthenticationRequiredException)
