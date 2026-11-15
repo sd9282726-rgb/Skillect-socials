@@ -30,6 +30,11 @@ Implemented on the branch:
 - A database trigger advances it when a new message is inserted.
 - This fixes the inbox's activity comparison; the live `conversations` table previously had no `updated_at` column.
 
+## Conversation creation function
+
+- The branch version of `start-conversation` now creates read markers for both participants at conversation creation and removes a duplicated existing-conversation lookup.
+- This Edge Function source change is **not deployed** to production; the deployed function remains unchanged until deployment is explicitly authorized.
+
 ## Production verification
 
 Both migrations were applied to project `chohswyxsckpwyzlbzav`.
