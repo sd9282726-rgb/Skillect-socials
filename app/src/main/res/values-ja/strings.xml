@@ -74,4 +74,16 @@ Skillectは学び 創作し アイデアを共有し 有意義なつながりを
 報告は公平に確認されます 重大な違反はコンテンツ削除 アカウント制限 停止につながる場合があり 対象となる決定には異議を申し立てられます</string>
     <string name="community_guidelines_title">Skillect コミュニティガイドライン</string>
     <string name="community_guidelines_understood">確認しました</string>
+    <string name="account_restricted_title">アカウントは一時的に制限されています</string>
+    <string name="account_restricted_description">安全確認の結果 アカウントへのアクセスが制限されました 以下から判断を確認して異議を申し立てることができます</string>
+    <string name="account_request_review">再審査を申請</string>
+    <string name="account_appeal_explanation">この判断を再審査すべき理由と必要な状況を説明してください</string>
+    <string name="account_appeal_label">説明</string>
+    <string name="account_submit_appeal">異議を送信</string>
+    <string name="account_sign_out">ログアウト</string>
+    <string name="account_appeal_status">異議の状態</string>
+    <string name="account_review_update">審査の更新</string>
+    <string name="account_check_updates">このページは自動的に更新を確認します</string>
+    <string name="account_appeal_min_chars">20文字以上で説明してください</string>
+    <string name="account_appeals_unavailable">この制限について異議申し立てはできません 誤りだと思われる場合はSkillectサポートに連絡してください</string>
 </resources>
