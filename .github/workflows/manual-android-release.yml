@@ -1,6 +1,9 @@
 name: Manual Android release build
 
 on:
+  push:
+    branches:
+      - fix/onboarding
   workflow_dispatch:
 
 permissions:
@@ -83,7 +86,6 @@ jobs:
           bash scripts/apply_ui_fixes.sh
 
       - name: Run release lint and unit tests
-        continue-on-error: true
         run: gradle --no-daemon --no-configuration-cache :app:lintRelease :app:testDebugUnitTest
 
       - name: Assemble signed release APK and AAB
