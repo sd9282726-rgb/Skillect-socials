@@ -40,4 +40,38 @@
     <string name="password_reset_confirm">Neues Passwort bestätigen</string>
     <string name="password_reset_update">Passwort aktualisieren</string>
     <string name="password_reset_back">Zurück zur Anmeldung</string>
+    <string name="community_guidelines_body">UNSERE GEMEINSCHAFT
+Skillect ist ein Ort zum Lernen Gestalten Teilen von Ideen und zum Aufbau guter Kontakte
+
+RESPEKTIERE ALLE MITGLIEDER
+Behandle alle freundlich und respektiere Unterschiede bei Herkunft Fähigkeiten und Meinungen
+
+SORGE FÜR SICHERHEIT
+Bedrohe belästige schikaniere manipuliere oder missbrauche keine anderen Personen
+
+SCHÜTZE JUNGE MENSCHEN
+Sexuelle Inhalte mit Minderjährigen Ausbeutung Anbahnung und Anfragen nach privaten Bildern sind verboten
+
+TEILE VERANTWORTUNGSVOLL
+Veröffentliche eigene Inhalte oder Inhalte mit Erlaubnis und respektiere Privatsphäre und Urheberrecht
+
+KEINE SCHÄDLICHEN INHALTE
+Verbreite keine Hassrede Drohungen expliziten sexuellen Inhalte Selbstverletzungsförderung oder gefährlichen Anleitungen
+
+SEI EHRLICH
+Gib dich nicht als andere aus täusche niemanden betreibe keinen Betrug und beanspruche keine fremden Arbeiten
+
+KEIN SPAM ODER MISSBRAUCH
+Vermeide Spam künstliche Interaktionen unerwünschte Nachrichten und schädliche Links
+
+RESPEKTIERE DIE PRIVATSPHÄRE
+Veröffentliche keine privaten Daten oder Bilder ohne Zustimmung
+
+MELDE BEDENKEN
+Nutze die Meldefunktion wenn etwas unsicher wirkt und gib klare Details an
+
+FAIRE PRÜFUNG
+Meldungen werden fair geprüft schwere Verstöße können zur Entfernung von Inhalten Einschränkungen oder Sperren führen und zulässige Entscheidungen können angefochten werden</string>
+    <string name="community_guidelines_title">Skillect Community Richtlinien</string>
+    <string name="community_guidelines_understood">Verstanden</string>
 </resources>
