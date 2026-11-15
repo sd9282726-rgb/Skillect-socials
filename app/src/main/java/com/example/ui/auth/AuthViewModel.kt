@@ -119,12 +119,16 @@ class AuthViewModel(
                     if (profile != null) repository.sessionStore.saveCachedProfile(profile)
                     if (profile == null) hydrateMetadataIfMissing()
                     _uiState.update { state ->
-                        if (state.currentUserId != session.userId) state else state.copy(
-                            currentProfile = profile,
-                            needsOnboarding = AppConfig.isSupabaseConfigured && (profile == null || !profile.onboarded),
-                            authSheetOpen = false,
-                            authPromptReason = null,
-                        )
+                        if (state.currentUserId != session.userId) state else {
+                            val resolvedProfile = profile ?: state.currentProfile
+                            state.copy(
+                                currentProfile = resolvedProfile,
+                                needsOnboarding = AppConfig.isSupabaseConfigured &&
+                                    (resolvedProfile == null || !resolvedProfile.onboarded),
+                                authSheetOpen = false,
+                                authPromptReason = null,
+                            )
+                        }
                     }
                 } else {
                     repository.sessionStore.clearCachedProfile()
