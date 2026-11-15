@@ -74,4 +74,16 @@ ANÁLISE JUSTA
 As denúncias são analisadas com justiça violações graves podem remover conteúdo restringir contas ou banir membros e decisões elegíveis podem ser contestadas</string>
     <string name="community_guidelines_title">Diretrizes da comunidade Skillect</string>
     <string name="community_guidelines_understood">Entendi</string>
+    <string name="account_restricted_title">Conta temporariamente restrita</string>
+    <string name="account_restricted_description">O acesso à sua conta foi restringido após uma análise de segurança. Você pode consultar a decisão e enviar um recurso abaixo.</string>
+    <string name="account_request_review">Solicitar análise</string>
+    <string name="account_appeal_explanation">Explique por que acredita que a decisão deve ser analisada e inclua o contexto necessário.</string>
+    <string name="account_appeal_label">Sua explicação</string>
+    <string name="account_submit_appeal">Enviar recurso</string>
+    <string name="account_sign_out">Sair</string>
+    <string name="account_appeal_status">Status do recurso</string>
+    <string name="account_review_update">Atualização da análise</string>
+    <string name="account_check_updates">Esta página verifica atualizações automaticamente</string>
+    <string name="account_appeal_min_chars">Explique seu recurso com pelo menos 20 caracteres</string>
+    <string name="account_appeals_unavailable">Não é possível recorrer desta restrição. Entre em contato com o suporte Skillect se acredita que houve um erro.</string>
 </resources>
