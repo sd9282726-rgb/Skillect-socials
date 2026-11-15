@@ -75,10 +75,13 @@ class FeedViewModel(
     }
 
     fun clearUserSpecificState() {
+        commentsLoadJob?.cancel()
+        commentsLoadJob = null
         _uiState.update {
             it.copy(
                 selectedTab = if (it.selectedTab == FeedTab.FOLLOWING) FeedTab.RECOMMENDED else it.selectedTab,
                 likedPostIds = emptySet(),
+                pendingLikePostIds = emptySet(),
                 savedPostIds = emptySet(),
                 followingIds = emptySet(),
                 votedPollOptions = emptyMap(),
