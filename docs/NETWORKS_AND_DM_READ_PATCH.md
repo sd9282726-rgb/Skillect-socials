@@ -54,3 +54,11 @@ No two-account live messaging test has been performed. The production database c
 ## Realtime reliability follow-up
 
 The Android WebSocket client now retries after unexpected close/failure with bounded backoff and cancels pending retries on explicit disconnect. This is source-reviewed but not yet verified by a connected-device interruption test.
+
+## Production deployment verification
+
+- The production `start-conversation` Edge Function is now version 6 with JWT verification still enabled.
+- Its participant insert now writes only the live `conversation_participants` columns (`conversation_id`, `user_id`).
+- It creates read markers for both participants in `conversation_reads`.
+- The deployed function source was fetched back and checked after deployment.
+- A real two-account conversation test is still outstanding; the production project had no existing conversation rows during the schema audit.
