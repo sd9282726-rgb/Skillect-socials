@@ -86,4 +86,20 @@ Skillect مساحة للتعلم والإبداع ومشاركة الأفكار 
     <string name="account_check_updates">تتحقق هذه الصفحة من التحديثات تلقائياً</string>
     <string name="account_appeal_min_chars">يرجى كتابة 20 حرفاً على الأقل</string>
     <string name="account_appeals_unavailable">لا يمكن تقديم اعتراض على هذا التقييد تواصل مع دعم Skillect إذا كنت تعتقد أن هناك خطأ</string>
+    <string name="settings_notifications_title">إشعارات التطبيق والإشعارات الفورية</string>
+    <string name="settings_notifications_enable">تفعيل الإشعارات على هذا الجهاز</string>
+    <string name="settings_notifications_likes">الإعجابات وإعادة النشر</string>
+    <string name="settings_notifications_comments">التعليقات والردود</string>
+    <string name="settings_notifications_messages">الرسائل المباشرة</string>
+    <string name="settings_notifications_communities">المجتمعات والمشاريع</string>
+    <string name="notifications_screen_title">الإشعارات</string>
+    <string name="notifications_mark_all_read">تحديد الكل كمقروء</string>
+    <string name="notifications_guest_title">سجل الدخول لرؤية إشعاراتك</string>
+    <string name="notifications_guest_description">احصل على تحديثات حول الاتصالات والردود والرسائل ونشاط المجتمع</string>
+    <string name="notifications_empty_title">أنت على اطلاع بكل جديد</string>
+    <string name="notifications_empty_description">ستظهر هنا الإعجابات والتعليقات والرسائل وتحديثات المجتمع الجديدة</string>
+    <string name="permission_title">ابق على اطلاع مع Skillect</string>
+    <string name="permission_body">اسمح بالإشعارات للرسائل ونشاط المجتمع وتحديثات الحساب المهمة ويمكنك تغيير ذلك في إعدادات أندرويد</string>
+    <string name="permission_continue">متابعة</string>
+    <string name="permission_not_now">ليس الآن</string>
 </resources>
