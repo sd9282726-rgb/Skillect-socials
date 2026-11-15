@@ -15,6 +15,7 @@ import com.example.core.network.PasswordSignInRequest
 import com.example.core.network.PersistedSession
 import com.example.core.network.RecoverPasswordRequest
 import com.example.core.network.SessionStore
+import com.example.core.network.SessionTokenCipher
 import com.example.core.network.SignUpRequest
 import com.example.core.network.SupabaseAuthApi
 import com.example.core.network.SupabaseClientFactory
@@ -42,6 +43,21 @@ import retrofit2.Response
 import java.io.IOException
 import java.lang.reflect.Proxy
 import java.util.Locale
+
+
+private object TestSessionTokenCipher : SessionTokenCipher {
+    private const val PREFIX = "test_enc_v1:"
+
+    override fun encrypt(plainText: String): String =
+        PREFIX + java.util.Base64.getEncoder().encodeToString(plainText.toByteArray(Charsets.UTF_8))
+
+    override fun decrypt(stored: String): String =
+        if (stored.startsWith(PREFIX)) {
+            String(java.util.Base64.getDecoder().decode(stored.removePrefix(PREFIX)), Charsets.UTF_8)
+        } else {
+            stored
+        }
+}
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -150,7 +166,7 @@ class SkillectUnitAndRobolectricTest {
     @Test
     fun `session store persists and clears user session cleanly across restarts`() = runTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val store = SessionStore(context)
+        val store = SessionStore(context, TestSessionTokenCipher)
         store.clearSession()
         assertFalse(store.currentSession().isAuthenticated)
 
@@ -259,15 +275,15 @@ class SkillectUnitAndRobolectricTest {
         )
 
         // 1. Guest mutations & private reads are rejected immediately with AuthenticationRequiredException
-        assertTrue(repo.createPost(CreatePostRequest("", "text", "hello")).exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.toggleLike("post-1").exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.addComment("post-1", "nice").exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.toggleFollow("user-2").exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.toggleSavePost("post-1", false).exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.fetchConversations().exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.sendMessage("conv-1", "hi").exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.fetchNotifications().exceptionOrNull() is AuthenticationRequiredException)
-        assertTrue(repo.joinCommunity("comm-1").exceptionOrNull() is AuthenticationRequiredException)
+        assertTrue(repo.createPost(CreatePostRequest("", "text", "hello")).exceptionOrNull() is AuthenticationRequiredException, "guest createPost must require authentication")
+        assertTrue(repo.toggleLike("post-1").exceptionOrNull() is AuthenticationRequiredException, "guest toggleLike must require authentication")
+        assertTrue(repo.addComment("post-1", "nice").exceptionOrNull() is AuthenticationRequiredException, "guest addComment must require authentication")
+        assertTrue(repo.toggleFollow("user-2").exceptionOrNull() is AuthenticationRequiredException, "guest toggleFollow must require authentication")
+        assertTrue(repo.toggleSavePost("post-1", false).exceptionOrNull() is AuthenticationRequiredException, "guest toggleSavePost must require authentication")
+        assertTrue(repo.fetchConversations().exceptionOrNull() is AuthenticationRequiredException, "guest fetchConversations must require authentication")
+        assertTrue(repo.sendMessage("conv-1", "hi").exceptionOrNull() is AuthenticationRequiredException, "guest sendMessage must require authentication")
+        assertTrue(repo.fetchNotifications().exceptionOrNull() is AuthenticationRequiredException, "guest fetchNotifications must require authentication")
+        assertTrue(repo.joinCommunity("comm-1").exceptionOrNull() is AuthenticationRequiredException, "guest joinCommunity must require authentication")
 
         // 2. Sign up enters immediately when email confirmation is disabled
         val signUpOk = repo.signUp("new@skillect.global", "StrongPass123", "2002-04-10", "US")
