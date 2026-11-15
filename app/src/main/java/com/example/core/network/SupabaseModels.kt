@@ -448,6 +448,7 @@ data class CreateReportRequest(
     @Json(name = "target_id") val targetId: String,
     val reason: String,
     val details: String = "",
+    @Json(name = "target_user_id") val targetUserId: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
