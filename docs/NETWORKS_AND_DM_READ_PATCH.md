@@ -1,7 +1,7 @@
 # Networks and DM read-state patch status
 
 Branch: `fix/onboarding`  
-Latest implementation: `e735eb92a4d579566e633d9a2f58a38cebdfa2a4`
+Latest implementation: `f126793a5b6c2288e310564cc421e37b2b028422`
 
 ## Networks terminology
 
@@ -32,7 +32,7 @@ The extension uses the repository's existing session store and Supabase client c
 - No live messaging E2E has been run with two accounts.
 - No Android compile or unit-test run has been completed for these changes.
 
-The Android CI workflow now supports manual dispatch. In GitHub Actions, select **Android CI**, choose branch `fix/onboarding`, and run the workflow. It executes unit tests and assembles a debug APK on a GitHub-hosted runner. The workflow needs the repository secrets `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+The Android CI workflow now supports manual dispatch. In GitHub Actions, select **Android CI**, choose branch `fix/onboarding`, and run the workflow. It executes unit tests and assembles a debug APK on a GitHub-hosted runner. The workflow uses repository Supabase client secrets when present; otherwise it uses `.env.example` placeholders for compile and unit tests only.
 
 All source commits retain `[skip ci]`; manual dispatch is therefore the intended way to run CI for this patch set.
 
