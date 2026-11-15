@@ -817,7 +817,13 @@ class SkillectRepository(
             val signedUrl = if (signedPath.startsWith("http", ignoreCase = true)) {
                 signedPath
             } else {
-                AppConfig.supabaseUrl.trimEnd('/') + if (signedPath.startsWith("/")) signedPath else "/$signedPath"
+                val base = AppConfig.supabaseUrl.trimEnd('/')
+                when {
+                    signedPath.startsWith("/storage/v1/") -> base + signedPath
+                    signedPath.startsWith("/object/") -> base + "/storage/v1" + signedPath
+                    signedPath.startsWith("object/") -> base + "/storage/v1/" + signedPath
+                    else -> base + "/storage/v1/" + signedPath.trimStart('/')
+                }
             }
             story.copy(mediaUrl = signedUrl)
         } catch (_: Exception) {
