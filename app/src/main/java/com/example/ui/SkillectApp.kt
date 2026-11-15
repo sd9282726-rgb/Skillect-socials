@@ -55,7 +55,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -203,7 +202,6 @@ fun SkillectApp(
 
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
-    val firebaseSyncScope = rememberCoroutineScope()
 
     val currentUserId = if (authState.isAuthenticated) {
         authState.currentProfile?.id ?: profileState.myProfile?.id ?: ""
@@ -229,17 +227,10 @@ fun SkillectApp(
         }
     }
 
-    // Keep Firebase identity and push-token registration aligned with Supabase auth.
-    // Token retrieval also runs on sign-in, not only when Firebase rotates the token.
+    // Keep Firebase analytics identity aligned with Supabase auth.
+    // FCM token registration is centralized in the distinct session observer.
     LaunchedEffect(currentUserId, authState.isAuthenticated) {
         container.analyticsTracker.setUserId(currentUserId.takeIf { it.isNotBlank() })
-        if (currentUserId.isNotBlank()) {
-            container.analyticsTracker.fetchFcmToken { token ->
-                firebaseSyncScope.launch {
-                    container.repository.syncFcmToken(token)
-                }
-            }
-        }
 
         // Smooth Guest <-> Account transitions without restarting the app.
         if (previousUserId == null) {
