@@ -421,8 +421,7 @@ fun ModerationAdminScreen(
         viewModel.loadModerationDashboard()
     }
 
-    val role = uiState.myProfile?.role ?: "member"
-    val isAuthorizedMod = role == "admin" || role == "moderator"
+    val isAuthorizedMod = uiState.isModerator
 
     Box(
         modifier = modifier.fillMaxSize(),
