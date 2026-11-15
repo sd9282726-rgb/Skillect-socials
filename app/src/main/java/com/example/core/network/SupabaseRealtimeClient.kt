@@ -55,9 +55,15 @@ class SupabaseRealtimeClient(
                     val token = session.accessToken.ifBlank {
                         AppConfig.supabaseAnonKey.takeIf { !it.startsWith("sb_publishable_") }.orEmpty()
                     }
-                    joinChannel(ws, "realtime:public:messages", token)
-                    joinChannel(ws, "realtime:public:notifications", token)
-                    joinChannel(ws, "realtime:public:posts", token)
+                    joinChannel(ws, "realtime:public:messages", "messages", token)
+                    joinChannel(
+                        ws,
+                        "realtime:public:notifications",
+                        "notifications",
+                        token,
+                        filter = "user_id=eq.$userId",
+                    )
+                    joinChannel(ws, "realtime:public:posts", "posts", token)
                     startHeartbeat(ws)
                 }
 
@@ -72,7 +78,13 @@ class SupabaseRealtimeClient(
         }
     }
 
-    private fun joinChannel(ws: WebSocket, topic: String, accessToken: String) {
+    private fun joinChannel(
+        ws: WebSocket,
+        topic: String,
+        table: String,
+        accessToken: String,
+        filter: String? = null,
+    ) {
         val ref = refCounter.getAndIncrement().toString()
         val payload = JSONObject().apply {
             put("topic", topic)
@@ -89,6 +101,8 @@ class SupabaseRealtimeClient(
                                     JSONObject().apply {
                                         put("event", "INSERT")
                                         put("schema", "public")
+                                        put("table", table)
+                                        if (!filter.isNullOrBlank()) put("filter", filter)
                                     },
                                 ),
                             )
