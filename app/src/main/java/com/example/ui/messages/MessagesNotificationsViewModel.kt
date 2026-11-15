@@ -47,7 +47,7 @@ class MessagesNotificationsViewModel(
                                 refreshInbox()
                             }
                         }
-                        is RealtimeEvent.NotificationReceived -> refreshNotifications()
+                        is RealtimeEvent.NewNotification -> refreshNotifications()
                         else -> Unit
                     }
                 }
@@ -73,30 +73,21 @@ class MessagesNotificationsViewModel(
         _uiState.update { it.copy(activeConversationId = conversationId, statusMessage = null, isSendingMessage = false) }
         if (!AppConfig.isSupabaseConfigured) return
         viewModelScope.launch {
-            repository.markConversationRead(conversationId).fold(
-                onSuccess = {
-                    val now = java.time.Instant.now().toString()
-                    _uiState.update { state ->
-                        state.copy(
-                            conversations = state.conversations.map { conv ->
-                                if (conv.id != conversationId) conv
-                                else {
-                                    val uid = repository.sessionStore.currentSession().userId
-                                    conv.copy(
-                                        participants = conv.participants.map { part ->
-                                            if (part.userId == uid) part.copy(lastReadAt = now) else part
-                                        },
-                                    )
-                                }
+            // Optimistic local unread clear. Persist when repo API + migration 0007 are on remote.
+            val now = java.time.Instant.now().toString()
+            val uid = repository.sessionStore.currentSession().userId
+            _uiState.update { state ->
+                state.copy(
+                    conversations = state.conversations.map { conv ->
+                        if (conv.id != conversationId) conv
+                        else conv.copy(
+                            participants = conv.participants.map { part ->
+                                if (part.userId == uid) part.copy(lastReadAt = now) else part
                             },
                         )
-                    }
-                },
-                onFailure = { err ->
-                    // Read-state is best-effort; still load messages. RLS may block until policy is applied.
-                    _uiState.update { it.copy(statusMessage = err.message) }
-                },
-            )
+                    },
+                )
+            }
             repository.fetchMessages(conversationId).fold(
                 onSuccess = { list -> _uiState.update { it.copy(messages = list) } },
                 onFailure = { err -> _uiState.update { it.copy(errorMessage = err.message) } },
@@ -143,7 +134,7 @@ class MessagesNotificationsViewModel(
 
     fun reportConversationMessage(targetId: String, reason: String, details: String) {
         viewModelScope.launch {
-            repository.reportContent("message", targetId, reason, details).fold(
+            repository.submitReport("message", targetId, reason, details).fold(
                 onSuccess = { _uiState.update { it.copy(statusMessage = "Report submitted.") } },
                 onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
             )
