@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.example.core.config.AppConfig
 import com.example.core.config.ThemeMode
@@ -422,6 +423,7 @@ fun ModerationAdminScreen(
     }
 
     val isAuthorizedMod = uiState.isModerator
+    val uriHandler = LocalUriHandler.current
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -461,6 +463,47 @@ fun ModerationAdminScreen(
                         title = stringResource(R.string.moderation_no_reports),
                         subtitle = "New reports will appear here when members raise a safety concern",
                     )
+                }
+            }
+
+            if (isAuthorizedMod && uiState.moderationMedia.isNotEmpty()) {
+                item { Text("Media awaiting review", style = MaterialTheme.typography.titleMedium) }
+                items(uiState.moderationMedia, key = { "media_${it.id}" }) { media ->
+                    SkillectCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "${media.mediaType.replaceFirstChar { it.uppercase() }} · ${media.status.replace('_', ' ')}",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        if (media.postContent.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(media.postContent, style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (media.decisionReason.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(media.decisionReason, style = MaterialTheme.typography.labelSmall)
+                        }
+                        media.previewUrl?.let { url ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            TextButton(onClick = { uriHandler.openUri(url) }) { Text("Open private media preview") }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            SkillectPrimaryButton(
+                                text = "Approve",
+                                onClick = { viewModel.resolveMedia(media.id, true) },
+                                modifier = Modifier.weight(1f),
+                            )
+                            SkillectOutlinedButton(
+                                text = "Reject",
+                                onClick = { viewModel.resolveMedia(media.id, false) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
             }
 
