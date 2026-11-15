@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -195,7 +196,7 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         if (onBack != null) {
-                            IconButton(onClick = onBack) {
+                            IconButton(onClick = onBack, modifier = Modifier.background(Color.Black.copy(alpha = 0.42f), CircleShape)) {
                                 Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = Color.White)
                             }
                         } else {
@@ -206,13 +207,13 @@ fun ProfileScreen(
                             if (isOwnProfile) {
                                 IconButton(
                                     onClick = onOpenSettings,
-                                    modifier = Modifier.testTag("profile_settings_button"),
+                                    modifier = Modifier.background(Color.Black.copy(alpha = 0.42f), CircleShape).testTag("profile_settings_button"),
                                 ) {
                                     Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = Color.White)
                                 }
                             } else {
                                 Box {
-                                    IconButton(onClick = { menuExpanded = true }) {
+                                    IconButton(onClick = { menuExpanded = true }, modifier = Modifier.background(Color.Black.copy(alpha = 0.42f), CircleShape)) {
                                         Icon(Icons.Rounded.MoreVert, contentDescription = "Profile actions", tint = Color.White)
                                     }
                                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
