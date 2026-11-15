@@ -102,4 +102,5 @@ As denúncias são analisadas com justiça violações graves podem remover cont
     <string name="permission_body">Permita notificações de mensagens atividades da comunidade e atualizações importantes da conta Você pode alterar isso nas configurações do Android</string>
     <string name="permission_continue">Continuar</string>
     <string name="permission_not_now">Agora não</string>
+    <string name="account_permanent_ban_title">Conta banida permanentemente</string>
 </resources>
