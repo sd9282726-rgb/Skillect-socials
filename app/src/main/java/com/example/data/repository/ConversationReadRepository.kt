@@ -10,7 +10,10 @@ import retrofit2.http.Headers
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Query
-import java.time.Instant
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 private interface ConversationReadApi {
     @Headers("Prefer: return=representation")
@@ -44,7 +47,9 @@ suspend fun SkillectRepository.markConversationRead(conversationId: String): Res
         if (uid.isBlank()) {
             return Result.failure(AuthenticationRequiredException("update conversation read state"))
         }
-        val readAt = Instant.now().toString()
+        val readAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }.format(Date())
         val api = SupabaseClientFactory.createRetrofit(sessionStore)
             .create(ConversationReadApi::class.java)
         val marker = mapOf(
