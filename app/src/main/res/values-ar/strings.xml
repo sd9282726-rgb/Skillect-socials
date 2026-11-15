@@ -102,4 +102,5 @@ Skillect مساحة للتعلم والإبداع ومشاركة الأفكار 
     <string name="permission_body">اسمح بالإشعارات للرسائل ونشاط المجتمع وتحديثات الحساب المهمة ويمكنك تغيير ذلك في إعدادات أندرويد</string>
     <string name="permission_continue">متابعة</string>
     <string name="permission_not_now">ليس الآن</string>
+    <string name="account_permanent_ban_title">تم حظر الحساب نهائيا</string>
 </resources>
