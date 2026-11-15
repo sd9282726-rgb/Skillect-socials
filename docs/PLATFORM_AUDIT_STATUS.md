@@ -73,3 +73,11 @@ User-facing copy uses Networks / Connect / Connected in the profile, feed, post 
 5. Storage and moderation paths end-to-end.
 
 **Release readiness: not yet verified.** The source and database fixes above are implemented, but the latest Android build and device-level journeys remain untested.
+
+## Latest DM correction
+
+- Production schema confirms `conversation_participants` contains only `id`, `conversation_id`, and `user_id`; read timestamps belong in `conversation_reads`.
+- Corrected `start-conversation` to insert participant rows without the nonexistent `last_read_at` column and create both read markers separately.
+- Deployed production Edge Function version 6 with `verify_jwt=true`; fetched the deployed source back and verified the participant payload and both read markers.
+- Database read-marker grants and participant-scoped RLS policies were checked directly.
+- Two-account runtime messaging and latest Android build are still not verified.
