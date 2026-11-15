@@ -166,7 +166,10 @@ Deno.serve(async (request: Request) => {
     return json(503, { error: "Could not verify account status" });
   }
 
-  if (type !== "profile" && (!apiUser || !apiSecret)) return json(503, { error: "Text publishing moderation is not configured. Nothing was published." });
+  if (type !== "profile" && (!apiUser || !apiSecret) && type !== "media_caption") return json(503, { error: "Text publishing moderation is not configured. Nothing was published." });
+  if (type === "media_caption" && (!apiUser || !apiSecret)) {
+    return json(200, { status: "pending_review", message: "Caption will be reviewed with the uploaded media." });
+  }
 
   if (type === "profile") {
     const displayName = String(input.display_name || "").trim().slice(0, 80);
@@ -299,12 +302,17 @@ Deno.serve(async (request: Request) => {
   let scan: Record<string, any>;
   try {
     const response = await fetch("https://api.sightengine.com/1.0/text/check.json", { method: "POST", body: form });
-    if (!response.ok) return json(503, { error: "Text safety screening is temporarily unavailable. Nothing was published." });
+    if (!response.ok) {
+      if (type === "media_caption") return json(200, { status: "pending_review", message: "Caption will be reviewed with the uploaded media." });
+      return json(503, { error: "Text safety screening is temporarily unavailable. Nothing was published." });
+    }
     scan = await response.json();
   } catch {
+    if (type === "media_caption") return json(200, { status: "pending_review", message: "Caption will be reviewed with the uploaded media." });
     return json(503, { error: "Text safety screening is temporarily unavailable. Nothing was published." });
   }
   if (scan.status !== "success" || !scan.moderation_classes) {
+    if (type === "media_caption") return json(200, { status: "pending_review", message: "Caption will be reviewed with the uploaded media." });
     return json(503, { error: "Text safety screening returned no valid decision. Nothing was published." });
   }
 
