@@ -562,6 +562,7 @@ fun FeedScreen(
                             isLikePending = post.id in uiState.pendingLikePostIds,
                             isSaved = post.id in uiState.savedPostIds,
                             isFollowingAuthor = post.authorId in uiState.followingIds,
+                            isFollowPending = post.authorId in uiState.pendingFollowUserIds,
                             votedOptionId = uiState.votedPollOptions[post.id],
                             onAuthorClick = onOpenProfile,
                             onLikeClick = {
