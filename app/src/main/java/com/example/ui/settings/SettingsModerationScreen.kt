@@ -359,7 +359,38 @@ fun SettingsScreen(
             title = { Text("Skillect Safety & Community Guidelines (16+)") },
             text = {
                 Text(
-                    "Skillect enforces zero tolerance for CSAM, sexual exploitation, grooming, harassment, bullying, threats, hate speech, explicit sexual content, scams, spam, impersonation, and malicious links. Moderation decisions are backed by server-side audit logs and human review appeals.",
+                    """OUR COMMUNITY
+Skillect is a place to learn create share ideas and build meaningful connections
+
+RESPECT EVERY MEMBER
+Treat people with kindness and respect differences in background skill and opinion
+
+KEEP PEOPLE SAFE
+Never threaten bully harass groom exploit or target another member
+
+PROTECT YOUNG PEOPLE
+Sexual content involving minors exploitation grooming and requests for private images are not allowed
+
+SHARE RESPONSIBLY
+Post content you own or have permission to share and respect privacy and copyright
+
+NO HARMFUL CONTENT
+Do not share hate speech violent threats explicit sexual material self harm promotion or dangerous instructions
+
+BE HONEST
+Do not impersonate others deceive members run scams or misrepresent your work
+
+NO SPAM OR ABUSE
+Avoid spam fake engagement repeated unwanted messages and malicious links
+
+RESPECT PRIVACY
+Do not publish private information or images without permission
+
+REPORT CONCERNS
+Use the report option when something feels unsafe and provide clear details
+
+FAIR REVIEW
+Reports are reviewed fairly serious violations may lead to content removal account restrictions or a ban members may appeal eligible decisions""",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
@@ -419,7 +450,6 @@ fun ModerationAdminScreen(
         viewModel.loadModerationDashboard()
     }
 
-    var showAppealDialog by remember { mutableStateOf(false) }
     val role = uiState.myProfile?.role ?: "member"
     val isAuthorizedMod = role == "admin" || role == "moderator"
 
@@ -436,18 +466,11 @@ fun ModerationAdminScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                        }
-                        Text("Moderation & Governance", style = MaterialTheme.typography.titleLarge)
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
-                    SkillectOutlinedButton(
-                        text = "Submit Appeal",
-                        onClick = { showAppealDialog = true },
-                    )
+                    Text("Moderation Hub", style = MaterialTheme.typography.titleLarge)
                 }
             }
 
@@ -455,8 +478,8 @@ fun ModerationAdminScreen(
                 item {
                     EmptyStateCard(
                         icon = Icons.Rounded.Gavel,
-                        title = "Server-Side Role Authorization Required",
-                        subtitle = "Your current Supabase role is '$role'. Administrative moderation queues, content removal, and suspension actions are strictly gated by PostgreSQL Row Level Security (is_admin_or_mod()).",
+                        title = "This area is for the moderation team",
+                        subtitle = "Only approved moderators can review reports and account appeals here. You can manage your own privacy and safety from Settings.",
                     )
                 }
             }
@@ -539,33 +562,4 @@ fun ModerationAdminScreen(
         }
     }
 
-    if (showAppealDialog) {
-        var appealReason by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showAppealDialog = false },
-            title = { Text("Submit Moderation Appeal") },
-            text = {
-                OutlinedTextField(
-                    value = appealReason,
-                    onValueChange = { appealReason = it },
-                    label = { Text("Explain why a decision should be reviewed") },
-                    minLines = 3,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            confirmButton = {
-                SkillectPrimaryButton(
-                    text = "Submit",
-                    enabled = appealReason.trim().length >= 5,
-                    onClick = {
-                        viewModel.submitModerationAppeal(appealReason)
-                        showAppealDialog = false
-                    },
-                )
-            },
-            dismissButton = {
-                TextButton(onClick = { showAppealDialog = false }) { Text("Cancel") }
-            },
-        )
-    }
 }
