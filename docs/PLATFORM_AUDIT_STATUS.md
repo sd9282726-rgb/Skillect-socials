@@ -81,3 +81,16 @@ User-facing copy uses Networks / Connect / Connected in the profile, feed, post 
 - Deployed production Edge Function version 6 with `verify_jwt=true`; fetched the deployed source back and verified the participant payload and both read markers.
 - Database read-marker grants and participant-scoped RLS policies were checked directly.
 - Two-account runtime messaging and latest Android build are still not verified.
+
+## Final verification snapshot — 2026-11-15
+
+- Production migrations for read-marker column permissions and conversation activity timestamps are present in migration history.
+- Production schema confirms read timestamps are stored in `conversation_reads`; `conversation_participants` has no `last_read_at` column.
+- Production `start-conversation` Edge Function is version 6 (`verify_jwt=true)); deployed source verified to insert only valid participant columns and initialize both read markers.
+- Read-marker RLS policies and least-privilege UPDATE grant were checked against production.
+- Realtime publication includes `messages`, `notifications`, and `posts`; Android client has bounded reconnect and stale-connection guards.
+- Composer media attachment panel is connected to the active composer flow.
+- Current branch source has **not** had an Android build/test run. All commits intentionally include `[skip ci]`; no workflow-dispatch action is available in this connection.
+- No two-account device test was run. The production database had no conversation rows during the audit, and no safe test accounts/device session are available here.
+- Do not mark release-ready until a current Android build and two-account app test pass.
+
