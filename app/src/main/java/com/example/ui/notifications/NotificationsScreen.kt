@@ -34,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.core.config.AppConfig
 import com.example.core.designsystem.BackendConfigBanner
 import com.example.core.designsystem.EmptyStateCard
@@ -73,13 +75,13 @@ fun NotificationsScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
-                    Text("Notifications", style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.notifications_screen_title), style = MaterialTheme.typography.titleLarge)
                 }
                 if (currentUserId.isNotBlank() && uiState.unreadNotificationsCount > 0) {
                     TextButton(onClick = viewModel::markAllNotificationsRead) {
                         Icon(Icons.Rounded.DoneAll, contentDescription = null)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Mark all read")
+                        Text(stringResource(R.string.notifications_mark_all_read))
                     }
                 }
             }
@@ -101,13 +103,13 @@ fun NotificationsScreen(
                         SkillectGradientIconTile(icon = Icons.Rounded.NotificationsNone)
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
-                            text = "Sign in for activity notifications",
+                            text = stringResource(R.string.notifications_guest_title),
                             style = MaterialTheme.typography.headlineSmall,
                             textAlign = TextAlign.Center,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Get real-time alerts for new network connections, replies, mentions, reposts, and community activity.",
+                            text = stringResource(R.string.notifications_guest_description),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -162,8 +164,8 @@ fun NotificationsScreen(
                     item {
                         EmptyStateCard(
                             icon = Icons.Rounded.NotificationsNone,
-                            title = "In-App & Push Alert Centre",
-                            subtitle = "Networks, likes, comments, mentions, reposts, messages, community activity, and project interactions appear here in real time via Supabase + FCM.",
+                            title = stringResource(R.string.notifications_empty_title),
+                            subtitle = stringResource(R.string.notifications_empty_description),
                         )
                     }
                 } else {
