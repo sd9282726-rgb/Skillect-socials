@@ -375,6 +375,12 @@ interface SupabasePostgrestApi {
         @Query("post_id") postIdEq: String,
     ): Response<ResponseBody>
 
+    @POST("functions/v1/moderator-media-queue")
+    suspend fun getModerationMediaQueue(): Response<List<ModerationMediaDto>>
+
+    @POST("functions/v1/review-video-post")
+    suspend fun reviewModerationMedia(@Body request: Map<String, String>): Response<ResponseBody>
+
     @GET("rest/v1/reports")
     suspend fun getReports(@Query("order") order: String = "created_at.desc"): Response<List<ReportDto>>
 
