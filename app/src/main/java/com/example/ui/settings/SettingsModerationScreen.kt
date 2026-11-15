@@ -251,26 +251,26 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Push & In-App Notifications", style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.settings_notifications_title), style = MaterialTheme.typography.titleMedium)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             SkillectOutlinedButton(
-                                text = "Enable System Push Permission",
+                                text = stringResource(R.string.settings_notifications_enable),
                                 onClick = { notificationPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                         }
-                        NotificationToggleRow("Likes & Reposts", prefs.pushLikes) {
+                        NotificationToggleRow(stringResource(R.string.settings_notifications_likes), prefs.pushLikes) {
                             viewModel.updateNotificationPrefs(it, prefs.pushComments, prefs.pushMessages, prefs.pushCommunities)
                         }
-                        NotificationToggleRow("Comments & Replies", prefs.pushComments) {
+                        NotificationToggleRow(stringResource(R.string.settings_notifications_comments), prefs.pushComments) {
                             viewModel.updateNotificationPrefs(prefs.pushLikes, it, prefs.pushMessages, prefs.pushCommunities)
                         }
-                        NotificationToggleRow("Direct Messages", prefs.pushMessages) {
+                        NotificationToggleRow(stringResource(R.string.settings_notifications_messages), prefs.pushMessages) {
                             viewModel.updateNotificationPrefs(prefs.pushLikes, prefs.pushComments, it, prefs.pushCommunities)
                         }
-                        NotificationToggleRow("Communities & Projects", prefs.pushCommunities) {
+                        NotificationToggleRow(stringResource(R.string.settings_notifications_communities), prefs.pushCommunities) {
                             viewModel.updateNotificationPrefs(prefs.pushLikes, prefs.pushComments, prefs.pushMessages, it)
                         }
                     }
