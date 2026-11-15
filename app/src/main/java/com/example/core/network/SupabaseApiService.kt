@@ -398,6 +398,14 @@ interface SupabasePostgrestApi {
     @GET("rest/v1/moderation_appeals")
     suspend fun getModerationAppeals(@Query("order") order: String = "created_at.desc"): Response<List<ModerationAppealDto>>
 
+    @GET("rest/v1/account_enforcements")
+    suspend fun getMyEnforcement(
+        @Query("user_id") userIdEq: String,
+        @Query("select") select: String = "user_id,status,reason,issued_at,appeal_allowed",
+        @Query("order") order: String = "issued_at.desc",
+        @Query("limit") limit: Int = 1,
+    ): Response<List<AccountEnforcementDto>>
+
     @Headers("Prefer: return=representation")
     @POST("rest/v1/moderation_appeals")
     suspend fun submitModerationAppeal(@Body request: CreateAppealRequest): Response<List<ModerationAppealDto>>
