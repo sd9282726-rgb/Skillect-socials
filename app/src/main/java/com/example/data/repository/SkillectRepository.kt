@@ -455,7 +455,9 @@ class SkillectRepository(
             sanitized.remove("avatar_url")
         }
         body.putAll(sanitized)
-        existing.avatarUrl?.takeIf { it.isNotBlank() }?.let { body.putIfAbsent("avatar_url", it) }
+        if (!body.containsKey("avatar_url")) {
+            existing.avatarUrl?.takeIf { it.isNotBlank() }?.let { body["avatar_url"] = it }
+        }
         val content = listOf(
             body["display_name"]?.toString(),
             body["username"]?.toString(),
