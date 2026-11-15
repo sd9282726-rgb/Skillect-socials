@@ -23,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.SkillectOutlinedButton
@@ -58,9 +60,9 @@ fun AccountRestrictedScreen(
         ) {
             EmptyStateCard(
                 icon = Icons.Rounded.Gavel,
-                title = title,
+                title = stringResource(R.string.account_restricted_title),
                 subtitle = uiState.accountEnforcement?.reason?.takeIf { it.isNotBlank() }
-                    ?: if (permanent) "Your account has been permanently banned following a safety review. If an appeal is available, you can request a review below." else "Your account has been temporarily suspended following a safety review. If an appeal is available, you can request a review below.",
+                    ?: stringResource(R.string.account_restricted_description),
             )
 
             if (uiState.isCheckingAccountStatus) {
@@ -69,20 +71,20 @@ fun AccountRestrictedScreen(
 
             val appeal = uiState.accountAppeal
             if (appeal != null) {
-                Text("Appeal status  ${appeal.status.replace('_', ' ')}", style = MaterialTheme.typography.titleMedium)
+                Text("${stringResource(R.string.account_appeal_status)}  ${appeal.status.replace('_', ' ')}", style = MaterialTheme.typography.titleMedium)
                 Text(appeal.reason, style = MaterialTheme.typography.bodyMedium)
                 appeal.reviewerNote?.takeIf { it.isNotBlank() }?.let {
-                    Text("Review update  $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${stringResource(R.string.account_review_update)}  $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(
-                    "This page checks for updates automatically",
+                    stringResource(R.string.account_check_updates),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else if (uiState.accountEnforcement?.appealAllowed == true) {
-                Text("Request a review", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.account_request_review), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Explain why you believe this decision should be reviewed. Include the relevant context so the moderation team can assess it.",
+                    stringResource(R.string.account_appeal_explanation),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -91,11 +93,11 @@ fun AccountRestrictedScreen(
                     onValueChange = { explanation = it },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 4,
-                    label = { Text("Your explanation") },
+                    label = { Text(stringResource(R.string.account_appeal_label)) },
                     supportingText = { Text("${explanation.trim().length} of 20 minimum characters") },
                 )
                 SkillectPrimaryButton(
-                    text = if (uiState.accountAppealSubmitting) "Submitting" else "Submit appeal",
+                    text = if (uiState.accountAppealSubmitting) "Submitting" else stringResource(R.string.account_submit_appeal),
                     onClick = { viewModel.submitAccountAppeal(explanation) },
                     enabled = explanation.trim().length >= 20 && !uiState.accountAppealSubmitting,
                     modifier = Modifier.fillMaxWidth(),
@@ -114,7 +116,7 @@ fun AccountRestrictedScreen(
 
             Spacer(Modifier.height(4.dp))
             SkillectOutlinedButton(
-                text = "Sign out",
+                text = stringResource(R.string.account_sign_out),
                 onClick = viewModel::signOut,
                 modifier = Modifier.fillMaxWidth(),
             )
