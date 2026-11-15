@@ -86,4 +86,20 @@ Skillectは学び 創作し アイデアを共有し 有意義なつながりを
     <string name="account_check_updates">このページは自動的に更新を確認します</string>
     <string name="account_appeal_min_chars">20文字以上で説明してください</string>
     <string name="account_appeals_unavailable">この制限について異議申し立てはできません 誤りだと思われる場合はSkillectサポートに連絡してください</string>
+    <string name="settings_notifications_title">プッシュ通知とアプリ内通知</string>
+    <string name="settings_notifications_enable">この端末で通知を有効にする</string>
+    <string name="settings_notifications_likes">いいねと再投稿</string>
+    <string name="settings_notifications_comments">コメントと返信</string>
+    <string name="settings_notifications_messages">ダイレクトメッセージ</string>
+    <string name="settings_notifications_communities">コミュニティとプロジェクト</string>
+    <string name="notifications_screen_title">通知</string>
+    <string name="notifications_mark_all_read">すべて既読にする</string>
+    <string name="notifications_guest_title">通知を見るにはサインインしてください</string>
+    <string name="notifications_guest_description">つながり 返信 メッセージ コミュニティの最新情報を受け取れます</string>
+    <string name="notifications_empty_title">新しい通知はありません</string>
+    <string name="notifications_empty_description">新しいいいね コメント メッセージ コミュニティの更新がここに表示されます</string>
+    <string name="permission_title">Skillectの最新情報を受け取る</string>
+    <string name="permission_body">メッセージ コミュニティの活動 重要なアカウント更新の通知を許可してください Androidの設定からいつでも変更できます</string>
+    <string name="permission_continue">続行</string>
+    <string name="permission_not_now">後で</string>
 </resources>
