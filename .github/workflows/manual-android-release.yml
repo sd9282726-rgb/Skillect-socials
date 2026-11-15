@@ -80,6 +80,16 @@ jobs:
             fi
           done
 
+      - name: Apply screenshot UI fixes
+        run: |
+          set -euo pipefail
+          if [ -f docs/UI_FIXES_APPLY.patch ]; then
+            git apply docs/UI_FIXES_APPLY.patch
+            echo "Applied docs/UI_FIXES_APPLY.patch"
+          else
+            echo "No UI patch present; continuing with tree as-is"
+          fi
+
       - name: Run release lint and unit tests
         continue-on-error: true
         run: gradle --no-daemon --no-configuration-cache :app:lintRelease :app:testDebugUnitTest

@@ -2,15 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches:
-      - fix/onboarding
+    branches: [fix/onboarding, main]
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
+    branches: [fix/onboarding, main]
 
 concurrency:
   group: android-ci-${{ github.ref }}
@@ -51,6 +45,16 @@ jobs:
           else
             cp .env.example .env
             echo "Supabase secrets are absent; using documented placeholders for compile and unit tests only."
+          fi
+
+      - name: Apply screenshot UI fixes
+        run: |
+          set -euo pipefail
+          if [ -f docs/UI_FIXES_APPLY.patch ]; then
+            git apply docs/UI_FIXES_APPLY.patch
+            echo "Applied docs/UI_FIXES_APPLY.patch"
+          else
+            echo "No UI patch present; continuing with tree as-is"
           fi
 
       - name: Run Android lint
