@@ -46,7 +46,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.config.AppConfig
-import com.example.core.designsystem.BackendConfigBanner
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.ErrorRetryCard
 import com.example.core.designsystem.HashtagChip
@@ -164,7 +163,7 @@ fun ExploreScreen(
                 if (!AppConfig.isSupabaseConfigured) {
                     item {
                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                            BackendConfigBanner()
+                            Text("Discovery is temporarily unavailable. Please try again shortly.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -518,7 +517,7 @@ fun ExploreScreen(
                             } else if (AppConfig.isSupabaseConfigured) {
                                 "There is nothing to show in this section yet. Check back as the community grows."
                             } else {
-                                "Connect Supabase credentials to discover people, posts, communities and projects."
+                                "Discovery is temporarily unavailable. Please try again shortly."
                             },
                         )
                     }
