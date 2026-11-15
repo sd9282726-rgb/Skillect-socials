@@ -73,8 +73,11 @@ class SupabaseRealtimeClient(
                     joinChannel(ws, "realtime:public:messages", "messages", token)
                     joinChannel(ws, "realtime:public:notifications", "notifications", token, filter = "user_id=eq.$userId")
                     joinChannel(ws, "realtime:public:account_enforcements", "account_enforcements", token, filter = "user_id=eq.$userId")
+                    joinChannel(ws, "realtime:public:account_enforcements_updates", "account_enforcements", token, filter = "user_id=eq.$userId", changeEvent = "UPDATE")
                     joinChannel(ws, "realtime:public:moderation_appeals", "moderation_appeals", token, filter = "user_id=eq.$userId")
+                    joinChannel(ws, "realtime:public:moderation_appeals_updates", "moderation_appeals", token, filter = "user_id=eq.$userId", changeEvent = "UPDATE")
                     joinChannel(ws, "realtime:public:posts", "posts", token)
+                    joinChannel(ws, "realtime:public:posts_updates", "posts", token, changeEvent = "UPDATE")
                     startHeartbeat(ws)
                 }
 
@@ -115,6 +118,7 @@ class SupabaseRealtimeClient(
         table: String,
         accessToken: String,
         filter: String? = null,
+        changeEvent: String = "INSERT",
     ) {
         val ref = refCounter.getAndIncrement().toString()
         val payload = JSONObject().apply {
@@ -130,7 +134,7 @@ class SupabaseRealtimeClient(
                                 "postgres_changes",
                                 JSONArray().put(
                                     JSONObject().apply {
-                                        put("event", "INSERT")
+                                        put("event", changeEvent)
                                         put("schema", "public")
                                         put("table", table)
                                         if (!filter.isNullOrBlank()) put("filter", filter)
