@@ -74,4 +74,16 @@ FAIR REVIEW
 Reports are reviewed fairly serious violations may lead to content removal account restrictions or a ban members may appeal eligible decisions</string>
     <string name="community_guidelines_title">Skillect Community Guidelines</string>
     <string name="community_guidelines_understood">Understood</string>
+    <string name="account_restricted_title">Account temporarily restricted</string>
+    <string name="account_restricted_description">Your account access has been restricted following a safety review. You can review the decision and submit an appeal below.</string>
+    <string name="account_request_review">Request a review</string>
+    <string name="account_appeal_explanation">Explain why you believe this decision should be reviewed. Include the relevant context so the moderation team can assess it.</string>
+    <string name="account_appeal_label">Your explanation</string>
+    <string name="account_submit_appeal">Submit appeal</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_appeal_status">Appeal status</string>
+    <string name="account_review_update">Review update</string>
+    <string name="account_check_updates">This page checks for updates automatically</string>
+    <string name="account_appeal_min_chars">Explain your appeal in at least 20 characters</string>
+    <string name="account_appeals_unavailable">Appeals are not available for this restriction. Contact Skillect support if you believe this is an error.</string>
 </resources>
