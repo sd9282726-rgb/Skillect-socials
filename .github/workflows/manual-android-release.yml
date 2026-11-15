@@ -1,23 +1,16 @@
 name: Manual Android release build
 
 on:
+  push:
+    branches:
+      - fix/onboarding
   workflow_dispatch:
-    inputs:
-      confirm_release_build:
-        description: "Set to true only when the dedicated Skillect release keystore secrets are ready"
-        required: true
-        type: choice
-        options:
-          - "false"
-          - "true"
-        default: "false"
 
 permissions:
   contents: read
 
 jobs:
   release:
-    if: ${{ inputs.confirm_release_build == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
