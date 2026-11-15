@@ -84,6 +84,7 @@ fun PostCard(
     post: PostDto,
     currentUserId: String,
     isLiked: Boolean,
+    isLikePending: Boolean = false,
     isSaved: Boolean,
     isFollowingAuthor: Boolean,
     votedOptionId: String?,
@@ -533,6 +534,7 @@ fun PostCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
+                    enabled = !isLikePending,
                     onClick = onLikeClick,
                     modifier = Modifier.testTag("like_btn_${post.id}"),
                 ) {
