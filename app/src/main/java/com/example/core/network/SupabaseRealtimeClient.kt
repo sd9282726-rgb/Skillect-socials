@@ -53,6 +53,7 @@ class SupabaseRealtimeClient(
         scope.launch {
             if (generation != connectionGeneration || activeUserId != userId) return@launch
             val session = sessionStore.currentSession()
+            if (generation != connectionGeneration || activeUserId != userId) return@launch
             val wsBase = AppConfig.supabaseUrl
                 .replace("https://", "wss://")
                 .replace("http://", "ws://")
