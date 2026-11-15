@@ -141,8 +141,11 @@ interface SupabasePostgrestApi {
     @GET("rest/v1/post_likes")
     suspend fun getPostLikes(
         @Query("user_id") userIdEq: String,
+        @Query("post_id") postIdEq: String? = null,
         @Query("select") select: String = "post_id,user_id",
+        @Query("order") order: String = "post_id.asc",
         @Query("limit") limit: Int = 200,
+        @Query("offset") offset: Int = 0,
     ): Response<List<PostLikeRowDto>>
 
     @GET("rest/v1/poll_votes")
