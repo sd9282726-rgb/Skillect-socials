@@ -53,6 +53,9 @@ jobs:
             echo "Supabase secrets are absent; using documented placeholders for compile and unit tests only."
           fi
 
+      - name: Run Android lint
+        run: gradle :app:lintDebug --stacktrace
+
       - name: Run unit tests
         run: gradle :app:testDebugUnitTest --stacktrace
 
