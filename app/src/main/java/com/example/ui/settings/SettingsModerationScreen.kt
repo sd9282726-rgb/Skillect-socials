@@ -208,7 +208,7 @@ fun SettingsScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Private Account", style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    "Only approved followers see private updates.",
+                                    "Only approved network connections see private updates.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
