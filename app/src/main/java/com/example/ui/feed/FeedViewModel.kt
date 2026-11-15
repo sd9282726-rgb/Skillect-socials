@@ -98,9 +98,10 @@ class FeedViewModel(
         viewModelScope.launch {
             val uid = repository.sessionStore.currentSession().userId
             if (uid.isNotBlank()) {
-                repository.getFollowingIds(uid).onSuccess { ids ->
-                    _uiState.update { it.copy(followingIds = ids.toSet()) }
-                }
+                repository.getFollowingIds(uid).fold(
+                    onSuccess = { ids -> _uiState.update { it.copy(followingIds = ids.toSet()) } },
+                    onFailure = { error -> _uiState.update { it.copy(snackbarMessage = error.message) } },
+                )
             }
         }
     }
@@ -110,14 +111,23 @@ class FeedViewModel(
         viewModelScope.launch {
             val uid = repository.sessionStore.currentSession().userId
             if (uid.isBlank()) return@launch
-            val likes = repository.fetchMyLikedPostIds().getOrNull()
-            val saved = repository.fetchSavedPosts().getOrNull()?.map { it.postId }?.toSet()
-            val pollVotes = repository.fetchMyPollVotes().getOrNull()
+            val likesResult = repository.fetchMyLikedPostIds()
+            val savedResult = repository.fetchSavedPosts()
+            val pollVotesResult = repository.fetchMyPollVotes()
+            val likes = likesResult.getOrNull()
+            val saved = savedResult.getOrNull()?.map { it.postId }?.toSet()
+            val pollVotes = pollVotesResult.getOrNull()
+            val interactionError = listOfNotNull(
+                likesResult.exceptionOrNull()?.message,
+                savedResult.exceptionOrNull()?.message,
+                pollVotesResult.exceptionOrNull()?.message,
+            ).firstOrNull()
             _uiState.update { state ->
                 state.copy(
                     likedPostIds = likes ?: state.likedPostIds,
                     savedPostIds = saved ?: state.savedPostIds,
                     votedPollOptions = pollVotes ?: state.votedPollOptions,
+                    snackbarMessage = interactionError ?: state.snackbarMessage,
                 )
             }
         }
