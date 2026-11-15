@@ -18,9 +18,20 @@ alter table public.stories enable row level security;
 grant select on public.stories to anon, authenticated;
 grant insert, delete on public.stories to authenticated;
 
-drop policy if exists "skillect_stories_visible_to_viewers" on public.stories;
-create policy "skillect_stories_visible_to_viewers"
-on public.stories for select to public
+drop policy if exists "skillect_stories_public_read" on public.stories;
+create policy "skillect_stories_public_read"
+on public.stories for select to anon
+using (
+    expires_at > now()
+    and exists (
+        select 1 from public.profiles p
+        where p.id = stories.author_id and p.is_private = false
+    )
+);
+
+drop policy if exists "skillect_stories_authenticated_read" on public.stories;
+create policy "skillect_stories_authenticated_read"
+on public.stories for select to authenticated
 using (
     expires_at > now()
     and (
@@ -35,7 +46,7 @@ using (
               and f.following_id = stories.author_id
         )
     )
-    and ((select auth.uid()) is null or not private.is_blocked_between(author_id))
+    and not private.is_blocked_between(author_id)
 );
 
 drop policy if exists "skillect_stories_owner_insert" on public.stories;
@@ -70,9 +81,23 @@ with check (
     and (storage.foldername(name))[1] = (select auth.uid())::text
 );
 
-drop policy if exists "skillect_stories_media_visible_select" on storage.objects;
-create policy "skillect_stories_media_visible_select"
-on storage.objects for select to public
+drop policy if exists "skillect_stories_media_public_read" on storage.objects;
+create policy "skillect_stories_media_public_read"
+on storage.objects for select to anon
+using (
+    bucket_id = 'stories-media'
+    and exists (
+        select 1 from public.stories s
+        join public.profiles p on p.id = s.author_id
+        where s.media_url = storage.objects.name
+          and s.expires_at > now()
+          and p.is_private = false
+    )
+);
+
+drop policy if exists "skillect_stories_media_authenticated_read" on storage.objects;
+create policy "skillect_stories_media_authenticated_read"
+on storage.objects for select to authenticated
 using (
     bucket_id = 'stories-media'
     and exists (
@@ -91,7 +116,7 @@ using (
                     and f.following_id = s.author_id
               )
           )
-          and ((select auth.uid()) is null or not private.is_blocked_between(s.author_id))
+          and not private.is_blocked_between(s.author_id)
     )
 );
 
