@@ -17,7 +17,7 @@ Deno.serve(async (request: Request) => {
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const sightUser = Deno.env.get("SIGHTENGINE_API_USER");
   const sightSecret = Deno.env.get("SIGHTENGINE_API_SECRET");
-  if (!base || !anon || !service || !sightUser || !sightSecret) return json(503, { error: "Video moderation is not configured" });
+  if (!base || !anon || !service) return json(503, { error: "Video upload service is not configured" });
   const authorization = request.headers.get("Authorization");
   if (!authorization?.startsWith("Bearer ")) return json(401, { error: "Sign in to publish a video" });
   const auth = await fetch(base + "/auth/v1/user", { headers: { apikey: anon, Authorization: authorization } });
@@ -66,7 +66,7 @@ Deno.serve(async (request: Request) => {
     body: JSON.stringify({ type: "media_caption", content: textForScreening }),
   });
   const captionDecision = captionCheck.ok ? await captionCheck.json() : null;
-  if (!captionCheck.ok || captionDecision?.status !== "approved") {
+  if (!captionCheck.ok || !["approved", "pending_review"].includes(captionDecision?.status)) {
     return json(captionCheck.status || 503, { error: captionDecision?.error || "Caption safety screening failed. Nothing was published." });
   }
 
@@ -155,6 +155,10 @@ async function startVideoScreening(
   postId: string,
   assetId: string,
 ) {
+  if (!sightUser || !sightSecret) {
+    await hideForReview(base, service, postId, assetId, "Optional automated video screening is unavailable; moderator review is required");
+    return;
+  }
   const callbackUrl = base + "/functions/v1/media-moderation-callback?token=" + encodeURIComponent(callbackToken);
   const params = new URLSearchParams({
     stream_url: streamUrl,
