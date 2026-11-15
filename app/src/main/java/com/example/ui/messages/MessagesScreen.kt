@@ -120,7 +120,7 @@ fun MessagesInboxScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Private conversations are protected by Row Level Security and age-appropriate safety defaults (16+).",
+                            text = "Your private messages stay between you and the people you choose. Safety settings apply to younger members.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -155,7 +155,7 @@ fun MessagesInboxScreen(
                 if (!AppConfig.isSupabaseConfigured) {
                     item {
                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                            BackendConfigBanner()
+                            Text("Messages are temporarily unavailable. Please try again shortly.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -176,7 +176,7 @@ fun MessagesInboxScreen(
                         EmptyStateCard(
                             icon = Icons.Rounded.ChatBubbleOutline,
                             title = "Real-Time Private Messaging",
-                            subtitle = "Direct conversations use Supabase Realtime and Row Level Security. Users aged 16–17 default to connected-network-only messaging.",
+                            subtitle = "Start a conversation, share ideas, and stay connected. Members aged 16–17 can message within their connected network.",
                         )
                     }
                 } else {
