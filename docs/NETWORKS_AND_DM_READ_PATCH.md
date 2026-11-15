@@ -50,3 +50,7 @@ No two-account live messaging test has been performed. The production database c
 ## Composer media
 
 `ComposerMediaAttachmentPanel.kt` is now connected in `ComposerScreen.kt`; remove, cancel and retry are wired to the upload state and job.
+
+## Realtime reliability follow-up
+
+The Android WebSocket client now retries after unexpected close/failure with bounded backoff and cancels pending retries on explicit disconnect. This is source-reviewed but not yet verified by a connected-device interruption test.
