@@ -21,24 +21,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Poll
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -61,7 +55,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.example.R
 import com.example.core.config.AppConfig
 import com.example.core.designsystem.SkillChip
@@ -448,81 +441,23 @@ fun ComposerScreen(
                     }
                 }
 
-                // Media Previews & Upload Progress / Cancel / Retry
-                if (selectedUris.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        itemsIndexed(selectedUris) { _, uri ->
-                            if (context.contentResolver.getType(uri)?.startsWith("video/") == true) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(96.dp)
-                                        .clip(MaterialTheme.shapes.small)
-                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(Icons.Rounded.VideoLibrary, contentDescription = "Selected video")
-                                }
-                            } else {
-                                AsyncImage(
-                                    model = uri,
-                                    contentDescription = "Selected photo preview",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(96.dp)
-                                        .clip(MaterialTheme.shapes.small),
-                                )
-                            }
-                        }
-                    }
-                }
-
-                when (val state = uploadState) {
-                    is UploadProgressState.Validating -> {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text("Validating & compressing ${state.fileName}...", style = MaterialTheme.typography.bodySmall)
-                    }
-                    is UploadProgressState.Uploading -> {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            LinearProgressIndicator(
-                                progress = { state.progress },
-                                modifier = Modifier.weight(1f),
-                            )
-                            IconButton(onClick = {
-                                uploadJob?.cancel()
-                                selectedUris.clear()
-                                videoStoragePath = null
-                                uploadState = UploadProgressState.Idle
-                            }) {
-                                Icon(Icons.Rounded.Cancel, contentDescription = "Cancel upload")
-                            }
-                        }
-                    }
-                    is UploadProgressState.Failed -> {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = state.message,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.weight(1f),
-                            )
-                            IconButton(onClick = { startUploadForUris(selectedUris.toList()) }) {
-                                Icon(Icons.Rounded.Refresh, contentDescription = "Retry upload")
-                            }
-                        }
-                    }
-                    is UploadProgressState.Success -> {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Video uploaded securely. Ready to publish.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.tertiary,
-                        )
-                    }
-                    UploadProgressState.Idle -> Unit
-                }
+                ComposerMediaAttachmentPanel(
+                    selectedUris = selectedUris.toList(),
+                    uploadState = uploadState,
+                    onRemove = {
+                        uploadJob?.cancel()
+                        selectedUris.clear()
+                        videoStoragePath = null
+                        uploadState = UploadProgressState.Idle
+                    },
+                    onCancelUpload = {
+                        uploadJob?.cancel()
+                        selectedUris.clear()
+                        videoStoragePath = null
+                        uploadState = UploadProgressState.Idle
+                    },
+                    onRetryUpload = { startUploadForUris(selectedUris.toList()) },
+                )
 
                 if (showLinkFields) {
                     Spacer(modifier = Modifier.height(12.dp))
