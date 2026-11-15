@@ -1,5 +1,7 @@
 package com.example.ui.feed
 
+import android.widget.Toast
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -65,6 +67,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -116,6 +119,7 @@ fun FeedScreen(
 ) {
     val isGuest = currentUserId.isBlank()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var activeStory by remember { mutableStateOf<StoryDto?>(null) }
     var quoteTarget by remember { mutableStateOf<PostDto?>(null) }
     var editTarget by remember { mutableStateOf<PostDto?>(null) }
@@ -127,8 +131,10 @@ fun FeedScreen(
         if (uri != null && currentUserId.isNotBlank()) {
             scope.launch {
                 mediaUploadManager.uploadMedia(uri, "stories-media", currentUserId).collect { state ->
-                    if (state is UploadProgressState.Success) {
-                        viewModel.createStory(state.publicUrl, state.mediaType, "")
+                    when (state) {
+                        is UploadProgressState.Success -> viewModel.createStory(state.publicUrl, state.mediaType, "")
+                        is UploadProgressState.Failed -> Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                        else -> Unit
                     }
                 }
             }
