@@ -89,6 +89,7 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.example.AppContainer
+import com.example.R
 import com.example.core.config.ThemeMode
 import com.example.core.designsystem.SkillectBrandBadge
 import com.example.core.designsystem.SkillectSnackbarPill
@@ -185,9 +186,9 @@ fun SkillectApp(
                     .edit().putBoolean("notification_prompt_seen", true).apply()
                 showNotificationPermissionPrompt = false
             },
-            title = { Text("Stay updated on Skillect") },
+            title = { Text(stringResource(R.string.permission_title)) },
             text = {
-                Text("Allow notifications for messages, community activity and important account updates. You can change this anytime in Android settings.")
+                Text(stringResource(R.string.permission_body))
             },
             confirmButton = {
                 TextButton(
@@ -197,7 +198,7 @@ fun SkillectApp(
                         showNotificationPermissionPrompt = false
                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     },
-                ) { Text("Continue") }
+                ) { Text(stringResource(R.string.permission_continue)) }
             },
             dismissButton = {
                 TextButton(
@@ -206,7 +207,7 @@ fun SkillectApp(
                             .edit().putBoolean("notification_prompt_seen", true).apply()
                         showNotificationPermissionPrompt = false
                     },
-                ) { Text("Not now") }
+                ) { Text(stringResource(R.string.permission_not_now)) }
             },
         )
     }
