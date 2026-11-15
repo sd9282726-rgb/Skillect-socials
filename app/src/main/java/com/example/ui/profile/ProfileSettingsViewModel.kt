@@ -509,6 +509,27 @@ class ProfileSettingsViewModel(
         }
     }
 
+    fun resolveAppeal(appeal: ModerationAppealDto, approved: Boolean, note: String = "") {
+        viewModelScope.launch {
+            repository.resolveModerationAppeal(
+                appealId = appeal.id,
+                enforcementUserId = appeal.enforcementUserId,
+                approved = approved,
+                moderatorNote = note,
+            ).fold(
+                onSuccess = {
+                    loadModerationDashboard()
+                    _uiState.update {
+                        it.copy(statusMessage = if (approved) "Appeal approved and account restored." else "Appeal declined.")
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(statusMessage = error.message ?: "Could not update this appeal.") }
+                },
+            )
+        }
+    }
+
     fun resolveReport(reportId: String, status: String) {
         viewModelScope.launch {
             repository.updateReportStatus(reportId, status).fold(
