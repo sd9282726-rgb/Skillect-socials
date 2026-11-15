@@ -769,7 +769,7 @@ fun FeedScreen(
             title = "Report Post",
             onDismiss = { reportTarget = null },
             onSubmit = { reason, details ->
-                viewModel.reportPost(target.id, reason, details)
+                viewModel.reportPost(target.id, reason, details, targetUserId = target.authorId)
                 reportTarget = null
             },
         )
