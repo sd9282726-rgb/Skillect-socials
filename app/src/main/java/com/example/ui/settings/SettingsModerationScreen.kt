@@ -376,7 +376,7 @@ fun SettingsScreen(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Request Account Deletion?") },
             text = {
-                Text("This permanently schedules deletion of your Supabase account, profile, and personal records.")
+                Text("This will permanently delete your account profile and personal information")
             },
             confirmButton = {
                 SkillectPrimaryButton(
