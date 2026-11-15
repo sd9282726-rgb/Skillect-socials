@@ -74,4 +74,16 @@ EXAMEN ÉQUITABLE
 Les signalements sont examinés équitablement les violations graves peuvent entraîner le retrait du contenu des restrictions ou une exclusion et les décisions éligibles peuvent être contestées</string>
     <string name="community_guidelines_title">Règles de la communauté Skillect</string>
     <string name="community_guidelines_understood">Compris</string>
+    <string name="account_restricted_title">Compte temporairement restreint</string>
+    <string name="account_restricted_description">L’accès à votre compte a été limité après un examen de sécurité. Vous pouvez consulter la décision et faire appel ci-dessous.</string>
+    <string name="account_request_review">Demander un examen</string>
+    <string name="account_appeal_explanation">Expliquez pourquoi cette décision devrait être réexaminée et ajoutez le contexte utile.</string>
+    <string name="account_appeal_label">Votre explication</string>
+    <string name="account_submit_appeal">Envoyer l’appel</string>
+    <string name="account_sign_out">Se déconnecter</string>
+    <string name="account_appeal_status">État de l’appel</string>
+    <string name="account_review_update">Mise à jour de l’examen</string>
+    <string name="account_check_updates">Cette page vérifie automatiquement les mises à jour</string>
+    <string name="account_appeal_min_chars">Expliquez votre appel en au moins 20 caractères</string>
+    <string name="account_appeals_unavailable">Aucun appel n’est autorisé pour cette restriction. Contactez l’assistance Skillect si vous pensez qu’il s’agit d’une erreur.</string>
 </resources>
