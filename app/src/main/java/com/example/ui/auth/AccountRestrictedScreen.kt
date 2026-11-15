@@ -46,9 +46,6 @@ fun AccountRestrictedScreen(
         }
     }
 
-    val permanent = uiState.accountEnforcement?.status == "permanent"
-    val title = if (permanent) "Account permanently banned" else "Account temporarily suspended"
-
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
