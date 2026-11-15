@@ -1241,10 +1241,19 @@ class SkillectRepository(
             else Result.failure(IllegalStateException(resp.parseError()))
         }
 
-    suspend fun submitReport(targetType: String, targetId: String, reason: String, details: String): Result<ReportDto> =
-        guardConfigured {
+    suspend fun submitReport(
+        targetType: String,
+        targetId: String,
+        reason: String,
+        details: String,
+        targetUserId: String? = null,
+    ): Result<ReportDto> = guardConfigured {
             val uid = requireUserId("submit safety reports") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("submit safety reports"))
-            val resp = postgrestApi.submitReport(CreateReportRequest(uid, targetType, targetId, reason, details.trim().take(1000)))
+            val cleanReason = reason.trim()
+            if (cleanReason.isBlank()) return@guardConfigured Result.failure(IllegalArgumentException("Choose a report reason."))
+            val resp = postgrestApi.submitReport(
+                CreateReportRequest(uid, targetType, targetId, cleanReason.take(120), details.trim().take(1000), targetUserId),
+            )
             if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
             Result.success(resp.body()!!.first())
         }
