@@ -170,7 +170,7 @@ fun ComposerScreen(
                     Column {
                         Text(
                             text = if (communityId != null) "Create in community" else "Create a post",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
                             text = if (communityId != null) "Share with your community" else "Share ideas, work and moments",
@@ -188,7 +188,7 @@ fun ComposerScreen(
                     modifier = Modifier.testTag("publish_post_button"),
                     onClick = {
                         if (currentUserId.isBlank()) {
-                            errorMessage = "Please sign in with your Supabase credentials to publish."
+                            errorMessage = "Sign in to share your post."
                             return@SkillectPrimaryButton
                         }
                         val validPolls = if (selectedType == "poll") {
@@ -289,47 +289,7 @@ fun ComposerScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(132.dp)
-                    .clip(RoundedCornerShape(20.dp)),
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.img_community_banner),
-                    contentDescription = "Skillect creative workspace",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color.Black.copy(alpha = 0.78f), Color.Black.copy(alpha = 0.08f)),
-                            ),
-                        ),
-                )
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(16.dp),
-                ) {
-                    Text(
-                        "CREATE SOMETHING MEANINGFUL",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
-                        color = Color.White.copy(alpha = 0.9f),
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Your next idea starts here.",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
-                        color = Color.White,
-                    )
-                }
-            }
-
+            Spacer(modifier = Modifier.height(12.dp))
             Spacer(modifier = Modifier.height(18.dp))
             Text("Choose a format", style = MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.height(8.dp))
