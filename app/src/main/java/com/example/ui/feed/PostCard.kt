@@ -87,6 +87,7 @@ fun PostCard(
     isLikePending: Boolean = false,
     isSaved: Boolean,
     isFollowingAuthor: Boolean,
+    isFollowPending: Boolean = false,
     votedOptionId: String?,
     onAuthorClick: (String) -> Unit,
     onLikeClick: () -> Unit,
@@ -223,6 +224,7 @@ fun PostCard(
 
             if (!isOwner) {
                 TextButton(
+                    enabled = !isFollowPending,
                     onClick = onFollowClick,
                     modifier = Modifier.testTag("follow_btn_${post.id}"),
                 ) {
