@@ -178,8 +178,6 @@ class SkillectRepository(
         )
         if (accessToken.isNotBlank() && userId.isNotBlank()) {
             sessionStore.saveSession(session)
-            realtimeClient.connect(userId)
-            syncTelemetryAndPushToken(userId)
         }
         analyticsTracker.logEvent("sign_up", mapOf("country" to countryCode))
         Result.success(session)
@@ -201,8 +199,6 @@ class SkillectRepository(
         )
         sessionStore.saveSession(session)
         if (session.userId.isNotBlank()) {
-            realtimeClient.connect(session.userId)
-            syncTelemetryAndPushToken(session.userId)
         }
         analyticsTracker.logEvent("login")
         Result.success(session)
