@@ -531,10 +531,28 @@ fun ModerationAdminScreen(
                         if (!appeal.reviewerNote.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Reviewer note: ${appeal.reviewerNote}",
+                                text = "Review note  ${appeal.reviewerNote}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
+                        }
+                        if (isAuthorizedMod && appeal.status == "pending") {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                SkillectPrimaryButton(
+                                    text = "Approve and restore",
+                                    onClick = { viewModel.resolveAppeal(appeal, approved = true) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                SkillectOutlinedButton(
+                                    text = "Decline",
+                                    onClick = { viewModel.resolveAppeal(appeal, approved = false) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
                     }
                 }
