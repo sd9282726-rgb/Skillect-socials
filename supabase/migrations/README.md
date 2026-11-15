@@ -6,7 +6,7 @@ Live database inventory updated on 2026-11-15 after applying the avatar and priv
 
 ## Migration history
 
-The live `supabase_migrations.schema_migrations` table contains **66 recorded application migrations**, from `20261106114348` through `20261111055659`.
+The live `supabase_migrations.schema_migrations` table contains **67 recorded application migrations**, from `20261106114348` through `20261111055659`.
 
 | Version | Migration name |
 |---|---|
@@ -93,6 +93,7 @@ Before establishing a reproducible migration baseline, export the actual current
 - `0007_conversation_participants_read_update.sql` was not run as a separate local migration because the live database already has the equivalent column-only `last_read_at` grant recorded as `20261115060635`.
 - `0008_conversation_activity_timestamp.sql` is represented by the live `20261115060739` migration.
 - `0009_story_media_storage.sql` is applied. It creates the missing `stories` table and a **private** `stories-media` bucket. Story reads respect public/private profiles, follows, expiry, and blocks. Media is delivered through short-lived signed URLs.
+- `0011_hold_stories_for_moderation.sql` is applied. New stories default to `pending`; only their owner can view them until approved. This avoids exposing unreviewed media while Sightengine credentials are unavailable.
 - `0010_restrict_story_table_privileges.sql` is applied. It removes broad default grants and leaves only SELECT for guests, and SELECT/INSERT/DELETE for authenticated users.
 
 The old `0001`–`0005` files are an inspection/bootstrap sequence for a different schema baseline. Do not run them against the evolved live project. No user rows were deleted or rewritten by these follow-up migrations.
