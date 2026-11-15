@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -259,10 +260,16 @@ fun ExploreScreen(
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                     )
-                                    val badges = (person.skills + person.interests).distinct().take(2)
+                                    val allBadges = (person.skills + person.interests).distinct()
+                                    val badges = allBadges.take(3)
+                                    val extraBadges = (allBadges.size - badges.size).coerceAtLeast(0)
                                     if (badges.isNotEmpty()) {
                                         Spacer(modifier = Modifier.height(6.dp))
-                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Row(
+                                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
                                             badges.forEach { tag ->
                                                 Surface(
                                                     shape = RoundedCornerShape(50),
@@ -273,6 +280,21 @@ fun ExploreScreen(
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = MaterialTheme.colorScheme.tertiary,
                                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                        maxLines = 1,
+                                                    )
+                                                }
+                                            }
+                                            if (extraBadges > 0) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(50),
+                                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                                ) {
+                                                    Text(
+                                                        text = "+$extraBadges more",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                        maxLines = 1,
                                                     )
                                                 }
                                             }
