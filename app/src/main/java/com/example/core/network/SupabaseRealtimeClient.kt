@@ -36,48 +36,74 @@ class SupabaseRealtimeClient(
 
     private var webSocket: WebSocket? = null
     private var heartbeatJob: Job? = null
+    private var reconnectJob: Job? = null
+    private var activeUserId: String? = null
+    @Volatile private var connectionGeneration: Int = 0
+    private var reconnectAttempt: Int = 0
     private val refCounter = AtomicInteger(1)
 
     fun connect(userId: String) {
         if (!AppConfig.isSupabaseConfigured || userId.isBlank()) return
         disconnect()
+        activeUserId = userId
+        openConnection(userId, connectionGeneration)
+    }
 
+    private fun openConnection(userId: String, generation: Int) {
         scope.launch {
+            if (generation != connectionGeneration || activeUserId != userId) return@launch
             val session = sessionStore.currentSession()
             val wsBase = AppConfig.supabaseUrl
                 .replace("https://", "wss://")
                 .replace("http://", "ws://")
-            val url = "$wsBase/realtime/v1/websocket?apikey=${AppConfig.supabaseAnonKey}&vsn=1.0.0"
-
+            val url = "\$wsBase/realtime/v1/websocket?apikey=\${AppConfig.supabaseAnonKey}&vsn=1.0.0"
             val request = Request.Builder().url(url).build()
             webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(ws: WebSocket, response: Response) {
+                    if (generation != connectionGeneration || activeUserId != userId) {
+                        ws.close(1000, "Connection superseded")
+                        return
+                    }
+                    reconnectAttempt = 0
                     val token = session.accessToken.ifBlank {
                         AppConfig.supabaseAnonKey.takeIf { !it.startsWith("sb_publishable_") }.orEmpty()
                     }
                     joinChannel(ws, "realtime:public:messages", "messages", token)
-                    joinChannel(
-                        ws,
-                        "realtime:public:notifications",
-                        "notifications",
-                        token,
-                        filter = "user_id=eq.$userId",
-                    )
+                    joinChannel(ws, "realtime:public:notifications", "notifications", token, filter = "user_id=eq.\$userId")
                     joinChannel(ws, "realtime:public:posts", "posts", token)
                     startHeartbeat(ws)
                 }
 
                 override fun onMessage(ws: WebSocket, text: String) {
-                    handleIncomingFrame(text)
+                    if (generation == connectionGeneration) handleIncomingFrame(text)
                 }
 
                 override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
-                    Log.w("SkillectRealtime", "WebSocket closed: ${t.message}")
+                    Log.w("SkillectRealtime", "WebSocket closed: " + t.message)
+                    scheduleReconnect(userId, generation)
+                }
+
+                override fun onClosed(ws: WebSocket, code: Int, reason: String) {
+                    scheduleReconnect(userId, generation)
                 }
             })
         }
     }
 
+    private fun scheduleReconnect(userId: String, generation: Int) {
+        if (generation != connectionGeneration || activeUserId != userId) return
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+        if (reconnectJob?.isActive == true) return
+        val delayMs = (1_000L shl reconnectAttempt.coerceAtMost(5)).coerceAtMost(30_000L)
+        reconnectAttempt = (reconnectAttempt + 1).coerceAtMost(5)
+        reconnectJob = scope.launch {
+            delay(delayMs)
+            if (generation == connectionGeneration && activeUserId == userId) {
+                openConnection(userId, generation)
+            }
+        }
+    }
     private fun joinChannel(
         ws: WebSocket,
         topic: String,
@@ -166,6 +192,11 @@ class SupabaseRealtimeClient(
     }
 
     fun disconnect() {
+        connectionGeneration += 1
+        activeUserId = null
+        reconnectAttempt = 0
+        reconnectJob?.cancel()
+        reconnectJob = null
         heartbeatJob?.cancel()
         heartbeatJob = null
         webSocket?.close(1000, "Client disconnected")
