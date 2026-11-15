@@ -416,7 +416,7 @@ fun ProfileScreen(
                         StatCounter(uiState.followingCount ?: profile?.followingCount ?: 0, "Connected")
                     }
 
-                    if (profile?.let { it.skills.isNotEmpty() || it.interests.isNotEmpty() } == true) {
+                    if (profile != null && (profile.skills.isNotEmpty() || profile.interests.isNotEmpty())) {
                         Spacer(modifier = Modifier.height(12.dp))
                         val allProfileSkills = (profile.skills + profile.interests).distinct()
                         val visibleInterests = allProfileSkills.take(3)
