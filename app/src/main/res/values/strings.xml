@@ -86,4 +86,20 @@ Reports are reviewed fairly serious violations may lead to content removal accou
     <string name="account_check_updates">This page checks for updates automatically</string>
     <string name="account_appeal_min_chars">Explain your appeal in at least 20 characters</string>
     <string name="account_appeals_unavailable">Appeals are not available for this restriction. Contact Skillect support if you believe this is an error.</string>
+    <string name="settings_notifications_title">Push and in-app notifications</string>
+    <string name="settings_notifications_enable">Enable notifications on this device</string>
+    <string name="settings_notifications_likes">Likes and reposts</string>
+    <string name="settings_notifications_comments">Comments and replies</string>
+    <string name="settings_notifications_messages">Direct messages</string>
+    <string name="settings_notifications_communities">Communities and projects</string>
+    <string name="notifications_screen_title">Notifications</string>
+    <string name="notifications_mark_all_read">Mark all as read</string>
+    <string name="notifications_guest_title">Sign in to see your notifications</string>
+    <string name="notifications_guest_description">Get updates about connections replies messages and community activity</string>
+    <string name="notifications_empty_title">You are all caught up</string>
+    <string name="notifications_empty_description">New likes comments messages and community updates will appear here</string>
+    <string name="permission_title">Stay updated on Skillect</string>
+    <string name="permission_body">Allow notifications for messages community activity and important account updates You can change this anytime in Android settings</string>
+    <string name="permission_continue">Continue</string>
+    <string name="permission_not_now">Not now</string>
 </resources>
