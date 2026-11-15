@@ -83,6 +83,8 @@ import com.example.core.designsystem.SkillectSnackbarPill
 import com.example.core.designsystem.SkillectTheme
 import com.example.ui.auth.AuthMode
 import com.example.ui.auth.AuthScreen
+import com.example.ui.auth.AccountRestrictedScreen
+import com.example.ui.auth.PasswordResetScreen
 import com.example.ui.auth.AuthViewModel
 import com.example.ui.auth.OnboardingScreen
 import com.example.ui.communities.CommunitiesScreen
@@ -319,6 +321,22 @@ fun SkillectApp(
                     )
                 }
             }
+            return@SkillectTheme
+        }
+
+        if (authState.isAuthenticated && authState.accountEnforcement != null) {
+            AccountRestrictedScreen(
+                uiState = authState,
+                viewModel = authVm,
+            )
+            return@SkillectTheme
+        }
+
+        if (authState.mode == AuthMode.RESET_PASSWORD) {
+            PasswordResetScreen(
+                uiState = authState,
+                viewModel = authVm,
+            )
             return@SkillectTheme
         }
 
