@@ -28,6 +28,9 @@ import com.example.data.repository.SkillectRepository
 import com.example.ui.auth.AuthDeepLinkParser
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.runBlocking
+import org.junit.rules.TestRule
+import org.junit.runner.Description
+import org.junit.runners.model.Statement
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
@@ -35,7 +38,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -65,18 +67,23 @@ private object TestSessionTokenCipher : SessionTokenCipher {
 @Config(sdk = [35])
 class SkillectUnitAndRobolectricTest {
 
-    @get:Rule
-    val composeRule = createAndroidComposeRule<MainActivity>()
-
-    @Before
-    fun resetPersistedSessionBetweenTests() {
-        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        runBlocking {
-            val store = SessionStore(context, TestSessionTokenCipher)
-            store.clearSession()
-            store.clearCachedProfile()
+    @get:Rule(order = 0)
+    val resetSessionRule = TestRule { base, _ ->
+        object : Statement() {
+            override fun evaluate() {
+                val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+                runBlocking {
+                    val store = SessionStore(context, TestSessionTokenCipher)
+                    store.clearSession()
+                    store.clearCachedProfile()
+                }
+                base.evaluate()
+            }
         }
     }
+
+    @get:Rule(order = 1)
+    val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
     fun `age eligibility enforces 16 plus requirement globally`() {
