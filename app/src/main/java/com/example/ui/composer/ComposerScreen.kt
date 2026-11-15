@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Poll
+import androidx.compose.material.icons.rounded.VideoLibrary
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
