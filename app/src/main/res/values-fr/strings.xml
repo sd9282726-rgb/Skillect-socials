@@ -86,4 +86,20 @@ Les signalements sont examinés équitablement les violations graves peuvent ent
     <string name="account_check_updates">Cette page vérifie automatiquement les mises à jour</string>
     <string name="account_appeal_min_chars">Expliquez votre appel en au moins 20 caractères</string>
     <string name="account_appeals_unavailable">Aucun appel n’est autorisé pour cette restriction. Contactez l’assistance Skillect si vous pensez qu’il s’agit d’une erreur.</string>
+    <string name="settings_notifications_title">Notifications push et dans l’application</string>
+    <string name="settings_notifications_enable">Activer les notifications sur cet appareil</string>
+    <string name="settings_notifications_likes">Mentions J’aime et republications</string>
+    <string name="settings_notifications_comments">Commentaires et réponses</string>
+    <string name="settings_notifications_messages">Messages privés</string>
+    <string name="settings_notifications_communities">Communautés et projets</string>
+    <string name="notifications_screen_title">Notifications</string>
+    <string name="notifications_mark_all_read">Tout marquer comme lu</string>
+    <string name="notifications_guest_title">Connectez-vous pour voir vos notifications</string>
+    <string name="notifications_guest_description">Recevez des nouvelles sur vos connexions réponses messages et activités de la communauté</string>
+    <string name="notifications_empty_title">Vous êtes à jour</string>
+    <string name="notifications_empty_description">Les nouveaux J’aime commentaires messages et actualités de la communauté apparaîtront ici</string>
+    <string name="permission_title">Restez informé avec Skillect</string>
+    <string name="permission_body">Autorisez les notifications pour les messages l’activité de la communauté et les alertes importantes du compte Vous pouvez modifier ce choix dans les paramètres Android</string>
+    <string name="permission_continue">Continuer</string>
+    <string name="permission_not_now">Pas maintenant</string>
 </resources>
