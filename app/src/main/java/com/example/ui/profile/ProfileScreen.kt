@@ -416,10 +416,11 @@ fun ProfileScreen(
                         StatCounter(uiState.followingCount ?: profile?.followingCount ?: 0, "Connected")
                     }
 
-                    if (profile?.interests?.isNotEmpty() == true) {
+                    if (profile?.let { it.skills.isNotEmpty() || it.interests.isNotEmpty() } == true) {
                         Spacer(modifier = Modifier.height(12.dp))
-                        val visibleInterests = profile.interests.distinct().take(3)
-                        val extraInterests = (profile.interests.distinct().size - visibleInterests.size).coerceAtLeast(0)
+                        val allProfileSkills = (profile.skills + profile.interests).distinct()
+                        val visibleInterests = allProfileSkills.take(3)
+                        val extraInterests = (allProfileSkills.size - visibleInterests.size).coerceAtLeast(0)
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
