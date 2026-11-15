@@ -64,6 +64,7 @@ import com.example.core.designsystem.SkillectGradientIconTile
 import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.ui.feed.ReportContentDialog
+import java.time.Instant
 
 @Composable
 fun MessagesInboxScreen(
@@ -175,13 +176,20 @@ fun MessagesInboxScreen(
                         EmptyStateCard(
                             icon = Icons.Rounded.ChatBubbleOutline,
                             title = "Real-Time Private Messaging",
-                            subtitle = "Direct conversations use Supabase Realtime and Row Level Security. Users aged 16–17 default to following-only messaging.",
+                            subtitle = "Direct conversations use Supabase Realtime and Row Level Security. Users aged 16–17 default to connected-network-only messaging.",
                         )
                     }
                 } else {
                     items(uiState.conversations, key = { it.id }) { conv ->
                         val peer = conv.participants.firstOrNull { it.userId != currentUserId }?.profile
                         val peerName = peer?.displayName ?: "Direct Conversation"
+                        val myParticipant = conv.participants.firstOrNull { it.userId == currentUserId }
+                        val latestActivity = runCatching { Instant.parse(conv.updatedAt) }.getOrNull()
+                        val readBaseline = runCatching {
+                            Instant.parse(myParticipant?.lastReadAt ?: conv.createdAt)
+                        }.getOrNull()
+                        val hasUnreadMessages = latestActivity != null &&
+                            readBaseline != null && latestActivity.isAfter(readBaseline)
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -200,7 +208,23 @@ fun MessagesInboxScreen(
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(peerName, style = MaterialTheme.typography.titleMedium)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(peerName, style = MaterialTheme.typography.titleMedium)
+                                        if (hasUnreadMessages) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Surface(
+                                                color = MaterialTheme.colorScheme.primaryContainer,
+                                                shape = RoundedCornerShape(50),
+                                            ) {
+                                                Text(
+                                                    text = "New",
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                )
+                                            }
+                                        }
+                                    }
                                     Text(
                                         text = "@${peer?.username ?: "member"} · ${AppConfig.formatRelativeTimestamp(conv.updatedAt)}",
                                         style = MaterialTheme.typography.bodySmall,

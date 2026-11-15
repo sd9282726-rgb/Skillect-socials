@@ -286,7 +286,7 @@ fun FeedScreen(
                 },
             ) {
                 listOf(
-                    FeedTab.FOLLOWING to "Following",
+                    FeedTab.FOLLOWING to "Network",
                     FeedTab.RECOMMENDED to "Recommended",
                     FeedTab.DISCOVER to "Discover",
                 ).forEach { (tab, label) ->
@@ -528,17 +528,17 @@ fun FeedScreen(
                         if (isGuest && uiState.selectedTab == FeedTab.FOLLOWING) {
                             EmptyStateCard(
                                 icon = Icons.Rounded.DynamicFeed,
-                                title = "Sign in for your Following feed",
-                                subtitle = "Follow creators, professionals, and communities to build a personalized stream.",
+                                title = "Sign in for your Network feed",
+                                subtitle = "Connect with creators, professionals, and communities to build a personalized stream.",
                                 actionLabel = "Sign In",
-                                onAction = { onRequireAuth(false, "Sign in to follow creators and view your Following feed.") },
+                                onAction = { onRequireAuth(false, "Sign in to connect with creators and view your Network feed.") },
                             )
                         } else {
                             EmptyStateCard(
                                 icon = Icons.Rounded.DynamicFeed,
                                 title = if (uiState.isBackendConfigured) "Your feed is ready" else "Ready for live global posts",
                                 subtitle = if (uiState.isBackendConfigured) {
-                                    "Follow creators, join skill communities, or publish your first post or project update."
+                                    "Connect with creators, join skill communities, or publish your first post or project update."
                                 } else {
                                     "Configure SUPABASE_URL and SUPABASE_ANON_KEY in AI Studio Secrets to stream live posts, stories, and discussions."
                                 },

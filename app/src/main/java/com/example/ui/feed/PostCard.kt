@@ -229,7 +229,7 @@ fun PostCard(
                     modifier = Modifier.testTag("follow_btn_${post.id}"),
                 ) {
                     Text(
-                        text = if (isFollowingAuthor) "Following" else "Follow",
+                        text = if (isFollowingAuthor) "Connected" else "Connect",
                         style = MaterialTheme.typography.labelLarge,
                         color = if (isFollowingAuthor) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
                     )

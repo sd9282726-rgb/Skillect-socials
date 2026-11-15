@@ -73,24 +73,57 @@ class MessagesNotificationsViewModel(
         _uiState.update { it.copy(activeConversationId = conversationId, statusMessage = null, isSendingMessage = false) }
         if (!AppConfig.isSupabaseConfigured) return
         viewModelScope.launch {
-            // Optimistic local unread clear. Persist when repo API + migration 0007 are on remote.
-            val now = java.time.Instant.now().toString()
             val uid = repository.sessionStore.currentSession().userId
+            val optimisticReadAt = java.time.Instant.now().toString()
             _uiState.update { state ->
                 state.copy(
                     conversations = state.conversations.map { conv ->
                         if (conv.id != conversationId) conv
                         else conv.copy(
                             participants = conv.participants.map { part ->
-                                if (part.userId == uid) part.copy(lastReadAt = now) else part
+                                if (part.userId == uid) part.copy(lastReadAt = optimisticReadAt) else part
                             },
                         )
                     },
                 )
             }
+
+            repository.markConversationRead(conversationId).fold(
+                onSuccess = { persistedReadAt ->
+                    _uiState.update { state ->
+                        state.copy(
+                            conversations = state.conversations.map { conv ->
+                                if (conv.id != conversationId) conv
+                                else conv.copy(
+                                    participants = conv.participants.map { part ->
+                                        if (part.userId == uid) part.copy(lastReadAt = persistedReadAt) else part
+                                    },
+                                )
+                            },
+                        )
+                    }
+                },
+                onFailure = {
+                    refreshInbox()
+                    _uiState.update { state ->
+                        if (state.activeConversationId == conversationId) {
+                            state.copy(statusMessage = "Read status could not be synced. The unread indicator may return after refresh.")
+                        } else state
+                    }
+                },
+            )
+
             repository.fetchMessages(conversationId).fold(
-                onSuccess = { list -> _uiState.update { it.copy(messages = list) } },
-                onFailure = { err -> _uiState.update { it.copy(errorMessage = err.message) } },
+                onSuccess = { list ->
+                    _uiState.update { state ->
+                        if (state.activeConversationId == conversationId) state.copy(messages = list) else state
+                    }
+                },
+                onFailure = { err ->
+                    _uiState.update { state ->
+                        if (state.activeConversationId == conversationId) state.copy(errorMessage = err.message) else state
+                    }
+                },
             )
         }
     }

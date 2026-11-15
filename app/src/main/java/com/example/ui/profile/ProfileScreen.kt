@@ -343,7 +343,7 @@ fun ProfileScreen(
                                     modifier = Modifier.testTag("profile_message_button"),
                                 )
                                 SkillectPrimaryButton(
-                                    text = if (uiState.isFollowing) "Following" else "Follow",
+                                    text = if (uiState.isFollowing) "Connected" else "Connect",
                                     enabled = !uiState.isFollowActionPending && !uiState.isLoading,
                                     onClick = {
                                         if (effectiveCurrentUserId.isBlank()) {
@@ -411,7 +411,7 @@ fun ProfileScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                         StatCounter(uiState.postsCount ?: maxOf(profile?.postsCount ?: 0, uiState.posts.size), "Posts")
                         StatCounter(uiState.followersCount ?: profile?.followersCount ?: 0, "Networks")
-                        StatCounter(uiState.followingCount ?: profile?.followingCount ?: 0, "Following")
+                        StatCounter(uiState.followingCount ?: profile?.followingCount ?: 0, "Connected")
                     }
 
                     if (profile?.interests?.isNotEmpty() == true) {

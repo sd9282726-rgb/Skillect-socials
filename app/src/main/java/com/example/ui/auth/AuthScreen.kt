@@ -1029,7 +1029,7 @@ fun OnboardingScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Discover creators and communities related to your interests. Following and joining are optional.",
+                                text = "Discover creators and communities related to your interests. Connecting and joining are optional.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1061,7 +1061,7 @@ fun OnboardingScreen(
                                                 Text("@${profile.username}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                 if (profile.bio.isNotBlank()) Text(profile.bio, style = MaterialTheme.typography.bodySmall, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             }
-                                            TextButton(onClick = { viewModel.followSuggestedCreator(profile.id) }) { Text("Follow") }
+                                            TextButton(onClick = { viewModel.followSuggestedCreator(profile.id) }) { Text("Connect") }
                                         }
                                     }
                                 }

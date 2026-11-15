@@ -1,11 +1,18 @@
--- Allow a participant to update only their own last_read_at for unread indicators.
+-- Allow a participant to update only their own last_read_at cursor.
+-- Column privileges are deliberately restricted: the mobile client must not be able
+-- to rewrite conversation_id or user_id through this endpoint.
 -- DO NOT apply to production without explicit approval.
--- Android calls: PATCH /conversation_participants?conversation_id=eq.&user_id=eq. { last_read_at }
+
+REVOKE UPDATE ON TABLE public.conversation_participants FROM PUBLIC, anon, authenticated;
+REVOKE UPDATE (conversation_id, user_id, last_read_at)
+  ON TABLE public.conversation_participants FROM PUBLIC, anon, authenticated;
+GRANT UPDATE (last_read_at)
+  ON TABLE public.conversation_participants TO authenticated;
 
 DROP POLICY IF EXISTS "conversation_participants_self_update_read" ON public.conversation_participants;
 CREATE POLICY "conversation_participants_self_update_read"
   ON public.conversation_participants
   FOR UPDATE
   TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
+  USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
