@@ -47,15 +47,21 @@ import com.example.core.network.StoryDto
 import com.example.core.network.SupabaseAuthApi
 import com.example.core.network.SupabasePostgrestApi
 import com.example.core.network.SupabaseRealtimeClient
+import com.example.core.network.SupabaseStorageApi
 import com.example.core.network.UpdatePasswordRequest
 import com.example.core.notifications.AnalyticsTracker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Response
 import java.io.IOException
 
@@ -75,6 +81,7 @@ class SkillectRepository(
     private val postgrestApi: SupabasePostgrestApi,
     val realtimeClient: SupabaseRealtimeClient,
     private val analyticsTracker: AnalyticsTracker,
+    private val storageApi: SupabaseStorageApi? = null,
     private val isConfiguredCheck: () -> Boolean = { AppConfig.isSupabaseConfigured },
 ) {
     val sessionFlow: Flow<PersistedSession> = sessionStore.sessionFlow
@@ -784,7 +791,38 @@ class SkillectRepository(
         val resp = postgrestApi.getActiveStories()
         if (resp.code() == 404) return@guardConfigured Result.success(emptyList())
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        Result.success(resp.body().orEmpty())
+        val stories = resp.body().orEmpty()
+        val resolved = coroutineScope {
+            stories.map { story -> async(Dispatchers.IO) { createSignedStory(story) } }
+                .awaitAll()
+                .filterNotNull()
+        }
+        Result.success(resolved)
+    }
+
+    private suspend fun createSignedStory(story: StoryDto): StoryDto? {
+        val api = storageApi ?: return null
+        val path = story.mediaUrl.trim()
+        if (path.isBlank()) return null
+        if (path.startsWith("http", ignoreCase = true)) return story
+        return try {
+            val body = JSONObject().put("expiresIn", 24 * 60 * 60)
+                .toString().toRequestBody("application/json".toMediaType())
+            val response = api.createSignedUrl("stories-media", path, body)
+            if (!response.isSuccessful) return null
+            val signedPath = JSONObject(response.body()?.string().orEmpty())
+                .optString("signedURL")
+                .takeIf { it.isNotBlank() }
+                ?: return null
+            val signedUrl = if (signedPath.startsWith("http", ignoreCase = true)) {
+                signedPath
+            } else {
+                AppConfig.supabaseUrl.trimEnd('/') + if (signedPath.startsWith("/")) signedPath else "/$signedPath"
+            }
+            story.copy(mediaUrl = signedUrl)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     suspend fun createStory(mediaUrl: String, mediaType: String, caption: String): Result<StoryDto> = guardConfigured {

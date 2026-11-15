@@ -427,6 +427,13 @@ interface SupabasePostgrestApi {
 }
 
 interface SupabaseStorageApi {
+    @POST("storage/v1/object/sign/{bucket}/{path}")
+    suspend fun createSignedUrl(
+        @Path("bucket") bucket: String,
+        @Path("path", encoded = true) path: String,
+        @Body body: RequestBody,
+    ): Response<ResponseBody>
+
     @POST("storage/v1/object/{bucket}/{path}")
     suspend fun uploadObject(
         @Path("bucket") bucket: String,

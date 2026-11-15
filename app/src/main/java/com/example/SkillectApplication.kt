@@ -29,6 +29,7 @@ class AppContainer(application: Application) {
         sessionStore = sessionStore,
         authApi = authApi,
         postgrestApi = postgrestApi,
+        storageApi = storageApi,
         realtimeClient = realtimeClient,
         analyticsTracker = analyticsTracker,
     )

@@ -118,8 +118,8 @@ class MediaUploadManager(
 
         if (response.isSuccessful) {
             if (isStoryUpload) {
-                val publicUrl = "${AppConfig.supabaseUrl.trimEnd('/')}/storage/v1/object/public/stories-media/$objectPath"
-                send(UploadProgressState.Success(publicUrl, if (isVideo) "video" else "image", objectPath))
+                // Save the private object path; the repository creates a viewer-authorized signed URL.
+                send(UploadProgressState.Success(objectPath, if (isVideo) "video" else "image", objectPath))
             } else {
                 // media-quarantine is private; submit-video-post validates it and moves approved media into post-media.
                 send(UploadProgressState.Success("", "video", objectPath))
