@@ -1,32 +1,7 @@
-# Wire ComposerMediaAttachmentPanel into ComposerScreen
+# ComposerMediaAttachmentPanel wiring
 
-The panel is already on the branch (`ComposerMediaAttachmentPanel.kt`).
+**Status: wired** in `app/src/main/java/com/example/ui/composer/ComposerScreen.kt`.
 
-In `ComposerScreen.kt`, replace the block starting at:
-`// Media Previews & Upload Progress / Cancel / Retry`
-through the end of the `when (val state = uploadState) { ... }` block
-(just before `if (showLinkFields)`)
+The composer now renders `ComposerMediaAttachmentPanel` with the selected URIs and upload state. Remove and cancel both stop the active upload and clear the selected media and storage path. Retry restarts the upload for the selected URI(s).
 
-with:
-
-```kotlin
-                ComposerMediaAttachmentPanel(
-                    selectedUris = selectedUris.toList(),
-                    uploadState = uploadState,
-                    onRemove = {
-                        uploadJob?.cancel()
-                        selectedUris.clear()
-                        videoStoragePath = null
-                        uploadState = UploadProgressState.Idle
-                    },
-                    onCancelUpload = {
-                        uploadJob?.cancel()
-                        selectedUris.clear()
-                        videoStoragePath = null
-                        uploadState = UploadProgressState.Idle
-                    },
-                    onRetryUpload = { startUploadForUris(selectedUris.toList()) },
-                )
-```
-
-Until this is wired, the new panel compiles as an unused file; the old inline media UI still runs.
+The old inline preview/progress UI has been removed. The upload and publish flow remains in `ComposerScreen`.
