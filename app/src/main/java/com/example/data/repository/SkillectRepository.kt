@@ -67,6 +67,8 @@ class AuthenticationRequiredException(action: String = "perform this action") :
 
 enum class FeedTab { FOLLOWING, RECOMMENDED, DISCOVER }
 
+data class FollowToggleResult(val wasFollowing: Boolean, val isFollowing: Boolean)
+
 class SkillectRepository(
     val sessionStore: SessionStore,
     private val authApi: SupabaseAuthApi,
@@ -834,16 +836,23 @@ class SkillectRepository(
         Result.success(resp.body().orEmpty().map { it.followingId })
     }
 
-    suspend fun toggleFollow(targetUserId: String, currentlyFollowing: Boolean): Result<Boolean> = guardConfigured {
+    suspend fun toggleFollow(targetUserId: String): Result<FollowToggleResult> = guardConfigured {
         val uid = requireUserId("follow creators") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("follow creators"))
         if (uid == targetUserId) return@guardConfigured Result.failure(IllegalArgumentException("Cannot follow yourself"))
-        val resp = if (currentlyFollowing) {
+        val current = postgrestApi.getFollows(
+            followerIdEq = "eq.$uid",
+            followingIdEq = "eq.$targetUserId",
+            limit = 1,
+        )
+        if (!current.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(current.parseError()))
+        val wasFollowing = !current.body().isNullOrEmpty()
+        val response = if (wasFollowing) {
             postgrestApi.unfollowUser("eq.$uid", "eq.$targetUserId")
         } else {
             postgrestApi.followUser(FollowRowDto(uid, targetUserId))
         }
-        if (resp.isSuccessful) Result.success(!currentlyFollowing)
-        else Result.failure(IllegalStateException(resp.parseError()))
+        if (response.isSuccessful) Result.success(FollowToggleResult(wasFollowing, !wasFollowing))
+        else Result.failure(IllegalStateException(response.parseError()))
     }
 
     suspend fun blockUser(targetUserId: String): Result<Unit> = guardConfigured {
