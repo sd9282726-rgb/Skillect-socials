@@ -64,12 +64,14 @@ class MediaUploadManager(
             send(UploadProgressState.Failed("Choose a supported image or video file."))
             return@channelFlow
         }
-        if (bucket != "media-quarantine" || !isVideo) {
-            send(UploadProgressState.Failed("Only video uploads to the private moderation quarantine are supported here."))
+        val isStoryUpload = bucket == "stories-media"
+        val isQuarantineUpload = bucket == "media-quarantine"
+        if (!isStoryUpload && (!isQuarantineUpload || !isVideo)) {
+            send(UploadProgressState.Failed("Choose a supported image or video for your story."))
             return@channelFlow
         }
         val supportedVideoTypes = setOf("video/mp4", "video/webm", "video/quicktime")
-        if (mimeType.lowercase() !in supportedVideoTypes) {
+        if (isVideo && mimeType.lowercase() !in supportedVideoTypes) {
             send(UploadProgressState.Failed("Use an MP4, WebM, or MOV video."))
             return@channelFlow
         }
@@ -115,9 +117,13 @@ class MediaUploadManager(
         )
 
         if (response.isSuccessful) {
-            // media-quarantine is private; the upload is only a staging object.
-            // submit-video-post validates it and moves approved media into post-media.
-            send(UploadProgressState.Success("", "video", objectPath))
+            if (isStoryUpload) {
+                val publicUrl = "${AppConfig.supabaseUrl.trimEnd('/')}/storage/v1/object/public/stories-media/$objectPath"
+                send(UploadProgressState.Success(publicUrl, if (isVideo) "video" else "image", objectPath))
+            } else {
+                // media-quarantine is private; submit-video-post validates it and moves approved media into post-media.
+                send(UploadProgressState.Success("", "video", objectPath))
+            }
         } else {
             val detail = response.errorBody()?.string()?.take(220).orEmpty()
             val suffix = detail.takeIf { it.isNotBlank() }?.let { ": $it" }.orEmpty()
