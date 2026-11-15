@@ -86,4 +86,20 @@ Skillect सीखने बनाने विचार साझा करन�
     <string name="account_check_updates">यह पेज अपने आप अपडेट जांचता है</string>
     <string name="account_appeal_min_chars">कम से कम 20 अक्षरों में अपनी अपील समझाएं</string>
     <string name="account_appeals_unavailable">इस प्रतिबंध के लिए अपील उपलब्ध नहीं है यदि आपको लगता है कि यह गलती है तो Skillect सहायता से संपर्क करें</string>
+    <string name="settings_notifications_title">पुश और ऐप के अंदर की सूचनाएं</string>
+    <string name="settings_notifications_enable">इस डिवाइस पर सूचनाएं चालू करें</string>
+    <string name="settings_notifications_likes">पसंद और रीपोस्ट</string>
+    <string name="settings_notifications_comments">टिप्पणियां और जवाब</string>
+    <string name="settings_notifications_messages">सीधे संदेश</string>
+    <string name="settings_notifications_communities">समुदाय और प्रोजेक्ट</string>
+    <string name="notifications_screen_title">सूचनाएं</string>
+    <string name="notifications_mark_all_read">सभी को पढ़ा हुआ मानें</string>
+    <string name="notifications_guest_title">अपनी सूचनाएं देखने के लिए साइन इन करें</string>
+    <string name="notifications_guest_description">कनेक्शन जवाब संदेश और समुदाय की गतिविधियों के अपडेट पाएं</string>
+    <string name="notifications_empty_title">आप सभी अपडेट देख चुके हैं</string>
+    <string name="notifications_empty_description">नई पसंद टिप्पणियां संदेश और समुदाय अपडेट यहां दिखाई देंगे</string>
+    <string name="permission_title">Skillect पर अपडेट रहें</string>
+    <string name="permission_body">संदेश समुदाय की गतिविधि और जरूरी खाता अपडेट के लिए सूचनाओं की अनुमति दें आप इसे Android सेटिंग्स में कभी भी बदल सकते हैं</string>
+    <string name="permission_continue">जारी रखें</string>
+    <string name="permission_not_now">अभी नहीं</string>
 </resources>
