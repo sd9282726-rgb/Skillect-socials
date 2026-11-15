@@ -146,6 +146,27 @@ class MessagesNotificationsViewModel(
                             isSendingMessage = false,
                         )
                     }
+                    // Advance the read cursor after our own send so it is not shown as an unread message.
+                    val uid = repository.sessionStore.currentSession().userId
+                    repository.markConversationRead(conversationId).fold(
+                        onSuccess = { persistedReadAt ->
+                            _uiState.update { state ->
+                                state.copy(
+                                    conversations = state.conversations.map { conv ->
+                                        if (conv.id != conversationId) conv
+                                        else conv.copy(
+                                            participants = conv.participants.map { part ->
+                                                if (part.userId == uid) part.copy(lastReadAt = persistedReadAt) else part
+                                            },
+                                        )
+                                    },
+                                )
+                            }
+                        },
+                        onFailure = { error ->
+                            _uiState.update { it.copy(statusMessage = error.message) }
+                        },
+                    )
                     onSent(true)
                     refreshInbox()
                 },
