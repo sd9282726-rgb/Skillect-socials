@@ -20,8 +20,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.example.R
-import androidx.compose.ui.res.stringResource
-import com.example.R
 import com.example.core.designsystem.SkillectBrandBadge
 import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.core.designsystem.SkillectOutlinedButton
