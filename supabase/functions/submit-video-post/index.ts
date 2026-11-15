@@ -87,9 +87,9 @@ Deno.serve(async (request: Request) => {
     headers: { ...adminHeaders(service), "Content-Type": "application/json", Prefer: "return=representation" },
     body: JSON.stringify({
       owner_id: userId, community_id: communityId || null, storage_path: "media-quarantine/" + storagePath, public_url: postMediaValue,
-      status: "pending", provider: "sightengine-video-nudity-2.1", media_type: "video",
+      status: "quarantined", provider: "manual-review", media_type: "video",
       mime_type: mimeByExt[extension], post_content: caption, post_id: null,
-      callback_token: callbackToken, reviewed_at: null, decision_reason: "Waiting for automated video screening",
+      callback_token: null, reviewed_at: null, decision_reason: "Video awaiting moderator review",
     }),
   });
   const assetRows = assetResponse.ok ? await assetResponse.json() : [];
@@ -120,28 +120,11 @@ Deno.serve(async (request: Request) => {
     return json(503, { error: "Video post remains hidden because its moderation record could not be linked" });
   }
 
-  const signedResponse = await fetch(base + "/storage/v1/object/sign/media-quarantine/" + encoded, {
-    method: "POST",
-    headers: { ...adminHeaders(service), "Content-Type": "application/json" },
-    body: JSON.stringify({ expiresIn: 3600 }),
-  });
-  const signed = signedResponse.ok ? await signedResponse.json() : null;
-  const signedPath = signed?.signedURL || signed?.signedUrl;
-  if (!signedPath) {
-    await hideForReview(base, service, postRows[0].id, assetRows[0].id, "Could not create a private URL for automated video screening");
-    return json(202, { status: "published_pending_review", post_id: postRows[0].id, message: "Post published; moderation could not start, so it has been hidden for safety review." });
-  }
-  const streamUrl = signedPath.startsWith("http") ? signedPath : base + signedPath;
-  // Return as soon as the post is safely recorded. The provider can take
-  // several seconds to accept a video, so run that work after the response.
-  EdgeRuntime.waitUntil(startVideoScreening(
-    base, service, sightUser, sightSecret, streamUrl, callbackToken,
-    postId, assetRows[0].id,
-  ));
+  // Videos use the in-app moderator queue, not a paid automated provider quota.
   return json(202, {
     status: "pending_moderation",
     post_id: postId,
-    message: "Your video was received and is being checked. It will appear after approval.",
+    message: "Your video was uploaded and is waiting for moderator review before it appears.",
   });
 });
 
