@@ -218,7 +218,7 @@ class FeedViewModel(
         val wasLiked = post.id in snapshot.likedPostIds
         _uiState.update { it.copy(pendingLikePostIds = it.pendingLikePostIds + post.id) }
         viewModelScope.launch {
-            repository.toggleLike(post.id, wasLiked).fold(
+            repository.toggleLike(post.id).fold(
                 onSuccess = { nowLiked ->
                     _uiState.update { state ->
                         val likes = state.likedPostIds.toMutableSet()
