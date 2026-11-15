@@ -117,7 +117,7 @@ class ProfileSettingsViewModel(
         profileLoadJob?.cancel()
         profileLoadJob = viewModelScope.launch {
             _uiState.update {
-                it.copy(isLoading = true, errorMessage = null, viewedProfile = null, posts = emptyList(), postsCount = null, followersCount = null, followingCount = null)
+                it.copy(isLoading = true, isFollowActionPending = false, errorMessage = null, viewedProfile = null, posts = emptyList(), postsCount = null, followersCount = null, followingCount = null)
             }
             val myId = repository.sessionStore.currentSession().userId
             val effectiveId = targetUserId?.takeIf { it.isNotBlank() } ?: myId
