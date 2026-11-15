@@ -217,7 +217,6 @@ class FeedViewModel(
     fun toggleLike(post: PostDto) {
         val snapshot = _uiState.value
         if (post.id in snapshot.pendingLikePostIds) return
-        val wasLiked = post.id in snapshot.likedPostIds
         _uiState.update { it.copy(pendingLikePostIds = it.pendingLikePostIds + post.id) }
         viewModelScope.launch {
             repository.toggleLike(post.id).fold(
