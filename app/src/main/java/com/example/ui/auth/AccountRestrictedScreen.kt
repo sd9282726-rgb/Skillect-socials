@@ -37,6 +37,7 @@ fun AccountRestrictedScreen(
     viewModel: AuthViewModel,
 ) {
     var explanation by remember { mutableStateOf("") }
+    val permanent = uiState.accountEnforcement?.status == "permanent"
 
     LaunchedEffect(Unit) {
         viewModel.refreshAccountEnforcement()
@@ -57,7 +58,7 @@ fun AccountRestrictedScreen(
         ) {
             EmptyStateCard(
                 icon = Icons.Rounded.Gavel,
-                title = stringResource(R.string.account_restricted_title),
+                title = stringResource(if (permanent) R.string.account_permanent_ban_title else R.string.account_restricted_title),
                 subtitle = uiState.accountEnforcement?.reason?.takeIf { it.isNotBlank() }
                     ?: stringResource(R.string.account_restricted_description),
             )
