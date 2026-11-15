@@ -20,7 +20,12 @@ import javax.crypto.spec.GCMParameterSpec
 
 private val Context.skillectDataStore by preferencesDataStore(name = "skillect_prefs")
 
-private object SessionTokenCipher {
+internal interface SessionTokenCipher {
+    fun encrypt(plainText: String): String
+    fun decrypt(stored: String): String
+}
+
+private object AndroidKeystoreSessionTokenCipher : SessionTokenCipher {
     private const val KEYSTORE_PROVIDER = "AndroidKeyStore"
     private const val KEY_ALIAS = "skillect_session_aes_key"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
@@ -48,7 +53,7 @@ private object SessionTokenCipher {
         }
     }
 
-    fun encrypt(plainText: String): String {
+    override fun encrypt(plainText: String): String {
         if (plainText.isBlank()) return ""
         return try {
             val key = getOrCreateKey()
@@ -65,7 +70,7 @@ private object SessionTokenCipher {
         }
     }
 
-    fun decrypt(stored: String): String {
+    override fun decrypt(stored: String): String {
         if (stored.isBlank()) return ""
         if (!stored.startsWith(ENC_PREFIX)) return stored
         return try {
@@ -101,7 +106,10 @@ data class UserPreferences(
     val pushCommunities: Boolean = true,
 )
 
-class SessionStore(private val context: Context) {
+class SessionStore internal constructor(
+    private val context: Context,
+    private val tokenCipher: SessionTokenCipher = AndroidKeystoreSessionTokenCipher,
+) {
     private object Keys {
         val ACCESS_TOKEN = stringPreferencesKey("access_token")
         val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
@@ -117,7 +125,7 @@ class SessionStore(private val context: Context) {
 
     val sessionFlow: Flow<PersistedSession> = context.skillectDataStore.data.map { prefs ->
         PersistedSession(
-            accessToken = SessionTokenCipher.decrypt(prefs[Keys.ACCESS_TOKEN].orEmpty()),
+            accessToken = tokenCipher.decrypt(prefs[Keys.ACCESS_TOKEN].orEmpty()),
             refreshToken = SessionTokenCipher.decrypt(prefs[Keys.REFRESH_TOKEN].orEmpty()),
             userId = prefs[Keys.USER_ID].orEmpty(),
             email = prefs[Keys.EMAIL].orEmpty(),
@@ -144,7 +152,7 @@ class SessionStore(private val context: Context) {
 
     suspend fun saveSession(session: PersistedSession) {
         context.skillectDataStore.edit { prefs ->
-            prefs[Keys.ACCESS_TOKEN] = SessionTokenCipher.encrypt(session.accessToken)
+            prefs[Keys.ACCESS_TOKEN] = tokenCipher.encrypt(session.accessToken)
             prefs[Keys.REFRESH_TOKEN] = SessionTokenCipher.encrypt(session.refreshToken)
             prefs[Keys.USER_ID] = session.userId
             prefs[Keys.EMAIL] = session.email
