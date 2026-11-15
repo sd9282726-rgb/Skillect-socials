@@ -126,7 +126,7 @@ class SessionStore internal constructor(
     val sessionFlow: Flow<PersistedSession> = context.skillectDataStore.data.map { prefs ->
         PersistedSession(
             accessToken = tokenCipher.decrypt(prefs[Keys.ACCESS_TOKEN].orEmpty()),
-            refreshToken = SessionTokenCipher.decrypt(prefs[Keys.REFRESH_TOKEN].orEmpty()),
+            refreshToken = tokenCipher.decrypt(prefs[Keys.REFRESH_TOKEN].orEmpty()),
             userId = prefs[Keys.USER_ID].orEmpty(),
             email = prefs[Keys.EMAIL].orEmpty(),
         )
@@ -153,7 +153,7 @@ class SessionStore internal constructor(
     suspend fun saveSession(session: PersistedSession) {
         context.skillectDataStore.edit { prefs ->
             prefs[Keys.ACCESS_TOKEN] = tokenCipher.encrypt(session.accessToken)
-            prefs[Keys.REFRESH_TOKEN] = SessionTokenCipher.encrypt(session.refreshToken)
+            prefs[Keys.REFRESH_TOKEN] = tokenCipher.encrypt(session.refreshToken)
             prefs[Keys.USER_ID] = session.userId
             prefs[Keys.EMAIL] = session.email
         }
