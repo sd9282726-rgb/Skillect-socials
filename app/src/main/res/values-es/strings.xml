@@ -102,4 +102,5 @@ Las denuncias se revisan de forma justa las infracciones graves pueden causar la
     <string name="permission_body">Permite notificaciones de mensajes actividad de la comunidad y avisos importantes de tu cuenta Puedes cambiarlo cuando quieras en los ajustes de Android</string>
     <string name="permission_continue">Continuar</string>
     <string name="permission_not_now">Ahora no</string>
+    <string name="account_permanent_ban_title">Cuenta suspendida permanentemente</string>
 </resources>
