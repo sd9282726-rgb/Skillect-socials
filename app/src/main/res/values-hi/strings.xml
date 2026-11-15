@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Skillect</string>
+    <string name="tagline">जुड़ें बनाएं खोजें और आगे बढ़ें</string>
+    <string name="age_gate_notice">Skillect सोलह वर्ष और उससे अधिक आयु के लोगों के लिए एक वैश्विक समुदाय है</string>
+    <string name="backend_setup_banner">Connect your Skillect service to sync live community data</string>
+    <string name="nav_feed">होम</string>
+    <string name="nav_explore">खोजें</string>
+    <string name="nav_create">बनाएं</string>
+    <string name="nav_communities">समूह</string>
+    <string name="nav_groups">समूह</string>
+    <string name="nav_messages">संदेश</string>
+    <string name="nav_profile">प्रोफ़ाइल</string>
+    <string name="nav_notifications">सूचनाएं</string>
+    <string name="channel_messages_name">सीधे संदेश</string>
+    <string name="channel_social_name">सामाजिक गतिविधि</string>
+    <string name="channel_safety_name">सुरक्षा और खाता</string>
+</resources>
