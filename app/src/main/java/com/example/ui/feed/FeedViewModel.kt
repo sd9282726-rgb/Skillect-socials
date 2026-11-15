@@ -435,9 +435,9 @@ class FeedViewModel(
         }
     }
 
-    fun reportPost(postId: String, reason: String, details: String) {
+    fun reportPost(postId: String, reason: String, details: String, targetUserId: String? = null) {
         viewModelScope.launch {
-            repository.submitReport("post", postId, reason, details).fold(
+            repository.submitReport("post", postId, reason, details, targetUserId = targetUserId).fold(
                 onSuccess = {
                     _uiState.update { it.copy(snackbarMessage = "Report submitted for safety review.") }
                 },
