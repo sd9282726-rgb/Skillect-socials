@@ -102,4 +102,5 @@ Reports are reviewed fairly serious violations may lead to content removal accou
     <string name="permission_body">Allow notifications for messages community activity and important account updates You can change this anytime in Android settings</string>
     <string name="permission_continue">Continue</string>
     <string name="permission_not_now">Not now</string>
+    <string name="account_permanent_ban_title">Account permanently banned</string>
 </resources>
