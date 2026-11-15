@@ -440,7 +440,7 @@ class ProfileSettingsViewModel(
 
     fun reportProfile(targetUserId: String, reason: String, details: String) {
         viewModelScope.launch {
-            repository.submitReport("profile", targetUserId, reason, details).fold(
+            repository.submitReport("profile", targetUserId, reason, details, targetUserId = targetUserId).fold(
                 onSuccess = { _uiState.update { it.copy(statusMessage = "Profile reported for safety review.") } },
                 onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
             )
