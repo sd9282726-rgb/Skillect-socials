@@ -27,6 +27,7 @@ import com.example.data.repository.AuthenticationRequiredException
 import com.example.data.repository.SkillectRepository
 import com.example.ui.auth.AuthDeepLinkParser
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
@@ -34,6 +35,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -65,6 +67,16 @@ class SkillectUnitAndRobolectricTest {
 
     @get:Rule
     val composeRule = createAndroidComposeRule<MainActivity>()
+
+    @Before
+    fun resetPersistedSessionBetweenTests() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        runBlocking {
+            val store = SessionStore(context, TestSessionTokenCipher)
+            store.clearSession()
+            store.clearCachedProfile()
+        }
+    }
 
     @Test
     fun `age eligibility enforces 16 plus requirement globally`() {
