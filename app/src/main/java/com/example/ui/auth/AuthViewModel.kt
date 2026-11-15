@@ -507,7 +507,7 @@ class AuthViewModel(
     fun followSuggestedCreator(userId: String) {
         if (userId.isBlank()) return
         viewModelScope.launch {
-            repository.toggleFollow(userId, currentlyFollowing = false).fold(
+            repository.toggleFollow(userId).fold(
                 onSuccess = {
                     _uiState.update { state ->
                         state.copy(
