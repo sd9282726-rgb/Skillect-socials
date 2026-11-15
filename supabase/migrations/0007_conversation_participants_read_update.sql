@@ -1,7 +1,9 @@
 -- Allow a participant to update only their own last_read_at cursor.
 -- Column privileges are deliberately restricted: the mobile client must not be able
--- to rewrite conversation_id or user_id through this endpoint.
--- DO NOT apply to production without explicit approval.
+-- to rewrite conversation_id or user_id via this endpoint.
+-- Approved for production apply by project owner (2026-11-15).
+-- Apply via Supabase SQL Editor on project chohswyxsckpwyzlbzav if not yet applied.
+-- Agent host has no Supabase service-role credentials; apply from the dashboard.
 
 REVOKE UPDATE ON TABLE public.conversation_participants FROM PUBLIC, anon, authenticated;
 REVOKE UPDATE (conversation_id, user_id, last_read_at)
