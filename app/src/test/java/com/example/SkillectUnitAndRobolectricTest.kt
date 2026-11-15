@@ -182,7 +182,7 @@ class SkillectUnitAndRobolectricTest {
     @Test
     fun `repository enforces guest read-only restrictions and maps auth and recovery errors`() = runTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val store = SessionStore(context)
+        val store = SessionStore(context, TestSessionTokenCipher)
         store.clearSession()
 
         var failWithDuplicate = false
@@ -325,7 +325,7 @@ class SkillectUnitAndRobolectricTest {
     @Test
     fun `updateProfileFields strips privileged columns and OkHttp injects session Bearer token`() = runTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val store = SessionStore(context)
+        val store = SessionStore(context, TestSessionTokenCipher)
         store.saveSession(PersistedSession("secret_jwt_token_999", "ref_1", "u_1", "u@skillect.global"))
 
         var capturedAuthHeader: String? = null
