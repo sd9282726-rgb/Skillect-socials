@@ -576,9 +576,17 @@ class SkillectRepository(
     suspend fun fetchMyLikedPostIds(): Result<Set<String>> = guardConfigured {
         val uid = sessionStore.currentSession().userId
         if (uid.isBlank()) return@guardConfigured Result.success(emptySet())
-        val resp = postgrestApi.getPostLikes(userIdEq = "eq.$uid")
-        if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        Result.success(resp.body().orEmpty().map { it.postId }.toSet())
+        val likedIds = linkedSetOf<String>()
+        var offset = 0
+        while (true) {
+            val resp = postgrestApi.getPostLikes(userIdEq = "eq.$uid", limit = 200, offset = offset)
+            if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
+            val page = resp.body().orEmpty()
+            likedIds.addAll(page.map { it.postId })
+            if (page.size < 200) break
+            offset += page.size
+        }
+        Result.success(likedIds)
     }
 
     suspend fun fetchMyPollVotes(): Result<Map<String, String>> = guardConfigured {
@@ -722,8 +730,15 @@ class SkillectRepository(
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
     }
 
-    suspend fun toggleLike(postId: String, currentlyLiked: Boolean): Result<Boolean> = guardConfigured {
+    suspend fun toggleLike(postId: String): Result<Boolean> = guardConfigured {
         val uid = requireUserId("like posts") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("like posts"))
+        val current = postgrestApi.getPostLikes(
+            userIdEq = "eq.$uid",
+            postIdEq = "eq.$postId",
+            limit = 1,
+        )
+        if (!current.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(current.parseError()))
+        val currentlyLiked = !current.body().isNullOrEmpty()
         val resp = if (currentlyLiked) {
             postgrestApi.unlikePost("eq.$postId", "eq.$uid")
         } else {
