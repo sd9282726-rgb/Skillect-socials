@@ -74,4 +74,16 @@ Skillect مساحة للتعلم والإبداع ومشاركة الأفكار 
 تُراجع البلاغات بعدل وقد تؤدي المخالفات الخطيرة إلى إزالة المحتوى أو تقييد الحساب أو حظره ويمكن استئناف القرارات التي تسمح بذلك</string>
     <string name="community_guidelines_title">إرشادات مجتمع Skillect</string>
     <string name="community_guidelines_understood">فهمت</string>
+    <string name="account_restricted_title">الحساب مقيد مؤقتاً</string>
+    <string name="account_restricted_description">تم تقييد الوصول إلى حسابك بعد مراجعة السلامة يمكنك مراجعة القرار وتقديم اعتراض أدناه</string>
+    <string name="account_request_review">طلب مراجعة</string>
+    <string name="account_appeal_explanation">اشرح سبب اعتقادك أن القرار يحتاج إلى مراجعة وأضف التفاصيل اللازمة</string>
+    <string name="account_appeal_label">توضيحك</string>
+    <string name="account_submit_appeal">إرسال الاعتراض</string>
+    <string name="account_sign_out">تسجيل الخروج</string>
+    <string name="account_appeal_status">حالة الاعتراض</string>
+    <string name="account_review_update">تحديث المراجعة</string>
+    <string name="account_check_updates">تتحقق هذه الصفحة من التحديثات تلقائياً</string>
+    <string name="account_appeal_min_chars">يرجى كتابة 20 حرفاً على الأقل</string>
+    <string name="account_appeals_unavailable">لا يمكن تقديم اعتراض على هذا التقييد تواصل مع دعم Skillect إذا كنت تعتقد أن هناك خطأ</string>
 </resources>
