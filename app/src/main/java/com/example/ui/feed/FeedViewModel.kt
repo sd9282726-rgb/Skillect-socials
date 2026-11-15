@@ -11,6 +11,7 @@ import com.example.core.network.StoryDto
 import com.example.data.repository.BackendNotConfiguredException
 import com.example.data.repository.FeedTab
 import com.example.data.repository.SkillectRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ data class FeedUiState(
     val stories: List<StoryDto> = emptyList(),
     val shortVideos: List<PostDto> = emptyList(),
     val likedPostIds: Set<String> = emptySet(),
+    val pendingLikePostIds: Set<String> = emptySet(),
     val savedPostIds: Set<String> = emptySet(),
     val followingIds: Set<String> = emptySet(),
     val votedPollOptions: Map<String, String> = emptyMap(),
@@ -46,6 +48,7 @@ class FeedViewModel(
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
 
     private val pageSize = 20
+    private var commentsLoadJob: Job? = null
 
     init {
         refreshAll()
@@ -197,7 +200,10 @@ class FeedViewModel(
     }
 
     fun toggleLike(post: PostDto) {
-        val wasLiked = post.id in _uiState.value.likedPostIds
+        val snapshot = _uiState.value
+        if (post.id in snapshot.pendingLikePostIds) return
+        val wasLiked = post.id in snapshot.likedPostIds
+        _uiState.update { it.copy(pendingLikePostIds = it.pendingLikePostIds + post.id) }
         viewModelScope.launch {
             repository.toggleLike(post.id, wasLiked).fold(
                 onSuccess = { nowLiked ->
@@ -207,6 +213,7 @@ class FeedViewModel(
                         val delta = if (nowLiked) 1 else -1
                         state.copy(
                             likedPostIds = likes,
+                            pendingLikePostIds = state.pendingLikePostIds - post.id,
                             posts = state.posts.map {
                                 if (it.id == post.id) it.copy(likesCount = maxOf(0, it.likesCount + delta)) else it
                             },
@@ -217,7 +224,7 @@ class FeedViewModel(
                     }
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(snackbarMessage = err.message) }
+                    _uiState.update { it.copy(pendingLikePostIds = it.pendingLikePostIds - post.id, snackbarMessage = err.message) }
                 },
             )
         }
@@ -317,19 +324,28 @@ class FeedViewModel(
     }
 
     fun openComments(post: PostDto) {
+        commentsLoadJob?.cancel()
         _uiState.update { it.copy(activeCommentsPost = post, comments = emptyList(), loadingComments = true) }
-        viewModelScope.launch {
+        commentsLoadJob = viewModelScope.launch {
             repository.fetchComments(post.id).fold(
-                onSuccess = { list -> _uiState.update { it.copy(comments = list, loadingComments = false) } },
+                onSuccess = { list ->
+                    _uiState.update { state ->
+                        if (state.activeCommentsPost?.id == post.id) state.copy(comments = list, loadingComments = false) else state
+                    }
+                },
                 onFailure = { err ->
-                    _uiState.update { it.copy(loadingComments = false, snackbarMessage = err.message) }
+                    _uiState.update { state ->
+                        if (state.activeCommentsPost?.id == post.id) state.copy(loadingComments = false, snackbarMessage = err.message) else state
+                    }
                 },
             )
         }
     }
 
     fun closeComments() {
-        _uiState.update { it.copy(activeCommentsPost = null, comments = emptyList()) }
+        commentsLoadJob?.cancel()
+        commentsLoadJob = null
+        _uiState.update { it.copy(activeCommentsPost = null, comments = emptyList(), loadingComments = false) }
     }
 
     fun submitComment(
@@ -345,7 +361,7 @@ class FeedViewModel(
                 onSuccess = { added ->
                     _uiState.update { state ->
                         state.copy(
-                            comments = state.comments + added,
+                            comments = if (state.activeCommentsPost?.id == post.id) state.comments + added else state.comments,
                             posts = state.posts.map {
                                 if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it
                             },
