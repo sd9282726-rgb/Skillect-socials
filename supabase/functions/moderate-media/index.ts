@@ -6,7 +6,7 @@ Deno.serve(async (request: Request) => {
   if (request.method !== "POST") return json(405, { error: "Method not allowed" });
   const base = Deno.env.get("SUPABASE_URL"), anon = Deno.env.get("SUPABASE_ANON_KEY"), service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const sightUser = Deno.env.get("SIGHTENGINE_API_USER"), sightSecret = Deno.env.get("SIGHTENGINE_API_SECRET");
-  if (!base || !anon || !service || !sightUser || !sightSecret) return json(503, { error: "Media safety screening is not configured" });
+  if (!base || !anon || !service) return json(503, { error: "Media upload service is not configured" });
   const authorization = request.headers.get("Authorization");
   if (!authorization?.startsWith("Bearer ")) return json(401, { error: "Authentication required" });
   const auth = await fetch(base + "/auth/v1/user", { headers: { apikey: anon, Authorization: authorization } });
@@ -55,7 +55,7 @@ Deno.serve(async (request: Request) => {
     body: JSON.stringify({ type: "media_caption", content: textForScreening }),
   });
   const captionDecision = captionCheck.ok ? await captionCheck.json() : null;
-  if (!captionCheck.ok || captionDecision?.status !== "approved") {
+  if (!captionCheck.ok || !["approved", "pending_review"].includes(captionDecision?.status)) {
     return json(captionCheck.status || 503, { error: captionDecision?.error || "Caption safety screening failed. Nothing was published." });
   }
 
@@ -111,6 +111,7 @@ Deno.serve(async (request: Request) => {
 async function moderateImage(base: string, service: string, sightUser: string, sightSecret: string, file: File, path: string, userId: string, assetId: string, postId: string, privateCommunity: boolean, communityId: string, destinationPath: string) {
   const admin = adminHeaders(service);
   try {
+    if (!sightUser || !sightSecret) throw new Error("Optional image screening is unavailable; moderator review is required");
     const scanForm = new FormData();
     scanForm.append("media", file, file.name || "upload");
     scanForm.append("models", "nudity-2.1");
@@ -160,7 +161,7 @@ async function moderateImage(base: string, service: string, sightUser: string, s
     await fetch(base + "/rest/v1/posts?id=eq." + postId, { method: "PATCH", headers: { ...admin, "Content-Type": "application/json" }, body: JSON.stringify({ moderation_hidden: true }) });
     await fetch(base + "/storage/v1/object/post-media/" + path, { method: "DELETE", headers: admin });
     await fetch(base + "/storage/v1/object/private-community-media/" + destinationPath.split("/").map(encodeURIComponent).join("/"), { method: "DELETE", headers: admin });
-    await fetch(base + "/storage/v1/object/media-quarantine/" + path, { method: "DELETE", headers: admin });
-    await fetch(base + "/rest/v1/media_assets?id=eq." + assetId, { method: "PATCH", headers: { ...admin, "Content-Type": "application/json" }, body: JSON.stringify({ status: "quarantined", reviewed_at: new Date().toISOString(), decision_reason: "Automated image screening failed; hidden for moderator review" }) });
+    // Preserve the private quarantine object so a moderator can inspect and approve/reject it.
+    await fetch(base + "/rest/v1/media_assets?id=eq." + assetId, { method: "PATCH", headers: { ...admin, "Content-Type": "application/json" }, body: JSON.stringify({ status: "quarantined", reviewed_at: null, decision_reason: "Automated image screening was unavailable; awaiting moderator review" }) });
   }
 }
