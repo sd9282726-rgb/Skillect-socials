@@ -10,6 +10,7 @@ import com.example.core.network.CreateExperienceRequest
 import com.example.core.network.CreateProjectRequest
 import com.example.core.network.ExperienceDto
 import com.example.core.network.ModerationAppealDto
+import com.example.core.network.ModerationMediaDto
 import com.example.core.network.ModerationAuditLogDto
 import com.example.core.network.PostDto
 import com.example.core.network.ProfileDto
@@ -41,6 +42,7 @@ data class ProfileSettingsUiState(
     val moderationReports: List<ReportDto> = emptyList(),
     val auditLogs: List<ModerationAuditLogDto> = emptyList(),
     val moderationAppeals: List<ModerationAppealDto> = emptyList(),
+    val moderationMedia: List<ModerationMediaDto> = emptyList(),
     val isModerator: Boolean = false,
     val preferences: UserPreferences = UserPreferences(),
     val isFollowing: Boolean = false,
@@ -487,6 +489,7 @@ class ProfileSettingsViewModel(
                 moderationReports = emptyList(),
                 auditLogs = emptyList(),
                 moderationAppeals = emptyList(),
+                moderationMedia = emptyList(),
             )
         }
         viewModelScope.launch {
@@ -498,6 +501,7 @@ class ProfileSettingsViewModel(
                         moderationReports = emptyList(),
                         auditLogs = emptyList(),
                         moderationAppeals = emptyList(),
+                        moderationMedia = emptyList(),
                     )
                 }
                 return@launch
@@ -505,14 +509,32 @@ class ProfileSettingsViewModel(
             val reports = repository.fetchModerationReports().getOrDefault(emptyList())
             val logs = repository.fetchAuditLogs().getOrDefault(emptyList())
             val appeals = repository.fetchModerationAppeals().getOrDefault(emptyList())
+            val media = repository.fetchModerationMedia().getOrDefault(emptyList())
             _uiState.update {
                 it.copy(
                     isModerator = true,
                     moderationReports = reports,
                     auditLogs = logs,
                     moderationAppeals = appeals,
+                    moderationMedia = media,
                 )
             }
+        }
+    }
+
+    fun resolveMedia(mediaAssetId: String, approved: Boolean) {
+        viewModelScope.launch {
+            repository.resolveModerationMedia(mediaAssetId, approved).fold(
+                onSuccess = {
+                    loadModerationDashboard()
+                    _uiState.update {
+                        it.copy(statusMessage = if (approved) "Media approved and published." else "Media rejected.")
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(statusMessage = error.message ?: "Could not review this media.") }
+                },
+            )
         }
     }
 
