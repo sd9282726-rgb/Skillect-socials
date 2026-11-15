@@ -128,7 +128,7 @@ class ProfileSettingsViewModel(
             val projectsResult = repository.fetchProjects(effectiveId)
             val experiencesResult = repository.fetchExperiences(effectiveId)
             val achievementsResult = repository.fetchAchievements(effectiveId)
-            val followingResult = if (myId.isNotBlank()) repository.getFollowingIds(myId) else Result.success(emptyList())
+            val followingResult = if (myId.isNotBlank()) repository.getFollowingIds(myId) else Result.success(emptyList<String>())
             val postCountResult = repository.fetchPostCount(effectiveId)
             val followCountsResult = repository.fetchFollowCounts(effectiveId)
 
