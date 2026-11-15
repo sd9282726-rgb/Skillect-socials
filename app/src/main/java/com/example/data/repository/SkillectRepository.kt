@@ -1,5 +1,8 @@
 package com.example.data.repository
 
+import android.util.Base64
+import org.json.JSONObject
+
 import com.example.core.config.AppConfig
 import com.example.core.network.AchievementDto
 import com.example.core.network.BlockRowDto
@@ -1257,6 +1260,24 @@ class SkillectRepository(
             if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
             Result.success(resp.body()!!.first())
         }
+
+    suspend fun currentUserCanModerate(): Boolean {
+        val token = sessionStore.currentSession().accessToken
+        val payload = token.split(".").getOrNull(1).orEmpty()
+        if (payload.isBlank()) return false
+        return try {
+            val decoded = Base64.decode(
+                payload,
+                Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+            )
+            val appRole = JSONObject(String(decoded, Charsets.UTF_8))
+                .optJSONObject("app_metadata")
+                ?.optString("role")
+            appRole == "admin" || appRole == "moderator"
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     suspend fun fetchModerationReports(): Result<List<ReportDto>> = guardConfigured {
         requireUserId("access moderation reports") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access moderation reports"))
