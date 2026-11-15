@@ -35,3 +35,7 @@ The extension uses the repository's existing session store and Supabase client c
 The Android CI workflow now supports manual dispatch. In GitHub Actions, select **Android CI**, choose branch `fix/onboarding`, and run the workflow. It executes unit tests and assembles a debug APK on a GitHub-hosted runner. The workflow needs the repository secrets `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 
 All source commits retain `[skip ci]`; manual dispatch is therefore the intended way to run CI for this patch set.
+
+## CI runner configuration
+
+The manual Android CI workflow uses a GitHub-hosted Ubuntu runner. It can run unit tests and assemble a debug APK without production Supabase credentials: when repository client secrets are absent, it copies `.env.example` to `.env`. Placeholder credentials are suitable only for compilation/unit tests; they do not enable live backend testing. The release build still requires valid Supabase client configuration and the existing release signing setup.
