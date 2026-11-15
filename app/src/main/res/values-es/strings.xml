@@ -74,4 +74,16 @@ REVISIÓN JUSTA
 Las denuncias se revisan de forma justa las infracciones graves pueden causar la retirada de contenido restricciones o expulsión y se pueden apelar las decisiones que lo permitan</string>
     <string name="community_guidelines_title">Normas de la comunidad Skillect</string>
     <string name="community_guidelines_understood">Entendido</string>
+    <string name="account_restricted_title">Cuenta restringida temporalmente</string>
+    <string name="account_restricted_description">El acceso a tu cuenta se ha restringido tras una revisión de seguridad. Puedes consultar la decisión y presentar una apelación aquí.</string>
+    <string name="account_request_review">Solicitar una revisión</string>
+    <string name="account_appeal_explanation">Explica por qué crees que se debe revisar esta decisión e incluye el contexto necesario.</string>
+    <string name="account_appeal_label">Tu explicación</string>
+    <string name="account_submit_appeal">Enviar apelación</string>
+    <string name="account_sign_out">Cerrar sesión</string>
+    <string name="account_appeal_status">Estado de la apelación</string>
+    <string name="account_review_update">Actualización de revisión</string>
+    <string name="account_check_updates">Esta página comprueba las actualizaciones automáticamente</string>
+    <string name="account_appeal_min_chars">Explica tu apelación con al menos 20 caracteres</string>
+    <string name="account_appeals_unavailable">No se permiten apelaciones para esta restricción. Contacta con el equipo de Skillect si crees que es un error.</string>
 </resources>
