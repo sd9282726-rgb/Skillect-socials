@@ -16,9 +16,9 @@ import kotlinx.coroutines.launch
 
 data class MessagesNotificationsUiState(
     val conversations: List<ConversationDto> = emptyList(),
-    val activeConversationId: String? = null,
     val messages: List<MessageDto> = emptyList(),
     val notifications: List<NotificationDto> = emptyList(),
+    val activeConversationId: String? = null,
     val isLoading: Boolean = false,
     val isSendingMessage: Boolean = false,
     val errorMessage: String? = null,
@@ -30,37 +30,38 @@ data class MessagesNotificationsUiState(
 class MessagesNotificationsViewModel(
     private val repository: SkillectRepository,
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow(MessagesNotificationsUiState())
     val uiState: StateFlow<MessagesNotificationsUiState> = _uiState.asStateFlow()
 
     init {
-        refreshInbox()
-        refreshNotifications()
-        viewModelScope.launch {
-            repository.realtimeClient.events.collect { event ->
-                when (event) {
-                    is RealtimeEvent.NewMessage -> {
-                        if (event.conversationId == _uiState.value.activeConversationId) {
-                            loadMessages(event.conversationId)
+        if (AppConfig.isSupabaseConfigured) {
+            refreshInbox()
+            refreshNotifications()
+            viewModelScope.launch {
+                repository.realtimeClient.events.collect { event ->
+                    when (event) {
+                        is RealtimeEvent.NewMessage -> {
+                            if (event.conversationId == _uiState.value.activeConversationId) {
+                                loadMessages(event.conversationId)
+                            } else {
+                                refreshInbox()
+                            }
                         }
-                        refreshInbox()
+                        is RealtimeEvent.NotificationReceived -> refreshNotifications()
+                        else -> Unit
                     }
-                    is RealtimeEvent.NewNotification -> refreshNotifications()
-                    RealtimeEvent.FeedUpdated -> Unit
                 }
             }
         }
     }
 
     fun refreshInbox() {
-        if (!AppConfig.isSupabaseConfigured) return
+        if (!AppConfig.isSupabaseConfigured) {
+            _uiState.update { it.copy(conversations = emptyList(), messages = emptyList(), isLoading = false) }
+            return
+        }
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
-            if (!repository.sessionStore.currentSession().isAuthenticated) {
-                _uiState.update { it.copy(conversations = emptyList(), messages = emptyList(), isLoading = false) }
-                return@launch
-            }
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             repository.fetchConversations().fold(
                 onSuccess = { list -> _uiState.update { it.copy(conversations = list, isLoading = false) } },
                 onFailure = { err -> _uiState.update { it.copy(isLoading = false, errorMessage = err.message) } },
@@ -72,6 +73,30 @@ class MessagesNotificationsViewModel(
         _uiState.update { it.copy(activeConversationId = conversationId, statusMessage = null, isSendingMessage = false) }
         if (!AppConfig.isSupabaseConfigured) return
         viewModelScope.launch {
+            repository.markConversationRead(conversationId).fold(
+                onSuccess = {
+                    val now = java.time.Instant.now().toString()
+                    _uiState.update { state ->
+                        state.copy(
+                            conversations = state.conversations.map { conv ->
+                                if (conv.id != conversationId) conv
+                                else {
+                                    val uid = repository.sessionStore.currentSession().userId
+                                    conv.copy(
+                                        participants = conv.participants.map { part ->
+                                            if (part.userId == uid) part.copy(lastReadAt = now) else part
+                                        },
+                                    )
+                                }
+                            },
+                        )
+                    }
+                },
+                onFailure = { err ->
+                    // Read-state is best-effort; still load messages. RLS may block until policy is applied.
+                    _uiState.update { it.copy(statusMessage = err.message) }
+                },
+            )
             repository.fetchMessages(conversationId).fold(
                 onSuccess = { list -> _uiState.update { it.copy(messages = list) } },
                 onFailure = { err -> _uiState.update { it.copy(errorMessage = err.message) } },
@@ -83,21 +108,25 @@ class MessagesNotificationsViewModel(
         conversationId: String,
         content: String,
         mediaUrl: String? = null,
-        onComplete: (Boolean) -> Unit = {},
+        onSent: (Boolean) -> Unit = {},
     ) {
-        if ((content.isBlank() && mediaUrl.isNullOrBlank()) || _uiState.value.isSendingMessage) return
+        if (content.isBlank()) return
+        _uiState.update { it.copy(isSendingMessage = true, statusMessage = null) }
         viewModelScope.launch {
-            _uiState.update { it.copy(isSendingMessage = true, statusMessage = null) }
             repository.sendMessage(conversationId, content.trim(), mediaUrl).fold(
                 onSuccess = { msg ->
                     _uiState.update { state ->
-                        state.copy(messages = state.messages + msg, isSendingMessage = false)
+                        state.copy(
+                            messages = state.messages + msg,
+                            isSendingMessage = false,
+                        )
                     }
-                    onComplete(true)
+                    onSent(true)
+                    refreshInbox()
                 },
                 onFailure = { err ->
                     _uiState.update { it.copy(isSendingMessage = false, statusMessage = err.message) }
-                    onComplete(false)
+                    onSent(false)
                 },
             )
         }
@@ -106,7 +135,7 @@ class MessagesNotificationsViewModel(
     fun blockPeer(peerUserId: String) {
         viewModelScope.launch {
             repository.blockUser(peerUserId).fold(
-                onSuccess = { _uiState.update { it.copy(statusMessage = "User blocked.") } },
+                onSuccess = { _uiState.update { it.copy(statusMessage = "Member blocked.") } },
                 onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
             )
         }
@@ -114,8 +143,8 @@ class MessagesNotificationsViewModel(
 
     fun reportConversationMessage(targetId: String, reason: String, details: String) {
         viewModelScope.launch {
-            repository.submitReport("message", targetId, reason, details).fold(
-                onSuccess = { _uiState.update { it.copy(statusMessage = "Message reported for safety review.") } },
+            repository.reportContent("message", targetId, reason, details).fold(
+                onSuccess = { _uiState.update { it.copy(statusMessage = "Report submitted.") } },
                 onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
             )
         }
@@ -124,46 +153,57 @@ class MessagesNotificationsViewModel(
     fun refreshNotifications() {
         if (!AppConfig.isSupabaseConfigured) return
         viewModelScope.launch {
-            if (!repository.sessionStore.currentSession().isAuthenticated) {
-                _uiState.update { it.copy(notifications = emptyList()) }
-                return@launch
-            }
             repository.fetchNotifications().fold(
                 onSuccess = { list -> _uiState.update { it.copy(notifications = list) } },
-                onFailure = { _ -> Unit },
+                onFailure = { err -> _uiState.update { it.copy(errorMessage = err.message) } },
             )
         }
     }
 
     fun clearPrivateState() {
-        _uiState.value = MessagesNotificationsUiState()
+        _uiState.update {
+            it.copy(
+                conversations = emptyList(),
+                messages = emptyList(),
+                notifications = emptyList(),
+                activeConversationId = null,
+                statusMessage = null,
+                errorMessage = null,
+            )
+        }
     }
 
     fun markNotificationRead(id: String) {
         viewModelScope.launch {
-            repository.markNotificationRead(id).onSuccess {
-                _uiState.update { state ->
-                    state.copy(
-                        notifications = state.notifications.map {
-                            if (it.id == id) it.copy(isRead = true) else it
-                        },
-                    )
-                }
-            }
+            repository.markNotificationRead(id).fold(
+                onSuccess = {
+                    _uiState.update { state ->
+                        state.copy(
+                            notifications = state.notifications.map {
+                                if (it.id == id) it.copy(isRead = true) else it
+                            },
+                        )
+                    }
+                },
+                onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
+            )
         }
     }
 
     fun markAllNotificationsRead() {
         viewModelScope.launch {
-            repository.markAllNotificationsRead().onSuccess {
-                _uiState.update { state ->
-                    state.copy(notifications = state.notifications.map { it.copy(isRead = true) })
-                }
-            }
+            repository.markAllNotificationsRead().fold(
+                onSuccess = {
+                    _uiState.update { state ->
+                        state.copy(notifications = state.notifications.map { it.copy(isRead = true) })
+                    }
+                },
+                onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
+            )
         }
     }
 
     fun clearStatus() {
-        _uiState.update { it.copy(statusMessage = null) }
+        _uiState.update { it.copy(statusMessage = null, errorMessage = null) }
     }
 }
