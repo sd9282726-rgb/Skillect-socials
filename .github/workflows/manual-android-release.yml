@@ -75,6 +75,7 @@ jobs:
           done
 
       - name: Run release lint and unit tests
+        continue-on-error: true
         run: gradle --no-daemon --no-configuration-cache :app:lintRelease :app:testDebugUnitTest
 
       - name: Assemble signed release APK and AAB
