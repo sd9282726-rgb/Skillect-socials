@@ -451,7 +451,9 @@ class SkillectRepository(
             // a preset avatar or a secure HTTPS photo when the field is supplied.
             "cover_url" to existing.coverUrl,
         )
-        if (sanitized["avatar_url"]?.toString()?.isBlank() == true) sanitized.remove("avatar_url")
+        if (sanitized.containsKey("avatar_url") && sanitized["avatar_url"]?.toString().isNullOrBlank()) {
+            sanitized.remove("avatar_url")
+        }
         body.putAll(sanitized)
         existing.avatarUrl?.takeIf { it.isNotBlank() }?.let { body.putIfAbsent("avatar_url", it) }
         val content = listOf(
