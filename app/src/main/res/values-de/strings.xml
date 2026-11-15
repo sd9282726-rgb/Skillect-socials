@@ -74,4 +74,16 @@ FAIRE PRÜFUNG
 Meldungen werden fair geprüft schwere Verstöße können zur Entfernung von Inhalten Einschränkungen oder Sperren führen und zulässige Entscheidungen können angefochten werden</string>
     <string name="community_guidelines_title">Skillect Community Richtlinien</string>
     <string name="community_guidelines_understood">Verstanden</string>
+    <string name="account_restricted_title">Konto vorübergehend eingeschränkt</string>
+    <string name="account_restricted_description">Der Zugriff auf dein Konto wurde nach einer Sicherheitsprüfung eingeschränkt. Du kannst die Entscheidung prüfen und unten Einspruch einlegen.</string>
+    <string name="account_request_review">Überprüfung beantragen</string>
+    <string name="account_appeal_explanation">Erkläre warum diese Entscheidung überprüft werden sollte und füge den nötigen Kontext hinzu.</string>
+    <string name="account_appeal_label">Deine Erklärung</string>
+    <string name="account_submit_appeal">Einspruch senden</string>
+    <string name="account_sign_out">Abmelden</string>
+    <string name="account_appeal_status">Einspruchsstatus</string>
+    <string name="account_review_update">Prüfungsupdate</string>
+    <string name="account_check_updates">Diese Seite prüft automatisch auf Aktualisierungen</string>
+    <string name="account_appeal_min_chars">Erkläre deinen Einspruch mit mindestens 20 Zeichen</string>
+    <string name="account_appeals_unavailable">Für diese Einschränkung ist kein Einspruch möglich. Wende dich an den Skillect Support wenn du einen Fehler vermutest.</string>
 </resources>
