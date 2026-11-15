@@ -85,7 +85,7 @@ Deno.serve(async (request: Request) => {
   if (!notificationId || !userId) return json(400, { error: "notification_id and user_id are required" });
 
   const notificationResponse = await fetch(
-    base + "/rest/v1/notifications?select=id,user_id,type,entity_type,entity_id&id=eq." + encodeURIComponent(notificationId) + "&user_id=eq." + encodeURIComponent(userId),
+    base + "/rest/v1/notifications?select=id,user_id,type,entity_type,entity_id,message&id=eq." + encodeURIComponent(notificationId) + "&user_id=eq." + encodeURIComponent(userId),
     { headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey } },
   );
   if (!notificationResponse.ok) return json(503, { error: "Notification record could not be verified" });
@@ -114,6 +114,18 @@ Deno.serve(async (request: Request) => {
   const notificationType = String(notification.type || "activity");
   const entityId = notification.entity_id == null ? "" : String(notification.entity_id);
   const entityType = notification.entity_type == null ? "" : String(notification.entity_type);
+  const title = notificationType === "new_message"
+    ? "New message"
+    : notificationType === "new_follower"
+      ? "New follower"
+      : notificationType === "post_like"
+        ? "New like"
+        : notificationType === "post_comment"
+          ? "New comment"
+          : notificationType === "safety"
+            ? "Account update"
+            : "New activity";
+  const body = String(notification.message || "You have new activity").slice(0, 240);
   const channelId = notificationType === "new_message"
     ? "skillect_messages"
     : notificationType === "safety"
@@ -137,8 +149,8 @@ Deno.serve(async (request: Request) => {
             data: {
               notification_id: notificationId,
               type: notificationType,
-              title: "Skillect",
-              body: "You have new activity",
+              title,
+              body,
               entity_id: entityId,
               entity_type: entityType,
             },
