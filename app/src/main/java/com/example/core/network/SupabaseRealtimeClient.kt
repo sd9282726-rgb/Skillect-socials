@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
 sealed class RealtimeEvent {
     data class NewMessage(val conversationId: String, val messageId: String) : RealtimeEvent()
     data class NewNotification(val recipientId: String) : RealtimeEvent()
+    data object AccountStatusChanged : RealtimeEvent()
     data object FeedUpdated : RealtimeEvent()
 }
 
@@ -71,6 +72,8 @@ class SupabaseRealtimeClient(
                     }
                     joinChannel(ws, "realtime:public:messages", "messages", token)
                     joinChannel(ws, "realtime:public:notifications", "notifications", token, filter = "user_id=eq.$userId")
+                    joinChannel(ws, "realtime:public:account_enforcements", "account_enforcements", token, filter = "user_id=eq.$userId")
+                    joinChannel(ws, "realtime:public:moderation_appeals", "moderation_appeals", token, filter = "user_id=eq.$userId")
                     joinChannel(ws, "realtime:public:posts", "posts", token)
                     startHeartbeat(ws)
                 }
@@ -186,6 +189,8 @@ class SupabaseRealtimeClient(
                         _events.tryEmit(RealtimeEvent.NewNotification(recipientId))
                     }
                 }
+                "account_enforcements", "moderation_appeals" ->
+                    _events.tryEmit(RealtimeEvent.AccountStatusChanged)
                 "posts" -> _events.tryEmit(RealtimeEvent.FeedUpdated)
             }
         } catch (e: Exception) {
