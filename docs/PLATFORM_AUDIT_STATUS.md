@@ -37,7 +37,7 @@ User-facing copy should say Networks / Connect / Connected.
 
 Internal schema remains `follows` / follower_id / following_id (correct).
 
-**Local changes prepared** in working tree for AuthScreen, FeedScreen, PostCard, ProfileScreen. Push of large Kotlin files may require phone/GitHub UI if MCP payload limits block full-file updates.
+**Applied to the remote `fix/onboarding` branch** in commits `5d5936a`, `5d110e3`, and `e735eb9`. This includes AuthScreen, FeedScreen, PostCard, ProfileScreen, MessagesScreen, and the DM read-state implementation.
 
 ## Messaging (code review)
 
@@ -48,7 +48,7 @@ Internal schema remains `follows` / follower_id / following_id (correct).
 | sendMessage via moderateText edge path | Implemented | No |
 | Media in DMs | Explicitly disabled | N/A |
 | Realtime messages channel | WebSocket client joins `realtime:public:messages` | No |
-| Mark conversation read / DM unread counts | **Gap**: `last_read_at` on model but no repository mark-read on open chat | No |
+| Mark conversation read / DM unread counts | Implemented in branch: authenticated read-cursor update on open + inbox New marker | **Not live-tested** |
 | RLS for messages | Migrations enable RLS; production policies need live check | No |
 
 ## Feed (code review)
@@ -90,6 +90,7 @@ Migrations present:
 - `0004_counters_storage_and_dm_rpc.sql`
 - `0005_non_destructive_skillect_extras.sql`
 - `0006_profile_avatar_storage.sql`
+- `0007_conversation_participants_read_update.sql` (staged only; not applied to production)
 
 **Live project `chohswyxsckpwyzlbzav`**: not fully audited against production without Management API/service role (not used; secrets not exposed). Edge functions listed under `supabase/functions/` — deploy parity not confirmed.
 
@@ -97,19 +98,19 @@ Migrations present:
 
 | Check | Result |
 |-------|--------|
-| Full Gradle release compile | **Not run** (host ~1.2GB RAM) |
+| Android unit tests + debug compile | **Not run**; manual `workflow_dispatch` was added to `.github/workflows/android-ci.yml` for a GitHub-hosted runner |
 | Unit tests (AgeValidation etc.) | Present; not executed this session |
 | Live journey 1–16 from audit brief | **Not executed** |
 
 ## Priority remaining work
 
-1. Push Networks terminology string fixes to branch (or apply via GitHub mobile editor).
-2. Implement `markConversationRead` when opening chat; surface DM unread badges.
-3. Live verify messaging realtime + RLS with two test accounts.
-4. Live verify likes/comments counters match DB after refresh.
+1. Run the manual Android CI workflow on `fix/onboarding` (unit tests + debug APK build); no run has been triggered yet.
+2. Inspect production conversation-participant columns, grants, and RLS before deciding whether migration `0007` is needed. The live migration inventory already lists `conversation_read_markers_for_unread_counts`.
+3. Two-account live verify messaging, persisted read state, realtime, and RLS after the production policy path is confirmed.
+4. Live verify likes/comments counters after refresh.
 5. Confirm Storage policies for avatars/media on production.
 6. Confirm Edge Function deploy parity for moderateText / start conversation RPC.
-7. Release Gradle build on higher-RAM CI.
+7. Run the complete release build after CI passes; no release APK is claimed from this patch set.
 
 ## Release readiness
 

@@ -90,6 +90,8 @@ Before establishing a reproducible migration baseline, export the actual current
 ## Staged Android follow-up (not applied)
 
 - `0006_profile_avatar_storage.sql` adds the public `avatars` bucket with owner-scoped upload and delete policies for profile photos and cover images.
-- This migration is staged in the repository only. It has **not** been applied to the live Supabase project. Avatar and cover uploads will remain unavailable until the migration is explicitly approved and applied.
+- `0007_conversation_participants_read_update.sql` stages an owner-scoped UPDATE policy and a column-level grant for `last_read_at` only.
+- Both migrations are staged in the repository only. Neither has been applied to the live Supabase project.
+- The live migration history already includes `conversation_read_markers_for_unread_counts`; inspect production columns, grants, and policies before deciding whether `0007` is needed. Do not apply it blindly.
 
 No live database changes were made during this inventory.
