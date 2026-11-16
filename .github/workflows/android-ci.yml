@@ -47,13 +47,6 @@ jobs:
             echo "Supabase secrets are absent; using documented placeholders for compile and unit tests only."
           fi
 
-      - name: Apply screenshot UI fixes
-        run: |
-          set -euo pipefail
-          bash scripts/apply_ui_fixes.sh
-          bash scripts/apply_privacy_client.sh
-          bash scripts/apply_social_profile_fixes.sh
-
       - name: Run Android lint
         run: gradle :app:lintDebug --stacktrace
 
