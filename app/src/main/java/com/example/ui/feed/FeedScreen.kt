@@ -829,7 +829,7 @@ fun CommentsBottomSheet(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp),
+                        .heightIn(max = 260.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(uiState.comments, key = { it.id }) { comment ->
