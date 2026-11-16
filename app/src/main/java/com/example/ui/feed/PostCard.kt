@@ -121,7 +121,9 @@ fun PostCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .testTag("post_card_${post.id}"),
     ) {
         if (post.postType == "repost" || post.postType == "quote" || post.repostedPostId != null || post.quotedPostId != null) {
