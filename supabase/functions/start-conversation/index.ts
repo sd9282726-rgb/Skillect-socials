@@ -73,22 +73,22 @@ Deno.serve(async (request: Request) => {
 
   try {
     const accountIds = [senderId, recipientId].sort();
-    const profiles = await rest(base, service, "profiles?select=id,onboarded,date_of_birth,is_private&id=in.(" + accountIds.join(",") + ")");
+    const profiles = await rest(base, service, "profiles?select=id,birth_date,is_private,account_status&id=in.(" + accountIds.join(",") + ")");
     if (!Array.isArray(profiles) || profiles.length !== 2) return json(404, { error: "Creator profile not found" });
     const sender = profiles.find((p: any) => p.id === senderId);
     const recipient = profiles.find((p: any) => p.id === recipientId);
-    if (!sender?.onboarded || !isAtLeast16(sender.date_of_birth)) return json(403, { error: "Complete your 16+ profile before messaging" });
-    if (!recipient?.onboarded || !isAtLeast16(recipient.date_of_birth)) return json(403, { error: "This creator cannot receive messages" });
+    if (!sender || !isAtLeast16(sender.birth_date) || sender.account_status !== "active") return json(403, { error: "Complete your 16+ profile before messaging" });
+    if (!recipient || !isAtLeast16(recipient.birth_date) || recipient.account_status !== "active") return json(403, { error: "This creator cannot receive messages" });
 
-    const restrictions = await rest(base, service, "account_enforcements?select=user_id&user_id=in.(" + accountIds.join(",") + ")");
-    if (Array.isArray(restrictions) && restrictions.length) return json(403, { error: "Messaging is unavailable for a restricted account" });
+    // Account enforcement is stored on profiles.account_status in the current schema.
+    // Do not query the retired account_enforcements table.
 
     const blocked = await rest(base, service, "blocks?select=id&or=(and(blocker_id.eq." + senderId + ",blocked_id.eq." + recipientId + "),and(blocker_id.eq." + recipientId + ",blocked_id.eq." + senderId + "))&limit=1");
     if (Array.isArray(blocked) && blocked.length) return json(403, { error: "Messaging is unavailable because one account has blocked the other" });
 
     const targetFollowsSender = await rest(base, service, "follows?select=id&follower_id=eq." + recipientId + "&following_id=eq." + senderId + "&limit=1");
     const senderFollowsTarget = await rest(base, service, "follows?select=id&follower_id=eq." + senderId + "&following_id=eq." + recipientId + "&limit=1");
-    if (is16To17(recipient.date_of_birth) && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
+    if (is16To17(recipient.birth_date) && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
       return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
     }
     const preferences = await rest(base, service, "user_preferences?select=allow_message_requests,message_privacy&user_id=eq." + recipientId + "&limit=1");
@@ -115,7 +115,7 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    const created = await rest(base, service, "conversations?select=id", "POST", { created_by: senderId });
+    const created = await rest(base, service, "conversations?select=id", "POST", {});
     const conversationId = Array.isArray(created) ? created[0]?.id : null;
     if (!conversationId) return json(503, { error: "Could not start the conversation" });
     try {
@@ -133,7 +133,8 @@ Deno.serve(async (request: Request) => {
       return json(503, { error: "Conversation setup failed; please try again" });
     }
     return json(200, { status: "created", conversation_id: conversationId });
-  } catch {
+  } catch (error) {
+    console.error("start-conversation failed:", error);
     return json(503, { error: "Could not safely verify messaging permissions. Nothing was created." });
   }
 });
