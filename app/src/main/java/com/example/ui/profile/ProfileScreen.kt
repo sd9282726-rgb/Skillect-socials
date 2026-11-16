@@ -346,7 +346,7 @@ fun ProfileScreen(
                                     onClick = {
                                         if (effectiveCurrentUserId.isBlank()) {
                                             onRequireAuth(false, "Sign in to send direct messages.")
-                                        } else if (profile.isPrivate) {
+                                        } else if (profile.isPrivate && !uiState.isFollowing) {
                                             showPrivateMessageDialog = true
                                         } else {
                                             viewModel.startDirectConversation(profile.id) { conversationId ->
