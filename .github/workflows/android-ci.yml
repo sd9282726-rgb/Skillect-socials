@@ -55,11 +55,9 @@ jobs:
           bash scripts/apply_social_profile_fixes.sh
 
       - name: Run Android lint
-        continue-on-error: true
         run: gradle :app:lintDebug --stacktrace
 
       - name: Run unit tests
-        continue-on-error: true
         run: gradle :app:testDebugUnitTest --stacktrace
 
       - name: Generate ephemeral debug signing key
