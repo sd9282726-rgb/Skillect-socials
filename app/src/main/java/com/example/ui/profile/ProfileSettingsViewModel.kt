@@ -68,6 +68,17 @@ private data class ProfileSectionsResult(
     val followCounts: Result<Pair<Int, Int>>,
 )
 
+private data class CachedProfileSections(
+    val posts: List<PostDto>,
+    val projects: List<ProjectDto>,
+    val experiences: List<ExperienceDto>,
+    val achievements: List<AchievementDto>,
+    val isFollowing: Boolean,
+    val postsCount: Int?,
+    val followersCount: Int?,
+    val followingCount: Int?,
+)
+
 class ProfileSettingsViewModel(
     private val repository: SkillectRepository,
 ) : ViewModel() {
