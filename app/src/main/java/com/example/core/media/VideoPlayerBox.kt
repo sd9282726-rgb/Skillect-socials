@@ -48,11 +48,17 @@ fun VideoPlayerBox(
     var isPlaying by remember { mutableStateOf(isActive) }
 
     val exoPlayer = remember(videoUrl) {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(Uri.parse(videoUrl)))
-            repeatMode = Player.REPEAT_MODE_ONE
-            prepare()
-        }
+        ExoPlayer.Builder(context)
+            .setLoadControl(
+                DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(1_000, 15_000, 250, 500)
+                    .build(),
+            )
+            .build().apply {
+                setMediaItem(MediaItem.fromUri(Uri.parse(videoUrl)))
+                repeatMode = Player.REPEAT_MODE_ONE
+                prepare()
+            }
     }
 
     DisposableEffect(exoPlayer, isActive, isMuted) {
