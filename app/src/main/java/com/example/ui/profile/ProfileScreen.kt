@@ -800,7 +800,7 @@ fun ProfileScreen(
                     onClick = {
                         isSavingProfile = true
                         viewModel.updateProfile(
-                            displayName, website, bio, region, interests, avatarUrlForEdit, coverUrlForEdit,
+                            displayName, website, bio, region, interests, username, skills, avatarUrlForEdit, coverUrlForEdit,
                         ) { saved ->
                             isSavingProfile = false
                             if (saved) showEditDialog = false
