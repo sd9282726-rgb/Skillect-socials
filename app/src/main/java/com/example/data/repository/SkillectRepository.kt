@@ -1148,6 +1148,12 @@ class SkillectRepository(
         Result.success(resp.body()!!.first())
     }
 
+    suspend fun deleteAchievement(achievementId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("delete achievement") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete achievement"))
+        val response = postgrestApi.deleteAchievement("eq.$achievementId", "eq.$uid")
+        if (response.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(response.parseError()))
+    }
+
     suspend fun startDirectConversation(peerUserId: String): Result<String> = guardConfigured {
         val uid = requireUserId("start a private conversation")
             ?: return@guardConfigured Result.failure(AuthenticationRequiredException("start a private conversation"))
