@@ -176,11 +176,6 @@ fun PostCard(
                         Spacer(modifier = Modifier.width(4.dp))
                         VerifiedCreatorBadge()
                     }
-                    Text(
-                        text = " · ${AppConfig.formatPostTimestamp(post.createdAt)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
 
                 val subLine = buildString {
