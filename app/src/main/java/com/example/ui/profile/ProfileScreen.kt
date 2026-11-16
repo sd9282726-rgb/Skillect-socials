@@ -492,7 +492,7 @@ fun ProfileScreen(
                         items(uiState.posts, key = { it.id }) { post ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
                                 Text(
-                                    text = AppConfig.formatRelativeTimestamp(post.createdAt),
+                                    text = AppConfig.formatPostTimestamp(post.createdAt),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary,
                                 )
