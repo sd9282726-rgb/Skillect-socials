@@ -963,7 +963,9 @@ class SkillectRepository(
         if (ids.isEmpty()) return@guardConfigured Result.success(emptyList())
         val profiles = postgrestApi.getProfiles(idFilter = "in.(" + ids.joinToString(",") + ")", limit = ids.size.coerceAtMost(1000))
         if (!profiles.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(profiles.parseError()))
-        val byId = profiles.body().orEmpty().associateBy { it.id }
+        val profileRows = profiles.body().orEmpty()
+        profileRows.forEach { profile -> profileByIdCache[profile.id] = profile }
+        val byId = profileRows.associateBy { it.id }
         Result.success(ids.mapNotNull(byId::get))
     }
 
