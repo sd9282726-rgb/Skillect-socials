@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -101,12 +103,18 @@ class ExploreCommunitiesViewModel(
         exploreJob?.cancel()
         exploreJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            val peopleRes = repository.searchProfiles(state.query)
-            val postsRes = repository.searchPosts(state.query, sortParam)
-            val commRes = repository.fetchCommunities(state.selectedCategory, state.query)
-            val projRes = repository.fetchProjects()
-            val skillRes = repository.fetchSkills()
-            val joinedIds = repository.fetchMyJoinedCommunityIds().getOrNull()
+            val peopleTask = async { repository.searchProfiles(state.query) }
+            val postsTask = async { repository.searchPosts(state.query, sortParam) }
+            val communitiesTask = async { repository.fetchCommunities(state.selectedCategory, state.query) }
+            val projectsTask = async { repository.fetchProjects() }
+            val skillsTask = async { repository.fetchSkills() }
+            val joinedTask = async { repository.fetchMyJoinedCommunityIds() }
+            val peopleRes = peopleTask.await()
+            val postsRes = postsTask.await()
+            val commRes = communitiesTask.await()
+            val projRes = projectsTask.await()
+            val skillRes = skillsTask.await()
+            val joinedIds = joinedTask.await().getOrNull()
 
             _uiState.update {
                 it.copy(
