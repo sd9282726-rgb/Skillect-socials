@@ -325,8 +325,8 @@ fun PostCard(
                         AsyncImage(
                             model = post.mediaUrls[page],
                             contentDescription = "Carousel image ${page + 1}",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxWidth(),
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
                         )
                     }
 
