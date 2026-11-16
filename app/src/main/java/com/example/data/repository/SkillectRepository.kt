@@ -1112,6 +1112,12 @@ class SkillectRepository(
         Result.success(resp.body()!!.first())
     }
 
+    suspend fun deleteExperience(experienceId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("delete experience") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete experience"))
+        val response = postgrestApi.deleteExperience("eq.$experienceId", "eq.$uid")
+        if (response.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(response.parseError()))
+    }
+
     suspend fun fetchAchievements(userId: String): Result<List<AchievementDto>> = guardConfigured {
         val resp = postgrestApi.getAchievements("eq.$userId")
         if (resp.code() == 404) return@guardConfigured Result.success(emptyList())
