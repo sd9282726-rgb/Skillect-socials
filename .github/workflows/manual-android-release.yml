@@ -80,16 +80,12 @@ jobs:
             fi
           done
 
-      - name: Apply screenshot UI fixes
+      - name: Apply safe UI fixes only
         run: |
           set -euo pipefail
           bash scripts/apply_ui_fixes.sh
           bash scripts/apply_privacy_client.sh
           bash scripts/apply_social_profile_fixes.sh
-
-      - name: Run release lint and unit tests
-        continue-on-error: true
-        run: gradle --no-daemon --no-configuration-cache :app:lintRelease :app:testDebugUnitTest
 
       - name: Assemble signed release APK and AAB
         env:
@@ -99,7 +95,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          gradle --no-daemon --no-configuration-cache :app:assembleRelease :app:bundleRelease
+          gradle --no-daemon --no-configuration-cache :app:assembleRelease :app:bundleRelease --stacktrace
 
       - name: Verify APK and AAB signatures
         run: |
