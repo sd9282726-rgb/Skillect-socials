@@ -69,6 +69,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Response
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 
 class BackendNotConfiguredException :
     IllegalStateException("Supabase project credentials are not configured in AI Studio Secrets.")
@@ -91,6 +92,7 @@ class SkillectRepository(
 ) {
     val sessionFlow: Flow<PersistedSession> = sessionStore.sessionFlow
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val conversationIdByPeerId = ConcurrentHashMap<String, String>()
 
     private inline fun <T> guardConfigured(block: () -> Result<T>): Result<T> {
         if (!isConfiguredCheck()) {
@@ -1166,6 +1168,9 @@ class SkillectRepository(
         if (uid == peerUserId) {
             return@guardConfigured Result.failure(IllegalArgumentException("This is your own profile. Open another member's profile to message them."))
         }
+        conversationIdByPeerId[peerUserId]?.let { cachedId ->
+            return@guardConfigured Result.success(cachedId)
+        }
         val response = postgrestApi.startConversation(StartConversationRequest(recipientId = peerUserId))
         if (!response.isSuccessful) {
             return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
@@ -1181,6 +1186,7 @@ class SkillectRepository(
                 if (conversationId.isBlank()) {
                     Result.failure(IllegalStateException("Conversation could not be created."))
                 } else {
+                    conversationIdByPeerId[peerUserId] = conversationId
                     Result.success(conversationId)
                 }
             }
@@ -1219,10 +1225,17 @@ class SkillectRepository(
     }
 
     suspend fun fetchConversations(): Result<List<ConversationDto>> = guardConfigured {
-        requireUserId("access private messages") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access private messages"))
+        val uid = requireUserId("access private messages")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access private messages"))
         val resp = postgrestApi.getConversations()
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        Result.success(resp.body().orEmpty())
+        val conversations = resp.body().orEmpty()
+        conversations.forEach { conversation ->
+            conversation.participants.firstOrNull { it.userId != uid }?.userId?.let { peerId ->
+                conversationIdByPeerId[peerId] = conversation.id
+            }
+        }
+        Result.success(conversations)
     }
 
     suspend fun fetchMessages(conversationId: String): Result<List<MessageDto>> = guardConfigured {
