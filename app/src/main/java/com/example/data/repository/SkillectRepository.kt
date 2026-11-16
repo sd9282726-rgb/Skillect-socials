@@ -1268,6 +1268,15 @@ class SkillectRepository(
         Result.success(resp.body().orEmpty())
     }
 
+    suspend fun fetchRecentMessagesForConversations(conversationIds: List<String>): Result<Map<String, List<MessageDto>>> = guardConfigured {
+        requireUserId("access private messages") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("access private messages"))
+        val ids = conversationIds.distinct().filter { it.isNotBlank() }.take(100)
+        if (ids.isEmpty()) return@guardConfigured Result.success(emptyMap())
+        val response = postgrestApi.getMessages("in.(${ids.joinToString(",")})", order = "created_at.desc", limit = 250)
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        Result.success(response.body().orEmpty().groupBy { it.conversationId }.mapValues { (_, messages) -> messages.sortedBy { it.createdAt } })
+    }
+
     suspend fun sendMessage(conversationId: String, content: String, mediaUrl: String? = null): Result<MessageDto> =
         guardConfigured {
             requireUserId("send private messages") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("send private messages"))
