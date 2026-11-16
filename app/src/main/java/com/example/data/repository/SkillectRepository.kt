@@ -917,7 +917,28 @@ class SkillectRepository(
         if (uid.isBlank()) return@guardConfigured Result.success(emptyList())
         val resp = postgrestApi.getBlocks("eq.$uid")
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        Result.success(resp.body().orEmpty())
+        val rows = resp.body().orEmpty()
+        if (rows.isEmpty()) return@guardConfigured Result.success(emptyList())
+        val ids = rows.map { it.blockedId }.distinct()
+        val profiles = postgrestApi.getProfiles(idFilter = "in.(" + ids.joinToString(",") + ")", limit = ids.size.coerceAtMost(1000))
+        val byId = if (profiles.isSuccessful) profiles.body().orEmpty().associateBy { it.id } else emptyMap()
+        Result.success(rows.map { row -> row.copy(blocked = byId[row.blockedId]) })
+    }
+
+    suspend fun fetchNetworkProfiles(userId: String, followers: Boolean): Result<List<ProfileDto>> = guardConfigured {
+        if (userId.isBlank()) return@guardConfigured Result.success(emptyList())
+        val follows = if (followers) {
+            postgrestApi.getFollows(followingIdEq = "eq." + userId, limit = 1000)
+        } else {
+            postgrestApi.getFollows(followerIdEq = "eq." + userId, limit = 1000)
+        }
+        if (!follows.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(follows.parseError()))
+        val ids = follows.body().orEmpty().map { if (followers) it.followerId else it.followingId }.distinct()
+        if (ids.isEmpty()) return@guardConfigured Result.success(emptyList())
+        val profiles = postgrestApi.getProfiles(idFilter = "in.(" + ids.joinToString(",") + ")", limit = ids.size.coerceAtMost(1000))
+        if (!profiles.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(profiles.parseError()))
+        val byId = profiles.body().orEmpty().associateBy { it.id }
+        Result.success(ids.mapNotNull(byId::get))
     }
 
     suspend fun muteUser(targetUserId: String): Result<Unit> = guardConfigured {
