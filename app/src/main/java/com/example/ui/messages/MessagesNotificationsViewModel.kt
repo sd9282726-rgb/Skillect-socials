@@ -66,10 +66,12 @@ class MessagesNotificationsViewModel(
             _uiState.update { it.copy(conversations = emptyList(), messages = emptyList(), isLoading = false) }
             return
         }
-        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        _uiState.update { it.copy(isLoading = it.conversations.isEmpty(), errorMessage = null) }
         viewModelScope.launch {
-            val requests = repository.fetchIncomingMessageRequests().getOrDefault(emptyList())
-            repository.fetchConversations().fold(
+            val requestsTask = async { repository.fetchIncomingMessageRequests() }
+            val conversationsTask = async { repository.fetchConversations() }
+            val requests = requestsTask.await().getOrDefault(emptyList())
+            conversationsTask.await().fold(
                 onSuccess = { list -> _uiState.update { it.copy(conversations = list, incomingMessageRequests = requests, isLoading = false) } },
                 onFailure = { err -> _uiState.update { it.copy(isLoading = false, errorMessage = err.message, incomingMessageRequests = requests) } },
             )
