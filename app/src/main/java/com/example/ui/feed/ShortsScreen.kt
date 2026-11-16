@@ -3,6 +3,8 @@ package com.example.ui.feed
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -133,7 +135,10 @@ fun ShortsScreen(
                     Column(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(start = 16.dp, end = 84.dp, bottom = 28.dp),
+                            .padding(start = 12.dp, end = 82.dp, bottom = 18.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(Color.Black.copy(alpha = 0.42f))
+                            .padding(12.dp),
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
