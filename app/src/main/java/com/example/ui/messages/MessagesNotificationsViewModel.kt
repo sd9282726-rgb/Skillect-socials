@@ -37,6 +37,8 @@ class MessagesNotificationsViewModel(
     private val _uiState = MutableStateFlow(MessagesNotificationsUiState())
     private val messageCache = mutableMapOf<String, List<MessageDto>>()
     private val messageLoadsInFlight = mutableSetOf<String>()
+    private var inboxRefreshJob: Job? = null
+    private var inboxRefreshQueued = false
     val uiState: StateFlow<MessagesNotificationsUiState> = _uiState.asStateFlow()
 
     init {
@@ -66,31 +68,43 @@ class MessagesNotificationsViewModel(
             _uiState.update { it.copy(conversations = emptyList(), messages = emptyList(), isLoading = false) }
             return
         }
+        if (inboxRefreshJob?.isActive == true) {
+            inboxRefreshQueued = true
+            return
+        }
         _uiState.update { it.copy(isLoading = it.conversations.isEmpty(), errorMessage = null) }
-        viewModelScope.launch {
-            val requestsTask = async { repository.fetchIncomingMessageRequests() }
-            val conversationsTask = async { repository.fetchConversations() }
-            val requests = requestsTask.await().getOrDefault(emptyList())
-            conversationsTask.await().fold(
-                onSuccess = { list ->
-                    _uiState.update { it.copy(conversations = list, incomingMessageRequests = requests, isLoading = false) }
-                    val conversationIds = list.map { it.id }
-                    if (conversationIds.isNotEmpty()) {
-                        viewModelScope.launch {
-                            repository.fetchRecentMessagesForConversations(conversationIds).onSuccess { cached ->
-                                messageCache.putAll(cached)
-                                val activeId = _uiState.value.activeConversationId
-                                if (activeId != null && activeId in cached) {
-                                    _uiState.update { state ->
-                                        if (state.activeConversationId == activeId) state.copy(messages = cached.getValue(activeId)) else state
+        inboxRefreshJob = viewModelScope.launch {
+            try {
+                val requestsTask = async { repository.fetchIncomingMessageRequests() }
+                val conversationsTask = async { repository.fetchConversations() }
+                val requests = requestsTask.await().getOrDefault(emptyList())
+                conversationsTask.await().fold(
+                    onSuccess = { list ->
+                        _uiState.update { it.copy(conversations = list, incomingMessageRequests = requests, isLoading = false) }
+                        val conversationIds = list.map { it.id }
+                        if (conversationIds.isNotEmpty()) {
+                            viewModelScope.launch {
+                                repository.fetchRecentMessagesForConversations(conversationIds).onSuccess { cached ->
+                                    messageCache.putAll(cached)
+                                    val activeId = _uiState.value.activeConversationId
+                                    if (activeId != null && activeId in cached) {
+                                        _uiState.update { state ->
+                                            if (state.activeConversationId == activeId) state.copy(messages = cached.getValue(activeId)) else state
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                },
-                onFailure = { err -> _uiState.update { it.copy(isLoading = false, errorMessage = err.message, incomingMessageRequests = requests) } },
-            )
+                    },
+                    onFailure = { err -> _uiState.update { it.copy(isLoading = false, errorMessage = err.message, incomingMessageRequests = requests) } },
+                )
+            } finally {
+                inboxRefreshJob = null
+                if (inboxRefreshQueued) {
+                    inboxRefreshQueued = false
+                    refreshInbox()
+                }
+            }
         }
     }
 
@@ -221,8 +235,16 @@ class MessagesNotificationsViewModel(
                             isSendingMessage = false,
                         )
                     }
+                    // The active conversation already has the confirmed message.
+                    // Avoid reloading the entire inbox after every successful send.
+                    _uiState.update { state ->
+                        state.copy(
+                            conversations = state.conversations
+                                .map { conv -> if (conv.id == conversationId) conv.copy(updatedAt = msg.createdAt) else conv }
+                                .sortedByDescending { it.updatedAt },
+                        )
+                    }
                     onSent(true)
-                    refreshInbox()
                 },
                 onFailure = { err ->
                     val updatedMessages = messageCache[conversationId].orEmpty().filterNot { it.id == pendingId }
