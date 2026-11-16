@@ -10,6 +10,7 @@ import com.example.core.network.NotificationDto
 import com.example.core.network.RealtimeEvent
 import com.example.data.repository.SkillectRepository
 import com.example.data.repository.markConversationRead
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
