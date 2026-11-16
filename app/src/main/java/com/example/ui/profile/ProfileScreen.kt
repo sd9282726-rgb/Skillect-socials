@@ -514,6 +514,11 @@ fun ProfileScreen(
                     } else {
                         items(uiState.posts, key = { it.id }) { post ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
+                                if (isOwnProfile) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                        TextButton(onClick = { pendingProfileDelete = "post" to post.id }) { Text("Delete") }
+                                    }
+                                }
                                 if (post.content.isNotBlank()) {
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(post.content, style = MaterialTheme.typography.bodyMedium)
