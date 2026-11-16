@@ -533,8 +533,10 @@ fun ProfileScreen(
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            post.author?.displayName?.ifBlank { post.author.username }
-                                                ?: profile?.displayName?.ifBlank { profile.username }
+                                            post.author?.displayName?.takeIf { it.isNotBlank() }
+                                                ?: post.author?.username?.takeIf { it.isNotBlank() }
+                                                ?: profile?.displayName?.takeIf { it.isNotBlank() }
+                                                ?: profile?.username?.takeIf { it.isNotBlank() }
                                                 ?: "Member",
                                             style = MaterialTheme.typography.titleSmall,
                                         )
