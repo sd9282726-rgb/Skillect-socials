@@ -662,9 +662,6 @@ fun SkillectApp(
                                     onOpenConversation = { cid, peerName ->
                                         navController.navigate(SkillectRoute.ChatDetail(cid, peerName))
                                     },
-                                    onOpenProfile = { userId ->
-                                        navController.navigate(SkillectRoute.Profile(userId))
-                                    },
                                     onRequireAuth = requireAuth,
                                 )
                             }
