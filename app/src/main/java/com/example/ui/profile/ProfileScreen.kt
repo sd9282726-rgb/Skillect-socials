@@ -723,6 +723,8 @@ fun ProfileScreen(
 
     if (showEditDialog) {
         var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
+        var username by remember { mutableStateOf(profile?.username.orEmpty()) }
+        var skills by remember { mutableStateOf(profile?.skills?.joinToString(", ").orEmpty()) }
         var website by remember { mutableStateOf(profile?.website.orEmpty()) }
         var bio by remember { mutableStateOf(profile?.bio.orEmpty()) }
         var region by remember { mutableStateOf(profile?.regionLabel.orEmpty()) }
