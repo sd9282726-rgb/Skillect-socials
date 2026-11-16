@@ -110,10 +110,12 @@ fun ShortsScreen(
                 val mediaUrl = videoPost.mediaUrls.firstOrNull().orEmpty()
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (mediaUrl.isNotBlank()) {
+                    // Only the visible page owns an ExoPlayer. Preloading players
+                    // for neighboring pages was opening multiple video streams at once.
+                    if (mediaUrl.isNotBlank() && pagerState.currentPage == page) {
                         VideoPlayerBox(
                             videoUrl = mediaUrl,
-                            isActive = pagerState.currentPage == page,
+                            isActive = true,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
