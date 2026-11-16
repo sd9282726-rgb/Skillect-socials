@@ -109,6 +109,7 @@ fun ProfileScreen(
     mediaUploadManager: MediaUploadManager,
     onOpenSettings: () -> Unit,
     onOpenConversation: (conversationId: String, peerName: String) -> Unit = { _, _ -> },
+    onOpenProfile: (userId: String) -> Unit = {},
     onRequireAuth: (createAccount: Boolean, reason: String) -> Unit = { _, _ -> },
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -1010,7 +1011,14 @@ fun ProfileScreen(
                     else -> LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
                         items(uiState.networkProfiles, key = { it.id }) { member ->
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .clickable {
+                                        showNetworkSheet = false
+                                        onOpenProfile(member.id)
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 SkillectAvatar(avatarUrl = member.avatarUrl, contentDescription = member.displayName + " avatar", size = 44.dp)
