@@ -91,13 +91,20 @@ Deno.serve(async (request: Request) => {
     if (is16To17(recipient.date_of_birth) && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
       return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
     }
-    const preferences = await rest(base, service, "user_preferences?select=allow_message_requests&user_id=eq." + recipientId + "&limit=1");
-    const allowRequests = preferences?.[0]?.allow_message_requests !== false;
+    const preferences = await rest(base, service, "user_preferences?select=allow_message_requests,message_privacy&user_id=eq." + recipientId + "&limit=1");
+    const pref = preferences?.[0] || {};
+    let messagePrivacy = String(pref.message_privacy || "").toLowerCase();
+    if (!["everyone", "following", "nobody"].includes(messagePrivacy)) {
+      messagePrivacy = pref.allow_message_requests === false ? "nobody" : "everyone";
+    }
     if (recipient.is_private && (!Array.isArray(senderFollowsTarget) || !senderFollowsTarget.length)) {
       return json(403, { error: "Follow this private profile before starting a conversation" });
     }
-    if (!allowRequests && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
-      return json(403, { error: "This creator is not accepting new message requests" });
+    if (messagePrivacy === "nobody") {
+      return json(403, { error: "This person is not accepting new messages" });
+    }
+    if (messagePrivacy === "following" && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
+      return json(403, { error: "Only people they follow can message them" });
     }
     const ownRows = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + senderId);
     const existingIds = [...new Set((ownRows || []).map((row: any) => row.conversation_id))];
@@ -106,12 +113,6 @@ Deno.serve(async (request: Request) => {
       if (Array.isArray(matches) && matches.length) {
         return json(200, { status: "existing", conversation_id: matches[0].conversation_id });
       }
-    }
-
-    if (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length) {
-      const pending = await rest(base, service, "message_requests?select=id&sender_id=eq." + senderId + "&recipient_id=eq." + recipientId + "&status=eq.pending&limit=1");
-      if (Array.isArray(pending) && pending.length) return json(200, { status: "request_pending", request_id: pending[0].id });
-      return json(200, { status: "request_required", recipient_id: recipientId });
     }
 
     const created = await rest(base, service, "conversations?select=id", "POST", { created_by: senderId });
