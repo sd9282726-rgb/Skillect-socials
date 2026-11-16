@@ -663,7 +663,8 @@ fun ProfileScreen(
                                             tint = MaterialTheme.colorScheme.primary,
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(ach.title, style = MaterialTheme.typography.titleMedium)
+                                        Text(ach.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                                        if (isOwnProfile) TextButton(onClick = { pendingProfileDelete = "achievement" to ach.id }) { Text("Delete") }
                                     }
                                     val subtitle = listOfNotNull(
                                         ach.issuer.takeIf { it.isNotBlank() },
@@ -731,6 +732,26 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+
+    pendingProfileDelete?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pendingProfileDelete = null },
+            title = { Text("Delete this item?") },
+            text = { Text("This will permanently remove it from your profile.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    when (target.first) {
+                        "post" -> viewModel.deletePost(target.second)
+                        "project" -> viewModel.deleteProject(target.second)
+                        "experience" -> viewModel.deleteExperience(target.second)
+                        "achievement" -> viewModel.deleteAchievement(target.second)
+                    }
+                    pendingProfileDelete = null
+                }) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { pendingProfileDelete = null }) { Text("Cancel") } },
+        )
     }
 
     if (showEditDialog) {
