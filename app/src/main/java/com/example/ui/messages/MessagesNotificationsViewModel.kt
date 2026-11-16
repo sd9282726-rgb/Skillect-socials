@@ -50,7 +50,7 @@ class MessagesNotificationsViewModel(
                                 refreshInbox()
                             }
                         }
-                        is RealtimeEvent.NewNotification -> refreshNotifications()
+                        is RealtimeEvent.NewNotification -> { refreshNotifications(); refreshInbox() }
                         else -> Unit
                     }
                 }
