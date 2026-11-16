@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -90,6 +91,7 @@ import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.core.designsystem.VerifiedCreatorBadge
 import com.example.core.media.MediaUploadManager
+import com.example.core.media.VideoPlayerBox
 import com.example.ui.feed.ReportContentDialog
 import kotlinx.coroutines.launch
 
@@ -498,16 +500,26 @@ fun ProfileScreen(
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(post.content, style = MaterialTheme.typography.bodyMedium)
                                 }
-                                if (post.mediaUrls.isNotEmpty() && post.mediaTypes.firstOrNull() != "video") {
+                                if (post.mediaUrls.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    AsyncImage(
-                                        model = post.mediaUrls.first(),
-                                        contentDescription = "Post media",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(160.dp),
-                                    )
+                                    if (post.postType == "video" || post.mediaTypes.firstOrNull() == "video") {
+                                        VideoPlayerBox(
+                                            videoUrl = post.mediaUrls.first(),
+                                            isActive = false,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(16f / 9f),
+                                        )
+                                    } else {
+                                        AsyncImage(
+                                            model = post.mediaUrls.first(),
+                                            contentDescription = "Post media",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(160.dp),
+                                        )
+                                    }
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
