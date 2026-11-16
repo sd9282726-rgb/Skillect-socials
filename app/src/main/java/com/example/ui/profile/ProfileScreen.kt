@@ -6,6 +6,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
@@ -49,6 +50,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
@@ -160,6 +163,7 @@ fun ProfileScreen(
     var showCollectionDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
+    var showNetworkSheet by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -415,8 +419,25 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                         StatCounter(uiState.postsCount ?: maxOf(profile?.postsCount ?: 0, uiState.posts.size), "Posts")
-                        StatCounter(uiState.followersCount ?: profile?.followersCount ?: 0, "Networks")
-                        StatCounter(uiState.followingCount ?: profile?.followingCount ?: 0, "Connected")
+                        val canViewNetwork = profile?.isPrivate != true || isOwnProfile || uiState.isFollowing
+                        if (canViewNetwork) {
+                            StatCounter(
+                                uiState.followersCount ?: profile?.followersCount ?: 0,
+                                "Networks",
+                                modifier = Modifier.clickable {
+                                    profile?.id?.let { viewModel.loadNetworkList(it, followers = true) }
+                                    showNetworkSheet = true
+                                }.testTag("profile_followers_counter"),
+                            )
+                            StatCounter(
+                                uiState.followingCount ?: profile?.followingCount ?: 0,
+                                "Connected",
+                                modifier = Modifier.clickable {
+                                    profile?.id?.let { viewModel.loadNetworkList(it, followers = false) }
+                                    showNetworkSheet = true
+                                }.testTag("profile_following_counter"),
+                            )
+                        }
                     }
 
                     if (profile != null && (profile.skills.isNotEmpty() || profile.interests.isNotEmpty())) {
@@ -908,6 +929,38 @@ fun ProfileScreen(
         )
     }
 
+    if (showNetworkSheet) {
+        ModalBottomSheet(onDismissRequest = { showNetworkSheet = false }) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+                Text(uiState.networkTitle, style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.height(12.dp))
+                when {
+                    uiState.isLoadingNetwork -> CircularProgressIndicator()
+                    uiState.networkProfiles.isEmpty() -> Text(
+                        "No accounts to show yet.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 20.dp),
+                    )
+                    else -> LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+                        items(uiState.networkProfiles, key = { it.id }) { member ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                SkillectAvatar(avatarUrl = member.avatarUrl, contentDescription = member.displayName + " avatar", size = 44.dp)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(member.displayName.ifBlank { member.username }, style = MaterialTheme.typography.titleSmall)
+                                    Text("@" + member.username, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
     if (showReportDialog && profile != null) {
         ReportContentDialog(
             title = "Report Account",
@@ -921,8 +974,8 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun StatCounter(count: Int, label: String) {
-    Column {
+private fun StatCounter(count: Int, label: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
         Text(
             text = AppConfig.formatCompactCount(count),
             style = MaterialTheme.typography.titleMedium,
