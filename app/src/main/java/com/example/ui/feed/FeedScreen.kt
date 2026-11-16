@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -807,6 +808,7 @@ fun CommentsBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Text("Discussion & Replies", style = MaterialTheme.typography.titleLarge)
@@ -846,7 +848,7 @@ fun CommentsBottomSheet(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "${comment.author?.displayName ?: "Member"} · ${AppConfig.formatPostTimestamp(comment.createdAt)}",
+                                    text = comment.author?.displayName?.takeIf { it.isNotBlank() } ?: "Member",
                                     style = MaterialTheme.typography.labelMedium,
                                 )
                                 Text(text = comment.content, style = MaterialTheme.typography.bodyMedium)
