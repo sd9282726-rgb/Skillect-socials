@@ -35,6 +35,8 @@ class MessagesNotificationsViewModel(
     private val repository: SkillectRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(MessagesNotificationsUiState())
+    private val messageCache = mutableMapOf<String, List<MessageDto>>()
+    private val messageLoadsInFlight = mutableSetOf<String>()
     val uiState: StateFlow<MessagesNotificationsUiState> = _uiState.asStateFlow()
 
     init {
