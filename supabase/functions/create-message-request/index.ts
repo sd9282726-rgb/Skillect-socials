@@ -64,10 +64,9 @@ Deno.serve(async (request: Request) => {
       return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
     }
     if (Array.isArray(recipientFollowsSender) && recipientFollowsSender.length) return json(409, { error: "This creator can receive a direct message. Refresh the profile and try again." });
-    if (recipient.is_private) {
-      const senderFollowsRecipient = await rest(base, service, "follows?select=id&follower_id=eq." + senderId + "&following_id=eq." + recipientId + "&limit=1");
-      if (!Array.isArray(senderFollowsRecipient) || !senderFollowsRecipient.length) return json(403, { error: "Follow this private profile before sending a message request" });
-    }
+    // Private profiles may receive a message request from a non-follower.
+    // The recipient decides whether to accept or decline; existing age, block,
+    // moderation, rate-limit and messaging-preference checks still apply.
     const pending = await rest(base, service, "message_requests?select=id&sender_id=eq." + senderId + "&recipient_id=eq." + recipientId + "&status=eq.pending&limit=1");
     if (Array.isArray(pending) && pending.length) return json(200, { status: "pending", request_id: pending[0].id });
     const since = encodeURIComponent(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
