@@ -310,6 +310,7 @@ class SkillectRepository(
             }
         }
         realtimeClient.disconnect()
+        conversationIdByPeerId.clear()
         analyticsTracker.setUserId(null)
         sessionStore.clearSession()
         return Result.success(Unit)
