@@ -113,6 +113,10 @@ data class ModerationGatewayResponse(
     @Json(name = "post_id") val postId: String? = null,
     @Json(name = "comment_id") val commentId: String? = null,
     @Json(name = "message_id") val messageId: String? = null,
+    @Json(name = "conversation_id") val conversationId: String? = null,
+    @Json(name = "sender_id") val senderId: String? = null,
+    val content: String? = null,
+    @Json(name = "created_at") val createdAt: String? = null,
     val message: String? = null,
 )
 
