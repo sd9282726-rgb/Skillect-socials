@@ -63,7 +63,7 @@ private data class ProfileSectionsResult(
     val projects: Result<List<ProjectDto>>,
     val experiences: Result<List<ExperienceDto>>,
     val achievements: Result<List<AchievementDto>>,
-    val followingIds: Result<List<String>>,
+    val isFollowing: Result<Boolean>,
     val postCount: Result<Int>,
     val followCounts: Result<Pair<Int, Int>>,
 )
