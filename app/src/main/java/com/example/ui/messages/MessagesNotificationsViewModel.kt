@@ -10,7 +10,9 @@ import com.example.core.network.NotificationDto
 import com.example.core.network.RealtimeEvent
 import com.example.data.repository.SkillectRepository
 import com.example.data.repository.markConversationRead
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -202,28 +204,28 @@ class MessagesNotificationsViewModel(
     ) {
         if (content.isBlank()) return
         val clean = content.trim()
-        val uid = repository.sessionStore.currentSession().userId
-        val pendingId = "pending-" + java.util.UUID.randomUUID().toString()
-        val pending = MessageDto(
-            id = pendingId,
-            conversationId = conversationId,
-            senderId = uid,
-            content = clean,
-            deliveryStatus = "sending",
-            createdAt = com.example.core.util.TimeCompat.nowUtcIso(),
-        )
-        val wasActive = _uiState.value.activeConversationId == conversationId
-        val baseMessages = if (wasActive) _uiState.value.messages else messageCache[conversationId].orEmpty()
-        val optimistic = baseMessages + pending
-        messageCache[conversationId] = optimistic
-        _uiState.update { state ->
-            state.copy(
-                messages = if (state.activeConversationId == conversationId) optimistic else state.messages,
-                isSendingMessage = true,
-                statusMessage = null,
-            )
-        }
         viewModelScope.launch {
+            val uid = repository.sessionStore.currentSession().userId
+            val pendingId = "pending-" + java.util.UUID.randomUUID().toString()
+            val pending = MessageDto(
+                id = pendingId,
+                conversationId = conversationId,
+                senderId = uid,
+                content = clean,
+                deliveryStatus = "sending",
+                createdAt = com.example.core.util.TimeCompat.nowUtcIso(),
+            )
+            val wasActive = _uiState.value.activeConversationId == conversationId
+            val baseMessages = if (wasActive) _uiState.value.messages else messageCache[conversationId].orEmpty()
+            val optimistic = baseMessages + pending
+            messageCache[conversationId] = optimistic
+            _uiState.update { state ->
+                state.copy(
+                    messages = if (state.activeConversationId == conversationId) optimistic else state.messages,
+                    isSendingMessage = true,
+                    statusMessage = null,
+                )
+            }
             repository.sendMessage(conversationId, clean, mediaUrl).fold(
                 onSuccess = { msg ->
                     val updatedMessages = messageCache[conversationId].orEmpty()
@@ -235,8 +237,6 @@ class MessagesNotificationsViewModel(
                             isSendingMessage = false,
                         )
                     }
-                    // The active conversation already has the confirmed message.
-                    // Avoid reloading the entire inbox after every successful send.
                     _uiState.update { state ->
                         state.copy(
                             conversations = state.conversations
