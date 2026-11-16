@@ -206,7 +206,7 @@ class ProfileSettingsViewModel(
 
             // Load the profile header and its sections at the same time. Cached sections
             // remain visible while the fresh values arrive in the background.
-            var profileResult: Result<ProfileDto>? = null
+            var profileResult: Result<ProfileDto?>? = null
             val profileDeferred = async { repository.fetchProfileById(effectiveId) }
             val profileHeaderJob = launch {
                 val result = profileDeferred.await()
@@ -250,7 +250,7 @@ class ProfileSettingsViewModel(
                 )
             }
             profileHeaderJob.join()
-            val resolvedProfileResult = profileResult ?: Result.failure(IllegalStateException("Profile could not be loaded."))
+            val resolvedProfileResult = profileResult ?: Result.failure<ProfileDto?>(IllegalStateException("Profile could not be loaded."))
             val profile = resolvedProfileResult.getOrNull() ?: cachedProfile
             val postsResult = sections.posts
             val projectsResult = sections.projects
