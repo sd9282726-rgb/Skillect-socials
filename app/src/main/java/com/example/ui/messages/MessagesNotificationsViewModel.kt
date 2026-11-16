@@ -123,9 +123,14 @@ class MessagesNotificationsViewModel(
             val readTask = async { repository.markConversationRead(conversationId) }
             messagesTask.await().fold(
                 onSuccess = { list ->
-                    messageCache[conversationId] = list
+                    // A history refresh can finish after the user has already sent a
+                    // message. Preserve any local pending bubbles while merging history.
+                    val pending = messageCache[conversationId].orEmpty()
+                        .filter { it.deliveryStatus == "sending" }
+                    val merged = (list + pending).distinctBy { it.id }.sortedBy { it.createdAt }
+                    messageCache[conversationId] = merged
                     if (_uiState.value.activeConversationId == conversationId) {
-                        _uiState.update { it.copy(messages = list, errorMessage = null) }
+                        _uiState.update { it.copy(messages = merged, errorMessage = null) }
                     }
                 },
                 onFailure = { err ->
