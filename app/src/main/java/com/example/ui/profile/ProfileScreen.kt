@@ -883,9 +883,7 @@ fun ProfileScreen(
                                     leadingIcon = {
                                         Checkbox(
                                             checked = skill in selectedSkills,
-                                            onCheckedChange = { checked ->
-                                                selectedSkills = if (checked) selectedSkills + skill else selectedSkills - skill
-                                            },
+                                            onCheckedChange = null,
                                         )
                                     },
                                     onClick = {
