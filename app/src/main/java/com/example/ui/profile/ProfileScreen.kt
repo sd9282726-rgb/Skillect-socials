@@ -350,9 +350,13 @@ fun ProfileScreen(
                                         } else if (profile.isPrivate && !uiState.isFollowing) {
                                             showPrivateMessageDialog = true
                                         } else {
-                                            viewModel.startDirectConversation(profile.id) { conversationId ->
-                                                onOpenConversation(conversationId, profile.displayName)
-                                            }
+                                            viewModel.startDirectConversation(
+                                                profile.id,
+                                                onSuccess = { conversationId ->
+                                                    onOpenConversation(conversationId, profile.displayName)
+                                                },
+                                                onRequestRequired = { showPrivateMessageDialog = true },
+                                            )
                                         }
                                     },
                                     modifier = Modifier.testTag("profile_message_button"),
