@@ -269,20 +269,20 @@ Deno.serve(async (request: Request) => {
         const participants = await rest(base, service, "conversation_participants?select=user_id&conversation_id=eq." + encodeURIComponent(parentId));
         if (!Array.isArray(participants) || !participants.some((p: any) => p.user_id === userId)) return json(403, { error: "You are not a participant in this conversation" });
         const others = participants.map((p: any) => p.user_id).filter((id: string) => id !== userId);
-        for (const other of others) {
-          const filter = "or=(and(blocker_id.eq." + userId + ",blocked_id.eq." + other + "),and(blocker_id.eq." + other + ",blocked_id.eq." + userId + "))";
-          const blocks = await rest(base, service, "blocks?select=id&" + filter + "&limit=1");
-          if (Array.isArray(blocks) && blocks.length > 0) return json(403, { error: "Messaging is unavailable because one account has blocked the other" });
-        }
         if (others.length) {
-          const profiles = await rest(base, service, "profiles?select=id,date_of_birth&id=in.(" + others.join(",") + ")");
+          // Verify block, age and minor-network rules concurrently. These checks
+          // remain mandatory, but serial REST calls were adding seconds to every send.
+          const [blocks, profiles] = await Promise.all([
+            rest(base, service, "blocks?select=id&or=(" + others.map((other: string) => "and(blocker_id.eq." + userId + ",blocked_id.eq." + other + "),and(blocker_id.eq." + other + ",blocked_id.eq." + userId + ")").join(",") + ")&limit=1"),
+            rest(base, service, "profiles?select=id,date_of_birth&id=in.(" + others.join(",") + ")"),
+          ]);
+          if (Array.isArray(blocks) && blocks.length) return json(403, { error: "Messaging is unavailable because one account has blocked the other" });
           if (!Array.isArray(profiles) || profiles.length !== others.length) return json(503, { error: "Could not verify messaging safety settings" });
-          for (const otherProfile of profiles) {
-            if (!is16To17(otherProfile.date_of_birth)) continue;
-            const follows = await rest(base, service, "follows?select=id&follower_id=eq." + otherProfile.id + "&following_id=eq." + userId + "&limit=1");
-            if (!Array.isArray(follows) || !follows.length) {
-              return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
-            }
+          const minorChecks = await Promise.all(profiles.filter((p: any) => is16To17(p.date_of_birth)).map((p: any) =>
+            rest(base, service, "follows?select=id&follower_id=eq." + p.id + "&following_id=eq." + userId + "&limit=1")
+          ));
+          if (minorChecks.some((follows: any) => !Array.isArray(follows) || !follows.length)) {
+            return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
           }
         }
       } catch { return json(503, { error: "Could not verify conversation permissions" }); }
@@ -431,6 +431,20 @@ Deno.serve(async (request: Request) => {
       return json(200, { status: "approved", id: Array.isArray(createdProject) ? createdProject[0]?.id : null });
     }
     const table = type === "post" ? "posts" : type === "comment" ? "comments" : type === "community" ? "communities" : "messages";
+    if (type === "message") {
+      const created = await rest(base, service, "messages?select=id,conversation_id,sender_id,content,created_at", "POST", record);
+      const saved = Array.isArray(created) ? created[0] : null;
+      if (!saved?.id) return json(503, { error: "Message could not be saved." });
+      return json(200, {
+        status: "approved",
+        id: saved.id,
+        message_id: saved.id,
+        conversation_id: saved.conversation_id,
+        sender_id: saved.sender_id,
+        content: saved.content,
+        created_at: saved.created_at,
+      });
+    }
     const created = await rest(base, service, table + "?select=id", "POST", record);
     return json(200, { status: "approved", id: Array.isArray(created) ? created[0]?.id : null });
   } catch {
