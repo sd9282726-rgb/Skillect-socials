@@ -124,7 +124,9 @@ class SkillectRepository(
             json.optString("msg").ifBlank {
                 json.optString("message").ifBlank {
                     json.optString("error_description").ifBlank {
-                        json.optString("error_code").ifBlank { "HTTP ${code()}" }
+                        json.optString("error").ifBlank {
+                            json.optString("error_code").ifBlank { "HTTP ${code()}" }
+                        }
                     }
                 }
             }
