@@ -496,11 +496,22 @@ class ProfileSettingsViewModel(
         }
     }
 
-    fun startDirectConversation(peerUserId: String, onSuccess: (String) -> Unit) {
+    fun startDirectConversation(
+        peerUserId: String,
+        onSuccess: (String) -> Unit,
+        onRequestRequired: () -> Unit = {},
+    ) {
         viewModelScope.launch {
             repository.startDirectConversation(peerUserId).fold(
                 onSuccess = { conversationId -> onSuccess(conversationId) },
-                onFailure = { err -> _uiState.update { it.copy(statusMessage = err.message) } },
+                onFailure = { err ->
+                    val message = err.message.orEmpty()
+                    if (message.contains("Follow this private profile", ignoreCase = true)) {
+                        onRequestRequired()
+                    } else {
+                        _uiState.update { it.copy(statusMessage = message) }
+                    }
+                },
             )
         }
     }
