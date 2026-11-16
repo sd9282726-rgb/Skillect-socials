@@ -337,6 +337,25 @@ interface SupabasePostgrestApi {
         @Query("user_id") userIdEq: String,
     ): Response<ResponseBody>
 
+    @GET("rest/v1/message_requests")
+    suspend fun getIncomingMessageRequests(
+        @Query("recipient_id") recipientIdEq: String,
+        @Query("status") statusEq: String = "eq.pending",
+        @Query("select") select: String = "*,sender:profiles!message_requests_sender_id_fkey(*)",
+        @Query("order") order: String = "created_at.desc",
+        @Query("limit") limit: Int = 50,
+    ): Response<List<MessageRequestDto>>
+
+    @POST("functions/v1/create-message-request")
+    suspend fun createMessageRequest(
+        @Body request: Map<String, @JvmSuppressWildcards Any?>,
+    ): Response<Map<String, String>>
+
+    @POST("functions/v1/respond-message-request")
+    suspend fun respondMessageRequest(
+        @Body request: Map<String, String>,
+    ): Response<Map<String, String>>
+
     @GET("rest/v1/conversations")
     suspend fun getConversations(
         @Query("select") select: String = "*,participants:conversation_participants(*,profile:profiles(*)),read_markers:conversation_reads(*)",
