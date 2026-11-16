@@ -183,7 +183,9 @@ class ProfileSettingsViewModel(
                 )
             }
 
-            val cachedSections = profileSectionsCache[effectiveId]
+            // Only reuse private profile sections for the signed-in owner's own profile.
+            // Another member's privacy/follow permissions may have changed since the cache was filled.
+            val cachedSections = if (isOwnProfile) profileSectionsCache[effectiveId] else null
             _uiState.update { state ->
                 val sameProfile = state.viewedProfile?.id == effectiveId
                 state.copy(
