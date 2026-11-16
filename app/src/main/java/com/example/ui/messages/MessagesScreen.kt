@@ -223,7 +223,7 @@ fun MessagesInboxScreen(
                                         }
                                     }
                                     Text(
-                                        text = "@${peer?.username ?: "member"} · ${AppConfig.formatRelativeTimestamp(conv.updatedAt)}",
+                                        text = "@${peer?.username ?: "member"}",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
@@ -365,11 +365,6 @@ fun ChatDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.End,
                                 ) {
-                                    Text(
-                                        text = AppConfig.formatRelativeTimestamp(msg.createdAt),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isMine) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
                                     if (isMine) {
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Icon(
