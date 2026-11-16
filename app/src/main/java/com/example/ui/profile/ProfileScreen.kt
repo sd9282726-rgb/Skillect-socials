@@ -584,7 +584,10 @@ fun ProfileScreen(
                     } else {
                         items(uiState.projects, key = { it.id }) { proj ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
-                                Text(proj.title, style = MaterialTheme.typography.titleMedium)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(proj.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                                    if (isOwnProfile) TextButton(onClick = { pendingProfileDelete = "project" to proj.id }) { Text("Delete") }
+                                }
                                 Text(proj.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(proj.description, style = MaterialTheme.typography.bodyMedium)
