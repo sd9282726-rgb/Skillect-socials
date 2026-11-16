@@ -268,16 +268,18 @@ class ProfileSettingsViewModel(
             val loadedPostCount = postCountResult.getOrNull() ?: cachedSections?.postsCount ?: profile?.postsCount
             val loadedFollowersCount = followCountsResult.getOrNull()?.first ?: cachedSections?.followersCount ?: profile?.followersCount
             val loadedFollowingCount = followCountsResult.getOrNull()?.second ?: cachedSections?.followingCount ?: profile?.followingCount
-            profileSectionsCache[effectiveId] = CachedProfileSections(
-                posts = loadedPosts,
-                projects = loadedProjects,
-                experiences = loadedExperiences,
-                achievements = loadedAchievements,
-                isFollowing = loadedFollowing,
-                postsCount = loadedPostCount,
-                followersCount = loadedFollowersCount,
-                followingCount = loadedFollowingCount,
-            )
+            if (isOwnProfile) {
+                profileSectionsCache[effectiveId] = CachedProfileSections(
+                    posts = loadedPosts,
+                    projects = loadedProjects,
+                    experiences = loadedExperiences,
+                    achievements = loadedAchievements,
+                    isFollowing = loadedFollowing,
+                    postsCount = loadedPostCount,
+                    followersCount = loadedFollowersCount,
+                    followingCount = loadedFollowingCount,
+                )
+            }
 
             val loadError = listOfNotNull(
                 resolvedProfileResult.exceptionOrNull()?.message,
