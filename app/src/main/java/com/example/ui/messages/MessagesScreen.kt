@@ -178,7 +178,7 @@ fun MessagesInboxScreen(
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(sender?.displayName?.ifBlank { sender.username } ?: "Skillect member", style = MaterialTheme.typography.titleSmall)
+                                    Text(sender?.let { it.displayName.ifBlank { it.username } } ?: "Skillect member", style = MaterialTheme.typography.titleSmall)
                                     Text("@${sender?.username ?: "member"} tried to contact you", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
