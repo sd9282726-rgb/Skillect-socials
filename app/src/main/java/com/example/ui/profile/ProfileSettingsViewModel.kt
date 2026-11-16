@@ -86,6 +86,7 @@ class ProfileSettingsViewModel(
     private val _uiState = MutableStateFlow(ProfileSettingsUiState())
     private var profileLoadJob: Job? = null
     private val profileCache = mutableMapOf<String, ProfileDto>()
+    private val profileSectionsCache = mutableMapOf<String, CachedProfileSections>()
     val uiState: StateFlow<ProfileSettingsUiState> = _uiState.asStateFlow()
 
     init {
@@ -104,6 +105,7 @@ class ProfileSettingsViewModel(
                 clearPrivateState()
                 return@launch
             }
+            viewModelScope.launch { repository.fetchConversations() }
             val my = repository.fetchMyProfile().getOrNull()
             if (my != null) repository.sessionStore.saveCachedProfile(my)
             val collections = repository.fetchSavedCollections().getOrDefault(emptyList())
@@ -124,6 +126,7 @@ class ProfileSettingsViewModel(
         profileLoadJob?.cancel()
         profileLoadJob = null
         profileCache.clear()
+        profileSectionsCache.clear()
         _uiState.update {
             it.copy(
                 myProfile = null,
@@ -179,33 +182,56 @@ class ProfileSettingsViewModel(
                 )
             }
 
-            // Fetch the identity first so the profile header can render immediately.
-            val profileResult = repository.fetchProfileById(effectiveId)
-            val profile = profileResult.getOrNull() ?: cachedProfile
-            if (profile != null) {
-                if (isOwnProfile && profileResult.isSuccess) repository.sessionStore.saveCachedProfile(profile)
-                profileCache[effectiveId] = profile
-                _uiState.update { state ->
-                    state.copy(
-                        viewedProfile = profile,
-                        myProfile = if (isOwnProfile) profile else state.myProfile,
-                        postsCount = state.postsCount ?: profile.postsCount,
-                        followersCount = state.followersCount ?: profile.followersCount,
-                        followingCount = state.followingCount ?: profile.followingCount,
-                        isLoading = false,
-                    )
+            val cachedSections = profileSectionsCache[effectiveId]
+            _uiState.update { state ->
+                val sameProfile = state.viewedProfile?.id == effectiveId
+                state.copy(
+                    isLoading = cachedProfile == null && cachedSections == null,
+                    isFollowActionPending = false,
+                    errorMessage = null,
+                    viewedProfile = cachedProfile,
+                    posts = cachedSections?.posts ?: if (sameProfile) state.posts else emptyList(),
+                    projects = cachedSections?.projects ?: if (sameProfile) state.projects else emptyList(),
+                    experiences = cachedSections?.experiences ?: if (sameProfile) state.experiences else emptyList(),
+                    achievements = cachedSections?.achievements ?: if (sameProfile) state.achievements else emptyList(),
+                    isFollowing = cachedSections?.isFollowing ?: if (sameProfile) state.isFollowing else false,
+                    postsCount = cachedSections?.postsCount ?: if (sameProfile) state.postsCount else cachedProfile?.postsCount,
+                    followersCount = cachedSections?.followersCount ?: if (sameProfile) state.followersCount else cachedProfile?.followersCount,
+                    followingCount = cachedSections?.followingCount ?: if (sameProfile) state.followingCount else cachedProfile?.followingCount,
+                )
+            }
+
+            // Load the profile header and its sections at the same time. Cached sections
+            // remain visible while the fresh values arrive in the background.
+            var profileResult: Result<ProfileDto> = Result.success(cachedProfile ?: ProfileDto(id = effectiveId))
+            val profileDeferred = async { repository.fetchProfileById(effectiveId) }
+            val profileHeaderJob = launch {
+                profileResult = profileDeferred.await()
+                val loadedProfile = profileResult.getOrNull() ?: cachedProfile
+                if (loadedProfile != null) {
+                    if (isOwnProfile && profileResult.isSuccess) repository.sessionStore.saveCachedProfile(loadedProfile)
+                    profileCache[effectiveId] = loadedProfile
+                    _uiState.update { state ->
+                        state.copy(
+                            viewedProfile = loadedProfile,
+                            myProfile = if (isOwnProfile) loadedProfile else state.myProfile,
+                            postsCount = state.postsCount ?: loadedProfile.postsCount,
+                            followersCount = state.followersCount ?: loadedProfile.followersCount,
+                            followingCount = state.followingCount ?: loadedProfile.followingCount,
+                            isLoading = false,
+                        )
+                    }
                 }
             }
 
-            // Secondary profile sections load concurrently and never block the header.
             val sections = coroutineScope {
                 val posts = async { repository.fetchPostsByAuthor(effectiveId) }
                 val projects = async { repository.fetchProjects(effectiveId) }
                 val experiences = async { repository.fetchExperiences(effectiveId) }
                 val achievements = async { repository.fetchAchievements(effectiveId) }
                 val following = async {
-                    if (myId.isNotBlank()) repository.getFollowingIds(myId)
-                    else Result.success(emptyList<String>())
+                    if (myId.isNotBlank() && !isOwnProfile) repository.isFollowingUser(effectiveId)
+                    else Result.success(false)
                 }
                 val postCount = async { repository.fetchPostCount(effectiveId) }
                 val followCounts = async { repository.fetchFollowCounts(effectiveId) }
@@ -214,18 +240,39 @@ class ProfileSettingsViewModel(
                     projects = projects.await(),
                     experiences = experiences.await(),
                     achievements = achievements.await(),
-                    followingIds = following.await(),
+                    isFollowing = following.await(),
                     postCount = postCount.await(),
                     followCounts = followCounts.await(),
                 )
             }
+            profileHeaderJob.join()
+            val profile = profileResult.getOrNull() ?: cachedProfile
             val postsResult = sections.posts
             val projectsResult = sections.projects
             val experiencesResult = sections.experiences
             val achievementsResult = sections.achievements
-            val followingResult = sections.followingIds
+            val followingResult = sections.isFollowing
             val postCountResult = sections.postCount
             val followCountsResult = sections.followCounts
+
+            val loadedPosts = postsResult.getOrDefault(cachedSections?.posts ?: emptyList())
+            val loadedProjects = projectsResult.getOrDefault(cachedSections?.projects ?: emptyList())
+            val loadedExperiences = experiencesResult.getOrDefault(cachedSections?.experiences ?: emptyList())
+            val loadedAchievements = achievementsResult.getOrDefault(cachedSections?.achievements ?: emptyList())
+            val loadedFollowing = followingResult.getOrDefault(cachedSections?.isFollowing ?: false)
+            val loadedPostCount = postCountResult.getOrNull() ?: cachedSections?.postsCount ?: profile?.postsCount
+            val loadedFollowersCount = followCountsResult.getOrNull()?.first ?: cachedSections?.followersCount ?: profile?.followersCount
+            val loadedFollowingCount = followCountsResult.getOrNull()?.second ?: cachedSections?.followingCount ?: profile?.followingCount
+            profileSectionsCache[effectiveId] = CachedProfileSections(
+                posts = loadedPosts,
+                projects = loadedProjects,
+                experiences = loadedExperiences,
+                achievements = loadedAchievements,
+                isFollowing = loadedFollowing,
+                postsCount = loadedPostCount,
+                followersCount = loadedFollowersCount,
+                followingCount = loadedFollowingCount,
+            )
 
             val loadError = listOfNotNull(
                 profileResult.exceptionOrNull()?.message,
@@ -242,14 +289,14 @@ class ProfileSettingsViewModel(
                 state.copy(
                     viewedProfile = profile ?: state.viewedProfile,
                     myProfile = if (isOwnProfile) profile ?: state.myProfile else state.myProfile,
-                    posts = postsResult.getOrDefault(state.posts),
-                    projects = projectsResult.getOrDefault(state.projects),
-                    experiences = experiencesResult.getOrDefault(state.experiences),
-                    achievements = achievementsResult.getOrDefault(state.achievements),
-                    isFollowing = effectiveId in followingResult.getOrDefault(emptyList()),
-                    postsCount = postCountResult.getOrNull() ?: state.postsCount,
-                    followersCount = followCountsResult.getOrNull()?.first ?: state.followersCount,
-                    followingCount = followCountsResult.getOrNull()?.second ?: state.followingCount,
+                    posts = loadedPosts,
+                    projects = loadedProjects,
+                    experiences = loadedExperiences,
+                    achievements = loadedAchievements,
+                    isFollowing = loadedFollowing,
+                    postsCount = loadedPostCount,
+                    followersCount = loadedFollowersCount,
+                    followingCount = loadedFollowingCount,
                     isLoading = false,
                     errorMessage = loadError,
                 )
