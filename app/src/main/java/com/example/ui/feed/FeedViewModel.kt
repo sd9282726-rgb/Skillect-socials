@@ -12,6 +12,8 @@ import com.example.data.repository.BackendNotConfiguredException
 import com.example.data.repository.FeedTab
 import com.example.data.repository.SkillectRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -116,9 +118,12 @@ class FeedViewModel(
         viewModelScope.launch {
             val uid = repository.sessionStore.currentSession().userId
             if (uid.isBlank()) return@launch
-            val likesResult = repository.fetchMyLikedPostIds()
-            val savedResult = repository.fetchSavedPosts()
-            val pollVotesResult = repository.fetchMyPollVotes()
+            val (likesResult, savedResult, pollVotesResult) = coroutineScope {
+                val likes = async { repository.fetchMyLikedPostIds() }
+                val saved = async { repository.fetchSavedPosts() }
+                val votes = async { repository.fetchMyPollVotes() }
+                Triple(likes.await(), saved.await(), votes.await())
+            }
             val likes = likesResult.getOrNull()
             val saved = savedResult.getOrNull()?.map { it.postId }?.toSet()
             val pollVotes = pollVotesResult.getOrNull()
