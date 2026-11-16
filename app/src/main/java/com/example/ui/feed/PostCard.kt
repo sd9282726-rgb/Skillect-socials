@@ -177,7 +177,7 @@ fun PostCard(
                         VerifiedCreatorBadge()
                     }
                     Text(
-                        text = " · ${AppConfig.formatRelativeTimestamp(post.createdAt)}",
+                        text = " · ${AppConfig.formatPostTimestamp(post.createdAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
