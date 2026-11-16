@@ -1,6 +1,9 @@
-name: Manual Android release build
+name: Android signed release build
 
 on:
+  push:
+    branches:
+      - fix/onboarding
   workflow_dispatch:
 
 permissions:
@@ -76,13 +79,6 @@ jobs:
               exit 1
             fi
           done
-
-      - name: Apply safe UI fixes only
-        run: |
-          set -euo pipefail
-          bash scripts/apply_ui_fixes.sh
-          bash scripts/apply_privacy_client.sh
-          bash scripts/apply_social_profile_fixes.sh
 
       - name: Assemble signed release APK and AAB
         env:
