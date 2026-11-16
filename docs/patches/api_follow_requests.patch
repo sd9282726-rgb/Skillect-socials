@@ -1,0 +1,30 @@
+diff --git a/app/src/main/java/com/example/core/network/SupabaseApiService.kt b/app/src/main/java/com/example/core/network/SupabaseApiService.kt
+index 237eb38..3faff92 100644
+--- a/app/src/main/java/com/example/core/network/SupabaseApiService.kt
++++ b/app/src/main/java/com/example/core/network/SupabaseApiService.kt
+@@ -212,6 +212,25 @@ interface SupabasePostgrestApi {
+         @Query("follower_id") followerIdEq: String,
+     ): Response<Void>
+ 
++    @GET("rest/v1/follow_requests")
++    suspend fun getFollowRequests(
++        @Query("requester_id") requesterIdEq: String? = null,
++        @Query("target_id") targetIdEq: String? = null,
++        @Query("status") statusEq: String? = null,
++        @Query("select") select: String = "*",
++        @Query("limit") limit: Int = 50,
++    ): Response<List<Map<String, @JvmSuppressWildcards Any?>>>
++
++    @Headers("Prefer: resolution=merge-duplicates,return=representation")
++    @POST("rest/v1/follow_requests")
++    suspend fun createFollowRequest(@Body body: Map<String, @JvmSuppressWildcards Any?>): Response<List<Map<String, @JvmSuppressWildcards Any?>>>
++
++    @POST("rest/v1/rpc/accept_follow_request")
++    suspend fun acceptFollowRequest(@Body body: Map<String, String>): Response<ResponseBody>
++
++    @POST("rest/v1/rpc/reject_follow_request")
++    suspend fun rejectFollowRequest(@Body body: Map<String, String>): Response<ResponseBody>
++
+     @GET("rest/v1/follows")
+     suspend fun getFollows(
+         @Query("follower_id") followerIdEq: String? = null,

@@ -1,0 +1,13 @@
+diff --git a/app/src/main/java/com/example/ui/settings/SettingsModerationScreen.kt b/app/src/main/java/com/example/ui/settings/SettingsModerationScreen.kt
+index 5d6be0d..32917e1 100644
+--- a/app/src/main/java/com/example/ui/settings/SettingsModerationScreen.kt
++++ b/app/src/main/java/com/example/ui/settings/SettingsModerationScreen.kt
+@@ -419,6 +419,8 @@ fun ModerationAdminScreen(
+     modifier: Modifier = Modifier,
+ ) {
+     LaunchedEffect(Unit) {
++        viewModel.refreshBlockedAccounts()
++
+         viewModel.loadModerationDashboard()
+     }
+ 
