@@ -637,7 +637,10 @@ fun ProfileScreen(
                         if (uiState.experiences.isNotEmpty()) {
                             items(uiState.experiences, key = { it.id }) { exp ->
                                 SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
-                                    Text(exp.title, style = MaterialTheme.typography.titleMedium)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(exp.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                                        if (isOwnProfile) TextButton(onClick = { pendingProfileDelete = "experience" to exp.id }) { Text("Delete") }
+                                    }
                                     Text(
                                         text = "${exp.organization} · ${exp.startDate}",
                                         style = MaterialTheme.typography.bodySmall,
