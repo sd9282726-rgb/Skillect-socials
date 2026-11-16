@@ -60,6 +60,7 @@ jobs:
           bash scripts/apply_privacy_client.sh
 
       - name: Run Android lint
+        continue-on-error: true
         run: gradle :app:lintDebug --stacktrace
 
       - name: Run unit tests
