@@ -168,6 +168,7 @@ class ProfileSettingsViewModel(
             }
             val cachedProfile = profileCache[effectiveId]
                 ?: persistedProfile
+                ?: repository.cachedProfileById(effectiveId)
                 ?: if (isOwnProfile) current.myProfile else current.viewedProfile?.takeIf { it.id == effectiveId }
             _uiState.update { state ->
                 state.copy(
@@ -347,6 +348,7 @@ class ProfileSettingsViewModel(
 
             repository.updateProfileFields(uid, updates).fold(
                 onSuccess = { updated ->
+                    profileCache[uid] = updated
                     _uiState.update {
                         it.copy(
                             myProfile = updated,
