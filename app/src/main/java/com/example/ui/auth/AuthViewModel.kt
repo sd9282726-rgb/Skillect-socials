@@ -26,6 +26,7 @@ data class RecoveryDeepLinkPayload(
     val accessToken: String? = null,
     val type: String? = null,
     val error: String? = null,
+    val errorCode: String? = null,
     val errorDescription: String? = null,
 )
 
@@ -49,6 +50,7 @@ object AuthDeepLinkParser {
             accessToken = params["access_token"],
             type = params["type"],
             error = params["error"],
+            errorCode = params["error_code"],
             errorDescription = params["error_description"],
         )
     }
@@ -218,8 +220,9 @@ class AuthViewModel(
 
     fun handleDeepLinkUri(uriString: String?) {
         val payload = AuthDeepLinkParser.parse(uriString) ?: return
-        if (!payload.error.isNullOrBlank() || !payload.errorDescription.isNullOrBlank()) {
+        if (!payload.error.isNullOrBlank() || !payload.errorCode.isNullOrBlank() || !payload.errorDescription.isNullOrBlank()) {
             val friendly = payload.errorDescription
+                ?: payload.errorCode
                 ?: "This authentication link is invalid or has expired. Please request a new link."
             _uiState.update {
                 it.copy(
