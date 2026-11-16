@@ -203,13 +203,14 @@ class ProfileSettingsViewModel(
 
             // Load the profile header and its sections at the same time. Cached sections
             // remain visible while the fresh values arrive in the background.
-            var profileResult: Result<ProfileDto> = Result.success(cachedProfile ?: ProfileDto(id = effectiveId))
+            var profileResult: Result<ProfileDto>? = null
             val profileDeferred = async { repository.fetchProfileById(effectiveId) }
             val profileHeaderJob = launch {
-                profileResult = profileDeferred.await()
-                val loadedProfile = profileResult.getOrNull() ?: cachedProfile
+                val result = profileDeferred.await()
+                profileResult = result
+                val loadedProfile = result.getOrNull() ?: cachedProfile
                 if (loadedProfile != null) {
-                    if (isOwnProfile && profileResult.isSuccess) repository.sessionStore.saveCachedProfile(loadedProfile)
+                    if (isOwnProfile && result.isSuccess) repository.sessionStore.saveCachedProfile(loadedProfile)
                     profileCache[effectiveId] = loadedProfile
                     _uiState.update { state ->
                         state.copy(
@@ -246,7 +247,8 @@ class ProfileSettingsViewModel(
                 )
             }
             profileHeaderJob.join()
-            val profile = profileResult.getOrNull() ?: cachedProfile
+            val resolvedProfileResult = profileResult ?: Result.failure(IllegalStateException("Profile could not be loaded."))
+            val profile = resolvedProfileResult.getOrNull() ?: cachedProfile
             val postsResult = sections.posts
             val projectsResult = sections.projects
             val experiencesResult = sections.experiences
@@ -275,7 +277,7 @@ class ProfileSettingsViewModel(
             )
 
             val loadError = listOfNotNull(
-                profileResult.exceptionOrNull()?.message,
+                resolvedProfileResult.exceptionOrNull()?.message,
                 postsResult.exceptionOrNull()?.message,
                 projectsResult.exceptionOrNull()?.message,
                 experiencesResult.exceptionOrNull()?.message,
