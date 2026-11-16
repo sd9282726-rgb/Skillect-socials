@@ -315,6 +315,12 @@ interface SupabasePostgrestApi {
     @POST("rest/v1/experiences")
     suspend fun createExperience(@Body request: CreateExperienceRequest): Response<List<ExperienceDto>>
 
+    @DELETE("rest/v1/experiences")
+    suspend fun deleteExperience(
+        @Query("id") idEq: String,
+        @Query("user_id") userIdEq: String,
+    ): Response<ResponseBody>
+
     @GET("rest/v1/achievements")
     suspend fun getAchievements(
         @Query("user_id") userIdEq: String,
