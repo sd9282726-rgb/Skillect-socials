@@ -98,6 +98,7 @@ class ExploreCommunitiesViewModel(
     fun refreshExplore() {
         if (!AppConfig.isSupabaseConfigured) return
         val state = _uiState.value
+        val currentUserId = repository.sessionStore.currentSession().userId
         val sortParam = if (state.sort == ExploreSort.TRENDING) "likes_count.desc,created_at.desc" else "created_at.desc"
 
         exploreJob?.cancel()
@@ -118,7 +119,7 @@ class ExploreCommunitiesViewModel(
 
             _uiState.update {
                 it.copy(
-                    people = peopleRes.getOrDefault(emptyList()),
+                    people = peopleRes.getOrDefault(emptyList()).filterNot { it.id == currentUserId },
                     posts = postsRes.getOrDefault(emptyList()),
                     communities = commRes.getOrDefault(emptyList()),
                     projects = projRes.getOrDefault(emptyList()),
