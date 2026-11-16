@@ -289,6 +289,12 @@ interface SupabasePostgrestApi {
     @POST("rest/v1/projects")
     suspend fun createProject(@Body request: CreateProjectRequest): Response<List<ProjectDto>>
 
+    @DELETE("rest/v1/projects")
+    suspend fun deleteProject(
+        @Query("id") idEq: String,
+        @Query("author_id") ownerIdEq: String,
+    ): Response<ResponseBody>
+
     @GET("rest/v1/skills")
     suspend fun getSkills(
         @Query("order") order: String = "name.asc",
