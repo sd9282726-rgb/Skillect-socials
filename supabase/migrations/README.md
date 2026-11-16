@@ -109,3 +109,23 @@ Before establishing a reproducible migration baseline, export the actual current
 - `0010_restrict_story_table_privileges.sql` is applied. It removes broad default grants and leaves only SELECT for guests, and SELECT/INSERT/DELETE for authenticated users.
 
 The old `0001`–`0005` files are an inspection/bootstrap sequence for a different schema baseline. Do not run them against the evolved live project. No user rows were deleted or rewritten by these follow-up migrations.
+
+## Live Edge Function alignment (2026-11-16)
+
+The following production functions were deployed from the matching source files on `fix/onboarding` and then read back from Supabase to verify the deployed source matched the GitHub file:
+
+| Function | Production version | JWT verification | Source match |
+|---|---:|---|---|
+| `review-video-post` | 13 | Enabled | Exact |
+| `respond-message-request` | 8 | Enabled | Exact |
+
+- `review-video-post` now retains the private-community destination bucket when a moderator approves media; it no longer forces every approved item into the public `post-media` bucket.
+- `respond-message-request` now applies the 16–17-year-old recipient rule before accepting a request: the teen recipient must already follow the sender.
+- Both functions still require a valid user JWT at the platform gateway and independently verify the caller and authorization in their handlers.
+- The other nine production functions were already reported as matching their branch source in the preceding audit. Re-run a full source comparison before any future production release.
+
+## Remaining dashboard and verification items
+
+- Security Advisor still reports leaked-password protection disabled. Supabase documents this as a Pro-plan-and-above Auth setting; if this project is on Free, the setting cannot be enabled without upgrading. On an eligible plan, enable it under Authentication → Sign In / Providers → Email. See https://supabase.com/docs/guides/auth/password-security.
+- Two signed-in SECURITY DEFINER RPCs remain flagged: `reject_follow_request` and `resolve_moderation_appeal`. They retain authenticated access for their respective signed-in workflows and perform authorization checks in their function bodies. Do not revoke authenticated execution or convert them to SECURITY INVOKER without a reviewed replacement.
+- Android lint, unit tests, Gradle compilation, and device tests have not been run for the current branch head. Do not treat source inspection or successful Edge Function deployment as Android build verification.
