@@ -375,6 +375,50 @@ class ProfileSettingsViewModel(
         }
     }
 
+    fun deletePost(postId: String) {
+        viewModelScope.launch {
+            repository.deletePost(postId).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(posts = it.posts.filterNot { post -> post.id == postId }, statusMessage = "Post deleted.") }
+                },
+                onFailure = { error -> _uiState.update { it.copy(statusMessage = error.message) } },
+            )
+        }
+    }
+
+    fun deleteProject(projectId: String) {
+        viewModelScope.launch {
+            repository.deleteProject(projectId).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(projects = it.projects.filterNot { project -> project.id == projectId }, statusMessage = "Project deleted.") }
+                },
+                onFailure = { error -> _uiState.update { it.copy(statusMessage = error.message) } },
+            )
+        }
+    }
+
+    fun deleteExperience(experienceId: String) {
+        viewModelScope.launch {
+            repository.deleteExperience(experienceId).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(experiences = it.experiences.filterNot { experience -> experience.id == experienceId }, statusMessage = "Experience deleted.") }
+                },
+                onFailure = { error -> _uiState.update { it.copy(statusMessage = error.message) } },
+            )
+        }
+    }
+
+    fun deleteAchievement(achievementId: String) {
+        viewModelScope.launch {
+            repository.deleteAchievement(achievementId).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(achievements = it.achievements.filterNot { achievement -> achievement.id == achievementId }, statusMessage = "Achievement deleted.") }
+                },
+                onFailure = { error -> _uiState.update { it.copy(statusMessage = error.message) } },
+            )
+        }
+    }
+
     fun startDirectConversation(peerUserId: String, onSuccess: (String) -> Unit) {
         viewModelScope.launch {
             repository.startDirectConversation(peerUserId).fold(
