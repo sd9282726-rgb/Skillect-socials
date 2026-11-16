@@ -171,11 +171,13 @@ class MessagesNotificationsViewModel(
             repository.sendMessage(conversationId, content.trim(), mediaUrl).fold(
                 onSuccess = { msg ->
                     _uiState.update { state ->
+                        val updatedMessages = state.messages + msg
                         state.copy(
-                            messages = state.messages + msg,
+                            messages = updatedMessages,
                             isSendingMessage = false,
                         )
                     }
+                    messageCache[conversationId] = _uiState.value.messages
                     onSent(true)
                     refreshInbox()
                 },
