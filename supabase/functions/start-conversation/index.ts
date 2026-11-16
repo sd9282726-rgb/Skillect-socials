@@ -80,18 +80,27 @@ Deno.serve(async (request: Request) => {
     if (!sender?.onboarded || !isAtLeast16(sender.date_of_birth)) return json(403, { error: "Complete your 16+ profile before messaging" });
     if (!recipient?.onboarded || !isAtLeast16(recipient.date_of_birth)) return json(403, { error: "This creator cannot receive messages" });
 
-    const restrictions = await rest(base, service, "account_enforcements?select=user_id&user_id=in.(" + accountIds.join(",") + ")");
+    // Run independent permission checks together to avoid a long chain of database round-trips.
+    const [
+      restrictions,
+      blocked,
+      targetFollowsSender,
+      senderFollowsTarget,
+      preferences,
+      ownRows,
+    ] = await Promise.all([
+      rest(base, service, "account_enforcements?select=user_id&user_id=in.(" + accountIds.join(",") + ")"),
+      rest(base, service, "blocks?select=id&or=(and(blocker_id.eq." + senderId + ",blocked_id.eq." + recipientId + "),and(blocker_id.eq." + recipientId + ",blocked_id.eq." + senderId + "))&limit=1"),
+      rest(base, service, "follows?select=id&follower_id=eq." + recipientId + "&following_id=eq." + senderId + "&limit=1"),
+      rest(base, service, "follows?select=id&follower_id=eq." + senderId + "&following_id=eq." + recipientId + "&limit=1"),
+      rest(base, service, "user_preferences?select=allow_message_requests,message_privacy&user_id=eq." + recipientId + "&limit=1"),
+      rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + senderId),
+    ]);
     if (Array.isArray(restrictions) && restrictions.length) return json(403, { error: "Messaging is unavailable for a restricted account" });
-
-    const blocked = await rest(base, service, "blocks?select=id&or=(and(blocker_id.eq." + senderId + ",blocked_id.eq." + recipientId + "),and(blocker_id.eq." + recipientId + ",blocked_id.eq." + senderId + "))&limit=1");
     if (Array.isArray(blocked) && blocked.length) return json(403, { error: "Messaging is unavailable because one account has blocked the other" });
-
-    const targetFollowsSender = await rest(base, service, "follows?select=id&follower_id=eq." + recipientId + "&following_id=eq." + senderId + "&limit=1");
-    const senderFollowsTarget = await rest(base, service, "follows?select=id&follower_id=eq." + senderId + "&following_id=eq." + recipientId + "&limit=1");
     if (is16To17(recipient.date_of_birth) && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
       return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
     }
-    const preferences = await rest(base, service, "user_preferences?select=allow_message_requests,message_privacy&user_id=eq." + recipientId + "&limit=1");
     const pref = preferences?.[0] || {};
     let messagePrivacy = String(pref.message_privacy || "").toLowerCase();
     if (!["everyone", "following", "nobody"].includes(messagePrivacy)) {
@@ -106,7 +115,6 @@ Deno.serve(async (request: Request) => {
     if (messagePrivacy === "following" && (!Array.isArray(targetFollowsSender) || !targetFollowsSender.length)) {
       return json(403, { error: "Only people they follow can message them" });
     }
-    const ownRows = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + senderId);
     const existingIds = [...new Set((ownRows || []).map((row: any) => row.conversation_id))];
     if (existingIds.length) {
       const matches = await rest(base, service, "conversation_participants?select=conversation_id&user_id=eq." + recipientId + "&conversation_id=in.(" + existingIds.join(",") + ")&limit=1");
