@@ -736,6 +736,8 @@ fun ProfileScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Display Name") })
+                    OutlinedTextField(value = username, onValueChange = { username = it.lowercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' } }, label = { Text("Username") }, supportingText = { Text("3–24 letters, numbers or underscores") })
+                    OutlinedTextField(value = skills, onValueChange = { skills = it }, label = { Text("Skills (comma-separated)") }, minLines = 2)
                     OutlinedTextField(value = website, onValueChange = { website = it }, label = { Text("Website URL") })
                     OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, minLines = 2)
                     OutlinedTextField(value = region, onValueChange = { region = it }, label = { Text("Country / Region (privacy-safe)") })
