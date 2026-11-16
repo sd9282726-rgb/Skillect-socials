@@ -2,11 +2,11 @@
 
 Project: `chohswyxsckpwyzlbzav`
 
-Live database inventory updated on 2026-11-15 after applying the avatar and private-story migrations.
+Live database inventory updated on 2026-11-16 after applying profile follow counts and tightening follow-request RPC permissions.
 
 ## Migration history
 
-The live `supabase_migrations.schema_migrations` table contains **67 recorded application migrations**, from `20261106114348` through `20261111055659`.
+The live `supabase_migrations.schema_migrations` table contains **72 recorded application migrations**, from `20261106114348` through `20261116110209`.
 
 | Version | Migration name |
 |---|---|
@@ -71,15 +71,27 @@ The live `supabase_migrations.schema_migrations` table contains **67 recorded ap
 | 20261109065715 | fix_public_feed_and_project_rls_helpers |
 | 20261111055556 | grant_conversation_participant_execute |
 | 20261111055659 | use_private_conversation_rls_helper |
+| 20261115060635 | conversation_reads_last_read_at_column_update |
+| 20261115060739 | conversation_activity_timestamp |
+| 20261115104741 | profile_avatar_storage |
+| 20261115105052 | stories_private_media_storage |
+| 20261115105128 | restrict_story_table_privileges |
+| 20261115105423 | hold_stories_for_moderation |
+| 20261115112013 | resolve_moderation_appeals |
+| 20261115113302 | realtime_account_safety |
+| 20261115122721 | realtime_media_and_safety_tables |
+| 20261116084057 | profile_follow_counts |
+| 20261116110209 | revoke_anon_reject_follow_request |
 
 ## Inventory findings
 
-- The live database has 25 application tables in `public`.
-- All 25 have Row Level Security enabled.
-- All 25 have at least one RLS policy.
+- The live database has 27 application tables in `public`.
+- All 27 have Row Level Security enabled.
+- All 27 have at least one RLS policy.
 - None currently has FORCE ROW LEVEL SECURITY enabled. This is not automatically a defect for Supabase service-role operations; review table ownership and bypass roles before changing it.
-- The live catalog reports no public SECURITY DEFINER function executable by `anon` or `authenticated` in the privilege check performed for this snapshot.
+- The live catalog now reports no public SECURITY DEFINER function executable by `anon`. Two SECURITY DEFINER RPCs remain executable by `authenticated`: `reject_follow_request` (recipient/moderator check in the function body) and `resolve_moderation_appeal` (moderator check in the function body). Their use is intentional for signed-in workflows but remains a security-review item.
 - Two migration names occur twice, each with different version identifiers. This is valid migration history; do not rename or rewrite applied entries.
+- `reject_follow_request(uuid)` had inherited `PUBLIC`/`anon` execution. Migration `20261116110209` revokes those grants while preserving `authenticated` and `service_role`; catalog privileges were rechecked after applying it.
 
 ## Important limitation
 
