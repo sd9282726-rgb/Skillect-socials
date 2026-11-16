@@ -22,6 +22,7 @@ import com.example.core.network.UserPreferences
 import com.example.data.repository.SkillectRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -106,11 +107,15 @@ class ProfileSettingsViewModel(
                 return@launch
             }
             viewModelScope.launch { repository.fetchConversations() }
-            val my = repository.fetchMyProfile().getOrNull()
+            val myTask = async { repository.fetchMyProfile().getOrNull() }
+            val collectionsTask = async { repository.fetchSavedCollections().getOrDefault(emptyList()) }
+            val savedTask = async { repository.fetchSavedPosts().getOrDefault(emptyList()) }
+            val blocksTask = async { repository.fetchBlockedAccounts().getOrDefault(emptyList()) }
+            val my = myTask.await()
             if (my != null) repository.sessionStore.saveCachedProfile(my)
-            val collections = repository.fetchSavedCollections().getOrDefault(emptyList())
-            val saved = repository.fetchSavedPosts().getOrDefault(emptyList())
-            val blocks = repository.fetchBlockedAccounts().getOrDefault(emptyList())
+            val collections = collectionsTask.await()
+            val saved = savedTask.await()
+            val blocks = blocksTask.await()
             _uiState.update {
                 it.copy(
                     myProfile = my,
