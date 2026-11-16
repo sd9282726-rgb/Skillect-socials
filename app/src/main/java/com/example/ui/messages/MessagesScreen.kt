@@ -208,7 +208,7 @@ fun MessagesInboxScreen(
                     }
                 }
 
-                if (uiState.conversations.isEmpty() && !uiState.isLoading) {
+                if (uiState.conversations.isEmpty() && uiState.incomingMessageRequests.isEmpty() && !uiState.isLoading) {
                     item {
                         EmptyStateCard(
                             icon = Icons.Rounded.ChatBubbleOutline,
