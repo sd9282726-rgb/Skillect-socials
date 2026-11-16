@@ -483,7 +483,7 @@ fun CommunityDetailScreen(
                                     style = MaterialTheme.typography.titleSmall,
                                 )
                                 Text(
-                                    text = "@${post.author?.username ?: "member"} · ${AppConfig.formatRelativeTimestamp(post.createdAt)}",
+                                    text = "@${post.author?.username ?: "member"}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
