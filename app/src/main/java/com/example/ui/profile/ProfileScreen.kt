@@ -877,7 +877,7 @@ fun ProfileScreen(
                                 singleLine = true,
                                 modifier = Modifier.padding(horizontal = 10.dp).widthIn(min = 220.dp),
                             )
-                            profileSkillOptions.filter { it.contains(skillSearch, ignoreCase = true) }.forEach { skill ->
+                            (profileSkillOptions + selectedSkills).distinct().filter { it.contains(skillSearch, ignoreCase = true) }.forEach { skill ->
                                 DropdownMenuItem(
                                     text = { Text(skill) },
                                     leadingIcon = {
