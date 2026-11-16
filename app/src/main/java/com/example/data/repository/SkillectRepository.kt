@@ -93,6 +93,7 @@ class SkillectRepository(
     val sessionFlow: Flow<PersistedSession> = sessionStore.sessionFlow
     private val repoScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val conversationIdByPeerId = ConcurrentHashMap<String, String>()
+    private val profileByIdCache = ConcurrentHashMap<String, ProfileDto>()
 
     private inline fun <T> guardConfigured(block: () -> Result<T>): Result<T> {
         if (!isConfiguredCheck()) {
@@ -311,6 +312,7 @@ class SkillectRepository(
         }
         realtimeClient.disconnect()
         conversationIdByPeerId.clear()
+        profileByIdCache.clear()
         analyticsTracker.setUserId(null)
         sessionStore.clearSession()
         return Result.success(Unit)
@@ -348,10 +350,14 @@ class SkillectRepository(
         Result.success(resp.body()?.firstOrNull())
     }
 
+    fun cachedProfileById(userId: String): ProfileDto? = profileByIdCache[userId]
+
     suspend fun fetchProfileById(userId: String): Result<ProfileDto?> = guardConfigured {
         val resp = postgrestApi.getProfiles(idFilter = "eq.$userId", limit = 1)
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        Result.success(resp.body()?.firstOrNull())
+        val profile = resp.body()?.firstOrNull()
+        if (profile != null) profileByIdCache[userId] = profile
+        Result.success(profile)
     }
 
     suspend fun upsertProfile(profile: ProfileUpsertDto): Result<ProfileDto> = guardConfigured {
@@ -580,7 +586,9 @@ class SkillectRepository(
                 offset = offset,
             )
             if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-            Result.success(resp.body().orEmpty().map { it.normalizedForUi() })
+            val posts = resp.body().orEmpty().map { it.normalizedForUi() }
+            posts.mapNotNull { it.author }.forEach { author -> profileByIdCache[author.id] = author }
+            Result.success(posts)
         } finally {
             analyticsTracker.stopTrace(trace)
         }
@@ -971,7 +979,9 @@ class SkillectRepository(
         val filter = if (sanitized.isBlank()) null else "(username.ilike.*$sanitized*,display_name.ilike.*$sanitized*,bio.ilike.*$sanitized*)"
         val resp = postgrestApi.getProfiles(orFilter = filter, limit = 25)
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        Result.success(resp.body().orEmpty())
+        val profiles = resp.body().orEmpty()
+        profiles.forEach { profile -> profileByIdCache[profile.id] = profile }
+        Result.success(profiles)
     }
 
     suspend fun searchPosts(query: String, sort: String = "created_at.desc"): Result<List<PostDto>> = guardConfigured {
