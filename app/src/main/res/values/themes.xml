@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Skillect" parent="android:Theme.DeviceDefault.NoActionBar" />
+    <!-- DayNight reduces unexpected light flash on cold start while Compose owns the actual theme. -->
+    <style name="Theme.Skillect" parent="android:Theme.DeviceDefault.DayNight.NoActionBar" />
 </resources>
