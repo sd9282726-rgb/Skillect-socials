@@ -52,6 +52,7 @@ class FeedViewModel(
     private var commentsLoadJob: Job? = null
     private var feedLoadJob: Job? = null
     private var feedRequestGeneration: Long = 0L
+    private var shortVideosLoadJob: Job? = null
 
     init {
         refreshAll()
@@ -193,8 +194,9 @@ class FeedViewModel(
     }
 
     fun loadShortVideos() {
-        if (!AppConfig.isSupabaseConfigured) return
-        viewModelScope.launch {
+        if (!AppConfig.isSupabaseConfigured || _uiState.value.shortVideos.isNotEmpty()) return
+        if (shortVideosLoadJob?.isActive == true) return
+        shortVideosLoadJob = viewModelScope.launch {
             repository.fetchShortVideos().onSuccess { vids ->
                 _uiState.update { it.copy(shortVideos = vids) }
             }
