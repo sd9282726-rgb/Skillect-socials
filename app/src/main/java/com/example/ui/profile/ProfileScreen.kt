@@ -165,6 +165,7 @@ fun ProfileScreen(
     var showReportDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     var showNetworkSheet by remember { mutableStateOf(false) }
+    var showPrivateMessageDialog by remember { mutableStateOf(false) }
     var pendingProfileDelete by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     Box(
