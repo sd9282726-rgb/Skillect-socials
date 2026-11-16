@@ -182,16 +182,33 @@ class MessagesNotificationsViewModel(
         onSent: (Boolean) -> Unit = {},
     ) {
         if (content.isBlank()) return
-        _uiState.update { it.copy(isSendingMessage = true, statusMessage = null) }
+        val clean = content.trim()
+        val uid = repository.sessionStore.currentSession().userId
+        val pendingId = "pending-" + java.util.UUID.randomUUID().toString()
+        val pending = MessageDto(
+            id = pendingId,
+            conversationId = conversationId,
+            senderId = uid,
+            content = clean,
+            deliveryStatus = "sending",
+            createdAt = com.example.core.util.TimeCompat.nowUtcIso(),
+        )
+        val wasActive = _uiState.value.activeConversationId == conversationId
+        val baseMessages = if (wasActive) _uiState.value.messages else messageCache[conversationId].orEmpty()
+        val optimistic = baseMessages + pending
+        messageCache[conversationId] = optimistic
+        _uiState.update { state ->
+            state.copy(
+                messages = if (state.activeConversationId == conversationId) optimistic else state.messages,
+                isSendingMessage = true,
+                statusMessage = null,
+            )
+        }
         viewModelScope.launch {
-            repository.sendMessage(conversationId, content.trim(), mediaUrl).fold(
+            repository.sendMessage(conversationId, clean, mediaUrl).fold(
                 onSuccess = { msg ->
-                    val cachedMessages = messageCache[conversationId].orEmpty()
-                    val updatedMessages = if (_uiState.value.activeConversationId == conversationId) {
-                        _uiState.value.messages + msg
-                    } else {
-                        cachedMessages + msg
-                    }
+                    val updatedMessages = messageCache[conversationId].orEmpty()
+                        .map { if (it.id == pendingId) msg else it }
                     messageCache[conversationId] = updatedMessages
                     _uiState.update { state ->
                         state.copy(
@@ -203,7 +220,15 @@ class MessagesNotificationsViewModel(
                     refreshInbox()
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(isSendingMessage = false, statusMessage = err.message) }
+                    val updatedMessages = messageCache[conversationId].orEmpty().filterNot { it.id == pendingId }
+                    messageCache[conversationId] = updatedMessages
+                    _uiState.update { state ->
+                        state.copy(
+                            messages = if (state.activeConversationId == conversationId) updatedMessages else state.messages,
+                            isSendingMessage = false,
+                            statusMessage = err.message,
+                        )
+                    }
                     onSent(false)
                 },
             )
