@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.core.config.AppConfig
 import com.example.core.network.ConversationDto
 import com.example.core.network.MessageDto
+import com.example.core.network.MessageRequestDto
 import com.example.core.network.NotificationDto
 import com.example.core.network.RealtimeEvent
 import com.example.data.repository.SkillectRepository
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 
 data class MessagesNotificationsUiState(
     val conversations: List<ConversationDto> = emptyList(),
+    val incomingMessageRequests: List<MessageRequestDto> = emptyList(),
     val messages: List<MessageDto> = emptyList(),
     val notifications: List<NotificationDto> = emptyList(),
     val activeConversationId: String? = null,
@@ -63,9 +65,10 @@ class MessagesNotificationsViewModel(
         }
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
+            val requests = repository.fetchIncomingMessageRequests().getOrDefault(emptyList())
             repository.fetchConversations().fold(
-                onSuccess = { list -> _uiState.update { it.copy(conversations = list, isLoading = false) } },
-                onFailure = { err -> _uiState.update { it.copy(isLoading = false, errorMessage = err.message) } },
+                onSuccess = { list -> _uiState.update { it.copy(conversations = list, incomingMessageRequests = requests, isLoading = false) } },
+                onFailure = { err -> _uiState.update { it.copy(isLoading = false, errorMessage = err.message, incomingMessageRequests = requests) } },
             )
         }
     }
@@ -107,6 +110,24 @@ class MessagesNotificationsViewModel(
             repository.fetchMessages(conversationId).fold(
                 onSuccess = { list -> _uiState.update { it.copy(messages = list) } },
                 onFailure = { err -> _uiState.update { it.copy(errorMessage = err.message) } },
+            )
+        }
+    }
+
+    fun respondToMessageRequest(requestId: String, accept: Boolean) {
+        viewModelScope.launch {
+            repository.respondToMessageRequest(requestId, accept).fold(
+                onSuccess = { conversationId ->
+                    _uiState.update { state ->
+                        state.copy(
+                            incomingMessageRequests = state.incomingMessageRequests.filterNot { it.id == requestId },
+                            statusMessage = if (accept) "Message request accepted." else "Message request declined.",
+                        )
+                    }
+                    if (accept && !conversationId.isNullOrBlank()) loadMessages(conversationId)
+                    refreshInbox()
+                },
+                onFailure = { error -> _uiState.update { it.copy(statusMessage = error.message ?: "Could not process this request.") } },
             )
         }
     }
@@ -171,6 +192,7 @@ class MessagesNotificationsViewModel(
         _uiState.update {
             it.copy(
                 conversations = emptyList(),
+                incomingMessageRequests = emptyList(),
                 messages = emptyList(),
                 notifications = emptyList(),
                 activeConversationId = null,
