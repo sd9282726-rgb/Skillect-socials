@@ -169,6 +169,13 @@ object AppConfig {
         }
     }
 
+    fun formatPostTimestamp(isoTimestamp: String, locale: Locale = Locale.getDefault()): String {
+        val parsed = parseIsoTimestamp(isoTimestamp) ?: return isoTimestamp
+        val date = DateFormat.getDateInstance(DateFormat.SHORT, locale).format(parsed)
+        val time = DateFormat.getTimeInstance(DateFormat.SHORT, locale).format(parsed)
+        return "$date · $time"
+    }
+
     fun parseIsoTimestamp(raw: String): Date? {
         if (raw.isBlank()) return null
         // Normalize microsecond fractions so SimpleDateFormat can parse
