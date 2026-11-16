@@ -39,6 +39,9 @@ data class ProfileSettingsUiState(
     val savedCollections: List<SavedCollectionDto> = emptyList(),
     val savedPosts: List<SavedPostDto> = emptyList(),
     val blockedAccounts: List<BlockRowDto> = emptyList(),
+    val networkProfiles: List<ProfileDto> = emptyList(),
+    val networkTitle: String = "",
+    val isLoadingNetwork: Boolean = false,
     val moderationReports: List<ReportDto> = emptyList(),
     val auditLogs: List<ModerationAuditLogDto> = emptyList(),
     val moderationAppeals: List<ModerationAppealDto> = emptyList(),
@@ -405,6 +408,30 @@ class ProfileSettingsViewModel(
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(isFollowActionPending = false, statusMessage = error.message) }
+                },
+            )
+        }
+    }
+
+    fun loadNetworkList(userId: String, followers: Boolean) {
+        _uiState.update {
+            it.copy(
+                networkProfiles = emptyList(),
+                networkTitle = if (followers) "Networks" else "Connected",
+                isLoadingNetwork = true,
+            )
+        }
+        viewModelScope.launch {
+            repository.fetchNetworkProfiles(userId, followers).fold(
+                onSuccess = { profiles ->
+                    _uiState.update {
+                        it.copy(networkProfiles = profiles, isLoadingNetwork = false)
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(isLoadingNetwork = false, statusMessage = error.message ?: "Could not load this list.")
+                    }
                 },
             )
         }
