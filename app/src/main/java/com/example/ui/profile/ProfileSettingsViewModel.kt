@@ -455,23 +455,44 @@ class ProfileSettingsViewModel(
     }
 
     fun toggleFollow(targetUserId: String) {
-        if (_uiState.value.isFollowActionPending) return
-        _uiState.update { it.copy(isFollowActionPending = true, statusMessage = null) }
+        val before = _uiState.value
+        if (before.isFollowActionPending) return
+        val wasFollowing = before.isFollowing
+        val baseCount = before.followersCount ?: before.viewedProfile?.followersCount ?: 0
+        val optimisticCount = (baseCount + if (wasFollowing) -1 else 1).coerceAtLeast(0)
+        _uiState.update {
+            it.copy(
+                isFollowing = !wasFollowing,
+                isFollowActionPending = true,
+                followersCount = optimisticCount,
+                statusMessage = null,
+            )
+        }
         viewModelScope.launch {
-            repository.toggleFollow(targetUserId).fold(
+            repository.toggleFollow(targetUserId, wasFollowing).fold(
                 onSuccess = { result ->
                     _uiState.update { state ->
-                        val base = state.followersCount ?: state.viewedProfile?.followersCount ?: 0
-                        val delta = if (result.isFollowing == result.wasFollowing) 0 else if (result.isFollowing) 1 else -1
+                        val corrected = optimisticCount + when {
+                            result.isFollowing == !wasFollowing -> 0
+                            result.isFollowing -> 1
+                            else -> -1
+                        }
                         state.copy(
                             isFollowing = result.isFollowing,
                             isFollowActionPending = false,
-                            followersCount = (base + delta).coerceAtLeast(0),
+                            followersCount = corrected.coerceAtLeast(0),
                         )
                     }
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isFollowActionPending = false, statusMessage = error.message) }
+                    _uiState.update {
+                        it.copy(
+                            isFollowing = wasFollowing,
+                            isFollowActionPending = false,
+                            followersCount = baseCount,
+                            statusMessage = error.message,
+                        )
+                    }
                 },
             )
         }
