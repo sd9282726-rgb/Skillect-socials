@@ -846,7 +846,7 @@ fun CommentsBottomSheet(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "${comment.author?.displayName ?: "Member"} · ${AppConfig.formatRelativeTimestamp(comment.createdAt)}",
+                                    text = "${comment.author?.displayName ?: "Member"} · ${AppConfig.formatPostTimestamp(comment.createdAt)}",
                                     style = MaterialTheme.typography.labelMedium,
                                 )
                                 Text(text = comment.content, style = MaterialTheme.typography.bodyMedium)
