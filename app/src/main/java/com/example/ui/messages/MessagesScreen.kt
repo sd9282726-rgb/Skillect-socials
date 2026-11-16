@@ -229,7 +229,10 @@ fun MessagesInboxScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onOpenConversation(conv.id, peerName) },
+                                .clickable {
+                                    viewModel.loadMessages(conv.id)
+                                    onOpenConversation(conv.id, peerName)
+                                },
                         ) {
                             Row(
                                 modifier = Modifier
