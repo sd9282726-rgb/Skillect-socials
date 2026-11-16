@@ -252,6 +252,8 @@ class ProfileSettingsViewModel(
         bio: String,
         regionLabel: String,
         interestsCsv: String,
+        username: String,
+        skillsCsv: String,
         avatarUrl: String? = null,
         coverUrl: String? = null,
         onComplete: (Boolean) -> Unit = {},
