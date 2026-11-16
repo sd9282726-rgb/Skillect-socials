@@ -39,5 +39,4 @@ val SkillectLightBorder = Color(0xFFE0DFF0)
 val SkillectLightPrimary = Color(0xFF5B21B6)
 val SkillectLightPrimaryContainer = Color(0xFFEDE9FE)
 val SkillectLightOnText = Color(0xFF111118)
-val SkillectLightMutedText = Color(0xFF343447)
-
+val SkillectLightMutedText = Color(0xFF2A2A3A)
