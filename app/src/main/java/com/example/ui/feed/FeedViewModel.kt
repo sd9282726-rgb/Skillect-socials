@@ -264,10 +264,19 @@ class FeedViewModel(
     }
 
     fun toggleFollow(authorId: String) {
-        if (authorId in _uiState.value.pendingFollowUserIds) return
-        _uiState.update { it.copy(pendingFollowUserIds = it.pendingFollowUserIds + authorId) }
+        val before = _uiState.value
+        if (authorId in before.pendingFollowUserIds) return
+        val wasFollowing = authorId in before.followingIds
+        _uiState.update { state ->
+            val optimistic = state.followingIds.toMutableSet()
+            if (wasFollowing) optimistic.remove(authorId) else optimistic.add(authorId)
+            state.copy(
+                followingIds = optimistic,
+                pendingFollowUserIds = state.pendingFollowUserIds + authorId,
+            )
+        }
         viewModelScope.launch {
-            repository.toggleFollow(authorId).fold(
+            repository.toggleFollow(authorId, wasFollowing).fold(
                 onSuccess = { result ->
                     _uiState.update { state ->
                         val updated = state.followingIds.toMutableSet()
@@ -279,9 +288,12 @@ class FeedViewModel(
                     }
                 },
                 onFailure = { err ->
-                    _uiState.update {
-                        it.copy(
-                            pendingFollowUserIds = it.pendingFollowUserIds - authorId,
+                    _uiState.update { state ->
+                        val rollback = state.followingIds.toMutableSet()
+                        if (wasFollowing) rollback.add(authorId) else rollback.remove(authorId)
+                        state.copy(
+                            followingIds = rollback,
+                            pendingFollowUserIds = state.pendingFollowUserIds - authorId,
                             snackbarMessage = err.message,
                         )
                     }
