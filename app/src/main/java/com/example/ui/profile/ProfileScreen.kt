@@ -737,6 +737,36 @@ fun ProfileScreen(
         }
     }
 
+    if (showPrivateMessageDialog && profile != null) {
+        var messageText by remember(profile.id) { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showPrivateMessageDialog = false },
+            title = { Text("This profile is private") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Send a message request. They can accept or reject it from their Messages inbox.")
+                    OutlinedTextField(
+                        value = messageText,
+                        onValueChange = { messageText = it },
+                        label = { Text("Your message") },
+                        minLines = 3,
+                    )
+                }
+            },
+            confirmButton = {
+                SkillectPrimaryButton(
+                    text = "Send request",
+                    enabled = messageText.isNotBlank(),
+                    onClick = {
+                        viewModel.sendMessageRequest(profile.id, messageText)
+                        showPrivateMessageDialog = false
+                    },
+                )
+            },
+            dismissButton = { TextButton(onClick = { showPrivateMessageDialog = false }) { Text("Cancel") } },
+        )
+    }
+
     pendingProfileDelete?.let { target ->
         AlertDialog(
             onDismissRequest = { pendingProfileDelete = null },
