@@ -217,55 +217,6 @@ fun FeedScreen(
                 }
             }
 
-            // Photo-led editorial header: image + typography, without a generic slogan.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .height(112.dp)
-                    .clip(RoundedCornerShape(22.dp)),
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.img_skillect_hero),
-                    contentDescription = "Skillect community banner",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color.Black.copy(alpha = 0.78f), Color.Black.copy(alpha = 0.12f)),
-                            ),
-                        ),
-                )
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp),
-                ) {
-                    Text(
-                        "A SPACE FOR WHAT YOU CREATE",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.3.sp,
-                        ),
-                        color = Color.White.copy(alpha = 0.88f),
-                    )
-                    Spacer(modifier = Modifier.height(5.dp))
-                    Text(
-                        "Show what you're learning.",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White,
-                    )
-                    Text(
-                        "Share ideas, projects and progress.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.9f),
-                    )
-                }
-            }
 
             // Clean Underline Tabs: Following / Recommended / Discover
             val tabIdx = when (uiState.selectedTab) {
@@ -303,7 +254,9 @@ fun FeedScreen(
                         text = {
                             Text(
                                 text = label,
-                                style = MaterialTheme.typography.titleSmall.copy(
+                                maxLines = 1,
+                                softWrap = false,
+                                style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp,
                                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                                 ),
                                 color = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
