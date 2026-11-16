@@ -883,6 +883,18 @@ class SkillectRepository(
         Result.success(resp.body().orEmpty().map { it.followingId })
     }
 
+    suspend fun isFollowingUser(targetUserId: String): Result<Boolean> = guardConfigured {
+        val uid = requireUserId("check connections")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("check connections"))
+        val response = postgrestApi.getFollows(
+            followerIdEq = "eq.$uid",
+            followingIdEq = "eq.$targetUserId",
+            limit = 1,
+        )
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        Result.success(!response.body().isNullOrEmpty())
+    }
+
     suspend fun toggleFollow(targetUserId: String, currentlyFollowing: Boolean? = null): Result<FollowToggleResult> = guardConfigured {
         val uid = requireUserId("follow creators") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("follow creators"))
         if (uid == targetUserId) return@guardConfigured Result.failure(IllegalArgumentException("Cannot follow yourself"))
