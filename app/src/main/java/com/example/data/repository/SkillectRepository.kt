@@ -1295,11 +1295,23 @@ class SkillectRepository(
                 ),
             )
             if (!moderated.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(moderated.parseError()))
-            val messageId = moderated.body()?.messageId ?: moderated.body()?.id
+            val result = moderated.body()
                 ?: return@guardConfigured Result.failure(IllegalStateException("Message could not be confirmed by Skillect safety screening."))
-            val saved = postgrestApi.getMessages(conversationIdEq = "eq.$conversationId", idEq = "eq.$messageId")
-            if (!saved.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(saved.parseError()))
-            Result.success(saved.body()?.firstOrNull() ?: return@guardConfigured Result.failure(IllegalStateException("Message was sent but could not be loaded.")))
+            val messageId = result.messageId ?: result.id
+                ?: return@guardConfigured Result.failure(IllegalStateException("Message could not be confirmed by Skillect safety screening."))
+            val savedConversationId = result.conversationId ?: conversationId
+            val savedSenderId = result.senderId ?: requireUserId("send private messages").orEmpty()
+            val savedContent = result.content ?: clean.take(AppConfig.MAX_MESSAGE_LENGTH)
+            val savedCreatedAt = result.createdAt ?: com.example.core.util.TimeCompat.nowUtcIso()
+            Result.success(
+                MessageDto(
+                    id = messageId,
+                    conversationId = savedConversationId,
+                    senderId = savedSenderId,
+                    content = savedContent,
+                    createdAt = savedCreatedAt,
+                ),
+            )
         }
 
     suspend fun fetchNotifications(): Result<List<NotificationDto>> = guardConfigured {
