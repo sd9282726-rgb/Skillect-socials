@@ -357,7 +357,7 @@ fun ProfileScreen(
                                     modifier = Modifier.testTag("profile_message_button"),
                                 )
                                 SkillectPrimaryButton(
-                                    text = if (uiState.isFollowing) "Connected" else "Connect",
+                                    text = if (uiState.isFollowing) "Disconnect" else "Connect",
                                     enabled = !uiState.isFollowActionPending && !uiState.isLoading,
                                     onClick = {
                                         if (effectiveCurrentUserId.isBlank()) {
