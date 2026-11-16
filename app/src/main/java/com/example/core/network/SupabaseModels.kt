@@ -413,6 +413,17 @@ data class NotificationDto(
 )
 
 @JsonClass(generateAdapter = true)
+data class MessageRequestDto(
+    val id: String,
+    @Json(name = "sender_id") val senderId: String,
+    @Json(name = "recipient_id") val recipientId: String,
+    @Json(name = "initial_message") val initialMessage: String = "",
+    val status: String = "pending",
+    @Json(name = "created_at") val createdAt: String = "",
+    val sender: ProfileDto? = null,
+)
+
+@JsonClass(generateAdapter = true)
 data class SavedCollectionDto(
     val id: String,
     @Json(name = "owner_id") val ownerId: String,
