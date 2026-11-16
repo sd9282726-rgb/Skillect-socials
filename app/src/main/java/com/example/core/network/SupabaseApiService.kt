@@ -232,7 +232,7 @@ interface SupabasePostgrestApi {
     @GET("rest/v1/blocks")
     suspend fun getBlocks(
         @Query("blocker_id") blockerIdEq: String,
-        @Query("select") select: String = "blocker_id,blocked_id,blocked:profiles!blocks_blocked_id_fkey(*)",
+        @Query("select") select: String = "blocker_id,blocked_id",
     ): Response<List<BlockRowDto>>
 
     @Headers("Prefer: resolution=ignore-duplicates")
