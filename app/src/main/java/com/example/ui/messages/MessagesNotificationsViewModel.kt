@@ -79,8 +79,17 @@ class MessagesNotificationsViewModel(
     }
 
     fun loadMessages(conversationId: String) {
-        _uiState.update { it.copy(activeConversationId = conversationId, statusMessage = null, isSendingMessage = false) }
-        if (!AppConfig.isSupabaseConfigured) return
+        val cached = messageCache[conversationId]
+        _uiState.update { state ->
+            state.copy(
+                activeConversationId = conversationId,
+                messages = cached ?: if (state.activeConversationId == conversationId) state.messages else emptyList(),
+                statusMessage = null,
+                isSendingMessage = false,
+                errorMessage = null,
+            )
+        }
+        if (!AppConfig.isSupabaseConfigured || !messageLoadsInFlight.add(conversationId)) return
         viewModelScope.launch {
             val uid = repository.sessionStore.currentSession().userId
             val optimisticReadAt = com.example.core.util.TimeCompat.nowUtcIso()
@@ -94,8 +103,22 @@ class MessagesNotificationsViewModel(
                     },
                 )
             }
-
-            repository.markConversationRead(conversationId).fold(
+            val messagesTask = async { repository.fetchMessages(conversationId) }
+            val readTask = async { repository.markConversationRead(conversationId) }
+            messagesTask.await().fold(
+                onSuccess = { list ->
+                    messageCache[conversationId] = list
+                    if (_uiState.value.activeConversationId == conversationId) {
+                        _uiState.update { it.copy(messages = list, errorMessage = null) }
+                    }
+                },
+                onFailure = { err ->
+                    if (_uiState.value.activeConversationId == conversationId) {
+                        _uiState.update { it.copy(errorMessage = err.message) }
+                    }
+                },
+            )
+            readTask.await().fold(
                 onSuccess = { persistedReadAt ->
                     _uiState.update { state ->
                         state.copy(
@@ -109,13 +132,12 @@ class MessagesNotificationsViewModel(
                     }
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(statusMessage = err.message) }
+                    if (_uiState.value.activeConversationId == conversationId) {
+                        _uiState.update { it.copy(statusMessage = err.message) }
+                    }
                 },
             )
-            repository.fetchMessages(conversationId).fold(
-                onSuccess = { list -> _uiState.update { it.copy(messages = list) } },
-                onFailure = { err -> _uiState.update { it.copy(errorMessage = err.message) } },
-            )
+            messageLoadsInFlight.remove(conversationId)
         }
     }
 
