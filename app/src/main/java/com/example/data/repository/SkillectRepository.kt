@@ -1069,6 +1069,12 @@ class SkillectRepository(
         Result.success(resp.body()!!.first())
     }
 
+    suspend fun deleteProject(projectId: String): Result<Unit> = guardConfigured {
+        val uid = requireUserId("delete projects") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete projects"))
+        val response = postgrestApi.deleteProject("eq.$projectId", "eq.$uid")
+        if (response.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(response.parseError()))
+    }
+
     suspend fun fetchSkills(): Result<List<SkillDto>> = guardConfigured {
         val resp = postgrestApi.getSkills()
         if (resp.code() == 404) {
