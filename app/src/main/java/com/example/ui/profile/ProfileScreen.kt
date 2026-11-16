@@ -513,11 +513,6 @@ fun ProfileScreen(
                     } else {
                         items(uiState.posts, key = { it.id }) { post ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
-                                Text(
-                                    text = AppConfig.formatPostTimestamp(post.createdAt),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
                                 if (post.content.isNotBlank()) {
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(post.content, style = MaterialTheme.typography.bodyMedium)
