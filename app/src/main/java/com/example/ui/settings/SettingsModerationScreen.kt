@@ -81,6 +81,10 @@ fun SettingsScreen(
     val prefs = uiState.preferences
     val myProfile = uiState.myProfile
 
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotBlank()) viewModel.loadMyProfileAndSaved()
+    }
+
     val notificationPermLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { _ -> }
@@ -121,26 +125,6 @@ fun SettingsScreen(
                                 selected = prefs.themeMode == mode,
                                 onClick = { viewModel.setThemeMode(mode) },
                                 modifier = Modifier.testTag("theme_${mode.name.lowercase()}"),
-                            )
-                        }
-                    }
-                }
-            }
-
-            // International Language Preferences
-            item {
-                SkillectCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        AppConfig.supportedLanguages.forEach { (code, name) ->
-                            SkillChip(
-                                label = name,
-                                selected = prefs.languageCode == code,
-                                onClick = { viewModel.setLanguageCode(code) },
                             )
                         }
                     }
