@@ -22,7 +22,6 @@ import com.example.core.network.UserPreferences
 import com.example.data.repository.SkillectRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
