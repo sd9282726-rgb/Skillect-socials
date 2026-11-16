@@ -159,6 +159,44 @@ fun MessagesInboxScreen(
                     }
                 }
 
+                if (uiState.incomingMessageRequests.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Message requests",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        )
+                    }
+                    items(uiState.incomingMessageRequests, key = { it.id }) { request ->
+                        val sender = request.sender
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                SkillectAvatar(
+                                    avatarUrl = sender?.avatarUrl,
+                                    contentDescription = "Message request sender",
+                                    size = 42.dp,
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(sender?.displayName?.ifBlank { sender.username } ?: "Skillect member", style = MaterialTheme.typography.titleSmall)
+                                    Text("@${sender?.username ?: "member"} tried to contact you", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                            if (request.initialMessage.isNotBlank()) {
+                                Text(request.initialMessage, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 52.dp, top = 8.dp))
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(start = 52.dp, top = 8.dp),
+                                horizontalArrangement = Arrangement.End,
+                            ) {
+                                TextButton(onClick = { viewModel.respondToMessageRequest(request.id, false) }) { Text("Reject") }
+                                TextButton(onClick = { viewModel.respondToMessageRequest(request.id, true) }) { Text("Accept") }
+                            }
+                        }
+                        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                }
+
                 if (uiState.errorMessage != null) {
                     item {
                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
