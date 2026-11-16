@@ -170,14 +170,19 @@ class MessagesNotificationsViewModel(
         viewModelScope.launch {
             repository.sendMessage(conversationId, content.trim(), mediaUrl).fold(
                 onSuccess = { msg ->
+                    val cachedMessages = messageCache[conversationId].orEmpty()
+                    val updatedMessages = if (_uiState.value.activeConversationId == conversationId) {
+                        _uiState.value.messages + msg
+                    } else {
+                        cachedMessages + msg
+                    }
+                    messageCache[conversationId] = updatedMessages
                     _uiState.update { state ->
-                        val updatedMessages = state.messages + msg
                         state.copy(
-                            messages = updatedMessages,
+                            messages = if (state.activeConversationId == conversationId) updatedMessages else state.messages,
                             isSendingMessage = false,
                         )
                     }
-                    messageCache[conversationId] = _uiState.value.messages
                     onSent(true)
                     refreshInbox()
                 },
@@ -218,6 +223,8 @@ class MessagesNotificationsViewModel(
     }
 
     fun clearPrivateState() {
+        messageCache.clear()
+        messageLoadsInFlight.clear()
         _uiState.update {
             it.copy(
                 conversations = emptyList(),
