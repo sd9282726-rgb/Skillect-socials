@@ -10,25 +10,20 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlin.math.abs
 
-enum class ThemeMode { DARK, LIGHT, SYSTEM }
-
 data class CountryOption(
     val isoCode: String,
-    val name: String,
-    val dialCode: String,
-    val defaultTimezone: String,
+    val displayName: String,
+    val callingCode: String,
+    val defaultTimeZone: String,
 )
 
 object AppConfig {
-    val supabaseUrl: String
-        get() = BuildConfig.SUPABASE_URL.trim().trimEnd('/')
-
-    val supabaseAnonKey: String
-        get() = BuildConfig.SUPABASE_ANON_KEY.trim()
+    val supabaseUrl: String = BuildConfig.SUPABASE_URL.trim()
+    val supabaseAnonKey: String = BuildConfig.SUPABASE_ANON_KEY.trim()
 
     val isSupabaseConfigured: Boolean
         get() = supabaseUrl.startsWith("https://") &&
-            !supabaseUrl.contains("YOUR_PROJECT_REF") &&
+            supabaseUrl.contains(".supabase.co") &&
             supabaseAnonKey.isNotBlank() &&
             !supabaseAnonKey.contains("YOUR_SUPABASE_ANON_KEY")
 
@@ -72,23 +67,15 @@ object AppConfig {
         CountryOption("SE", "Sweden", "+46", "Europe/Stockholm"),
         CountryOption("ID", "Indonesia", "+62", "Asia/Jakarta"),
     ).let { featured ->
-        // Keep common regions first, then include every remaining ISO-3166 country.
-        // Unknown calling codes/time zones intentionally fall back to blank/UTC rather than
-        // silently assigning an incorrect regional value.
         val featuredCodes = featured.map { it.isoCode }.toSet()
         val remaining = Locale.getISOCountries()
             .asSequence()
             .filterNot { it in featuredCodes }
-            .mapNotNull { isoCode ->
-                val countryName = Locale("", isoCode).getDisplayCountry(Locale.ENGLISH).trim()
-                if (countryName.isBlank()) null else CountryOption(
-                    isoCode = isoCode,
-                    name = countryName,
-                    dialCode = "",
-                    defaultTimezone = "UTC",
-                )
+            .map { code ->
+                val display = Locale("", code).displayCountry.ifBlank { code }
+                CountryOption(code, display, "", "UTC")
             }
-            .sortedBy { it.name }
+            .sortedBy { it.displayName }
             .toList()
         featured + remaining
     }
@@ -99,75 +86,19 @@ object AppConfig {
         "fr" to "Français",
         "de" to "Deutsch",
         "pt" to "Português",
+        "hi" to "हिन्दी",
+        "ar" to "العربية",
         "ja" to "日本語",
         "ko" to "한국어",
-        "ar" to "العربية",
-        "hi" to "हिन्दी",
     )
 
-    val communityCategories: List<String> = listOf(
-        "Technology",
-        "Entrepreneurship",
-        "Design",
-        "Business",
-        "Programming",
-        "Photography",
-        "Entertainment",
-        "Education",
-        "Sports",
-        "Science",
-        "Creative Arts",
-        "General Discussions",
-    )
-
-    /**
-     * Validates that the provided ISO date (YYYY-MM-DD) meets Skillect's minimum 16+ age policy.
-     */
-    fun calculateAgeYears(birthDateIso: String): Int? {
-        val parts = birthDateIso.trim().split("-")
-        if (parts.size != 3) return null
-        val year = parts[0].toIntOrNull() ?: return null
-        val month = parts[1].toIntOrNull() ?: return null
-        val day = parts[2].toIntOrNull() ?: return null
-        if (month !in 1..12 || day !in 1..31 || year < 1900) return null
-
-        val today = Calendar.getInstance()
-        val dob = Calendar.getInstance().apply {
-            isLenient = false
-            set(Calendar.YEAR, year)
-            set(Calendar.MONTH, month - 1)
-            set(Calendar.DAY_OF_MONTH, day)
-        }
-        return try {
-            val dobTime = dob.timeInMillis
-            if (dobTime > today.timeInMillis) return null
-            var age = today.get(Calendar.YEAR) - dob.get(Calendar.YEAR)
-            if (today.get(Calendar.DAY_OF_YEAR) < dob.get(Calendar.DAY_OF_YEAR)) {
-                age -= 1
-            }
-            age
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    fun isEligibleAge16Plus(birthDateIso: String): Boolean {
-        val age = calculateAgeYears(birthDateIso) ?: return false
-        return age >= 16
-    }
-
-    fun isMinor16To17(birthDateIso: String): Boolean {
-        val age = calculateAgeYears(birthDateIso) ?: return false
-        return age in 16..17
-    }
-
-    fun formatCompactCount(count: Int, locale: Locale = Locale.getDefault()): String {
-        val safe = maxOf(0, count)
-        val nf = NumberFormat.getNumberInstance(locale)
+    fun formatCount(value: Int, locale: Locale = Locale.getDefault()): String {
+        val safe = value.coerceAtLeast(0)
+        val nf = NumberFormat.getIntegerInstance(locale)
         return when {
-            safe >= 1_000_000 -> String.format(locale, "%.1fM", safe / 1_000_000.0)
-            safe >= 10_000 -> String.format(locale, "%.1fK", safe / 1_000.0)
-            else -> nf.format(safe)
+            safe < 1000 -> nf.format(safe)
+            safe < 1_000_000 -> String.format(locale, "%.1fK", safe / 1000.0).replace(".0K", "K")
+            else -> String.format(locale, "%.1fM", safe / 1_000_000.0).replace(".0M", "M")
         }
     }
 
@@ -186,11 +117,16 @@ object AppConfig {
 
     fun parseIsoTimestamp(raw: String): Date? {
         if (raw.isBlank()) return null
+        // Normalize microsecond/nanosecond fractions to millis so SimpleDateFormat can parse
+        // e.g. 2026-11-16T06:20:03.618962+00:00 → 2026-11-16T06:20:03.618+00:00
+        val normalized = raw.trim().replace(Regex("(\\.\\d{3})\\d+"), "$1")
         val patterns = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+            "yyyy-MM-dd'T'HH:mm:ssXXX",
             "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            "yyyy-MM-dd'T'HH:mm:ssXXX",
-            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+            "yyyy-MM-dd'T'HH:mm:ssZ",
             "yyyy-MM-dd HH:mm:ss",
         )
         for (pattern in patterns) {
@@ -198,11 +134,21 @@ object AppConfig {
                 val sdf = SimpleDateFormat(pattern, Locale.US).apply {
                     timeZone = TimeZone.getTimeZone("UTC")
                 }
-                return sdf.parse(raw)
+                val parsed = sdf.parse(normalized)
+                if (parsed != null) return parsed
             } catch (_: Exception) {
                 // Try next format
             }
         }
-        return null
+        // Last-resort: Instant.parse for strict ISO-8601
+        return try {
+            Date.from(java.time.Instant.parse(raw.trim()))
+        } catch (_: Exception) {
+            try {
+                Date.from(java.time.Instant.parse(normalized))
+            } catch (_: Exception) {
+                null
+            }
+        }
     }
 }
