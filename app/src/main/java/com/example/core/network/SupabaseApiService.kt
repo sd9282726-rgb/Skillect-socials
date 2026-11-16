@@ -331,6 +331,12 @@ interface SupabasePostgrestApi {
     @POST("rest/v1/achievements")
     suspend fun createAchievement(@Body request: CreateAchievementRequest): Response<List<AchievementDto>>
 
+    @DELETE("rest/v1/achievements")
+    suspend fun deleteAchievement(
+        @Query("id") idEq: String,
+        @Query("user_id") userIdEq: String,
+    ): Response<ResponseBody>
+
     @GET("rest/v1/conversations")
     suspend fun getConversations(
         @Query("select") select: String = "*,participants:conversation_participants(*,profile:profiles(*)),read_markers:conversation_reads(*)",
