@@ -162,7 +162,10 @@ fun SkillectApp(
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { },
+        onResult = { _ ->
+            context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
+                .edit().putBoolean("notification_prompt_seen_v2", true).apply()
+        },
     )
     var showNotificationPermissionPrompt by remember { mutableStateOf(false) }
 
@@ -173,7 +176,7 @@ fun SkillectApp(
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
             val preferences = context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
-            if (!granted && !preferences.getBoolean("notification_prompt_seen", false)) {
+            if (!granted && !preferences.getBoolean("notification_prompt_seen_v2", false)) {
                 showNotificationPermissionPrompt = true
             }
         }
@@ -183,7 +186,7 @@ fun SkillectApp(
         AlertDialog(
             onDismissRequest = {
                 context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
-                    .edit().putBoolean("notification_prompt_seen", true).apply()
+                    .edit().putBoolean("notification_prompt_seen_v2", true).apply()
                 showNotificationPermissionPrompt = false
             },
             title = { Text(stringResource(R.string.permission_title)) },
@@ -193,8 +196,6 @@ fun SkillectApp(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
-                            .edit().putBoolean("notification_prompt_seen", true).apply()
                         showNotificationPermissionPrompt = false
                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     },
@@ -204,7 +205,7 @@ fun SkillectApp(
                 TextButton(
                     onClick = {
                         context.getSharedPreferences("skillect_permissions", Context.MODE_PRIVATE)
-                            .edit().putBoolean("notification_prompt_seen", true).apply()
+                            .edit().putBoolean("notification_prompt_seen_v2", true).apply()
                         showNotificationPermissionPrompt = false
                     },
                 ) { Text(stringResource(R.string.permission_not_now)) }
