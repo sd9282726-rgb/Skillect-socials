@@ -187,7 +187,9 @@ class ProfileSettingsViewModel(
             // Another member's privacy/follow permissions may have changed since the cache was filled.
             val cachedSections = if (isOwnProfile) profileSectionsCache[effectiveId] else null
             _uiState.update { state ->
-                val sameProfile = state.viewedProfile?.id == effectiveId
+                // Compare against the profile that was visible before this load.
+                // The earlier cache update may already have replaced viewedProfile.
+                val sameProfile = current.viewedProfile?.id == effectiveId
                 state.copy(
                     isLoading = cachedProfile == null && cachedSections == null,
                     isFollowActionPending = false,
