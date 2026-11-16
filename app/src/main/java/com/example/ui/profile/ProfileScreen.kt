@@ -518,6 +518,33 @@ fun ProfileScreen(
                     } else {
                         items(uiState.posts, key = { it.id }) { post ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onOpenProfile(post.authorId) }
+                                        .padding(bottom = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    SkillectAvatar(
+                                        avatarUrl = post.author?.avatarUrl ?: profile?.avatarUrl,
+                                        contentDescription = "Post author avatar",
+                                        size = 36.dp,
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            post.author?.displayName?.ifBlank { post.author.username }
+                                                ?: profile?.displayName?.ifBlank { profile.username }
+                                                ?: "Member",
+                                            style = MaterialTheme.typography.titleSmall,
+                                        )
+                                        Text(
+                                            "@" + (post.author?.username?.takeIf { it.isNotBlank() } ?: profile?.username.orEmpty()),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
                                 if (isOwnProfile) {
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                         TextButton(onClick = { pendingProfileDelete = "post" to post.id }) { Text("Delete") }
