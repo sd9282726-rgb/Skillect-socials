@@ -103,7 +103,7 @@ fun ShortsScreen(
             VerticalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
-                beyondViewportPageCount = 0,
+                beyondViewportPageCount = 1,
             ) { page ->
                 val videoPost = uiState.shortVideos[page]
                 val isLiked = videoPost.id in uiState.likedPostIds
