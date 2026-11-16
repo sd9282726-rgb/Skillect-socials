@@ -419,6 +419,15 @@ class ProfileSettingsViewModel(
         }
     }
 
+    fun sendMessageRequest(recipientId: String, message: String) {
+        viewModelScope.launch {
+            repository.createMessageRequest(recipientId, message).fold(
+                onSuccess = { _uiState.update { it.copy(statusMessage = "Message request sent.") } },
+                onFailure = { error -> _uiState.update { it.copy(statusMessage = error.message ?: "Could not send the message request.") } },
+            )
+        }
+    }
+
     fun startDirectConversation(peerUserId: String, onSuccess: (String) -> Unit) {
         viewModelScope.launch {
             repository.startDirectConversation(peerUserId).fold(
