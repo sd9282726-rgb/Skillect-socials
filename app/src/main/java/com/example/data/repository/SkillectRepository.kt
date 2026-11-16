@@ -24,6 +24,7 @@ import com.example.core.network.DeviceTokenUpsertDto
 import com.example.core.network.ExperienceDto
 import com.example.core.network.FollowRowDto
 import com.example.core.network.MessageDto
+import com.example.core.network.MessageRequestDto
 import com.example.core.network.ModerationAppealDto
 import com.example.core.network.ModerationMediaDto
 import com.example.core.network.ModerationAuditLogDto
@@ -1185,6 +1186,34 @@ class SkillectRepository(
             "request_required" -> Result.failure(IllegalStateException("A message request is required before you can start this conversation."))
             else -> Result.failure(IllegalStateException(result.error ?: "Messaging could not be started."))
         }
+    }
+
+    suspend fun fetchIncomingMessageRequests(): Result<List<MessageRequestDto>> = guardConfigured {
+        val uid = requireUserId("view message requests")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("view message requests"))
+        val response = postgrestApi.getIncomingMessageRequests("eq.$uid")
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        Result.success(response.body().orEmpty())
+    }
+
+    suspend fun createMessageRequest(recipientId: String, content: String): Result<Unit> = guardConfigured {
+        requireUserId("send a message request")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("send a message request"))
+        val clean = content.trim()
+        if (clean.isBlank()) return@guardConfigured Result.failure(IllegalArgumentException("Write a short message first."))
+        val response = postgrestApi.createMessageRequest(mapOf("recipient_id" to recipientId, "content" to clean.take(2000)))
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        Result.success(Unit)
+    }
+
+    suspend fun respondToMessageRequest(requestId: String, accept: Boolean): Result<String?> = guardConfigured {
+        requireUserId("respond to message requests")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("respond to message requests"))
+        val response = postgrestApi.respondMessageRequest(
+            mapOf("request_id" to requestId, "action" to if (accept) "accept" else "decline"),
+        )
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        Result.success(response.body()?.get("conversation_id"))
     }
 
     suspend fun fetchConversations(): Result<List<ConversationDto>> = guardConfigured {
