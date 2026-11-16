@@ -93,9 +93,21 @@ jobs:
           STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          KOTLIN_DAEMON_JVMARGS: -Xmx2g
         run: |
           set -euo pipefail
-          gradle --no-daemon --no-configuration-cache :app:assembleRelease :app:bundleRelease --stacktrace
+          # Retry once on known intermittent KSP ApplicationManager null crash
+          set +e
+          gradle --no-daemon --no-configuration-cache --no-build-cache :app:assembleRelease :app:bundleRelease --stacktrace
+          RC=$?
+          if [ $RC -ne 0 ]; then
+            echo "First assemble attempt failed (rc=$RC); retrying once after clean..."
+            gradle --stop || true
+            rm -rf ~/.gradle/caches/transforms-* || true
+            gradle --no-daemon --no-configuration-cache --no-build-cache :app:assembleRelease :app:bundleRelease --stacktrace
+            RC=$?
+          fi
+          exit $RC
 
       - name: Verify APK and AAB signatures
         run: |
@@ -112,7 +124,7 @@ jobs:
       - name: Upload signed release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: skillect-production-release
+          name: skillect-signed-release
           path: |
             app/build/outputs/apk/release/*.apk
             app/build/outputs/bundle/release/*.aab
@@ -121,4 +133,5 @@ jobs:
 
       - name: Remove restored keystore
         if: always()
-        run: rm -f "$GITHUB_WORKSPACE/skillect-release.jks" "$GITHUB_WORKSPACE/.env"
+        run: |
+          rm -f "$GITHUB_WORKSPACE/skillect-release.jks" || true
