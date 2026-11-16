@@ -98,11 +98,11 @@ class ExploreCommunitiesViewModel(
     fun refreshExplore() {
         if (!AppConfig.isSupabaseConfigured) return
         val state = _uiState.value
-        val currentUserId = repository.sessionStore.currentSession().userId
         val sortParam = if (state.sort == ExploreSort.TRENDING) "likes_count.desc,created_at.desc" else "created_at.desc"
 
         exploreJob?.cancel()
         exploreJob = viewModelScope.launch {
+            val currentUserId = repository.sessionStore.currentSession().userId
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val peopleTask = async { repository.searchProfiles(state.query) }
             val postsTask = async { repository.searchPosts(state.query, sortParam) }
