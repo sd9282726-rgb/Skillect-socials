@@ -265,8 +265,17 @@ class ProfileSettingsViewModel(
                 onComplete(false)
                 return@launch
             }
+            val cleanUsername = username.trim().removePrefix("@").lowercase()
+            if (!Regex("^[a-z0-9_]{3,24}$").matches(cleanUsername)) {
+                _uiState.update { it.copy(statusMessage = "Username must be 3–24 characters and use only letters, numbers, or underscores.") }
+                onComplete(false)
+                return@launch
+            }
             val interests = interestsCsv.split(",").map { it.trim() }.filter { it.isNotBlank() }
+            val skills = skillsCsv.split(",").map { it.trim() }.filter { it.isNotBlank() }.distinct()
             val updates = mutableMapOf<String, Any?>(
+                "username" to cleanUsername,
+                "skills" to skills,
                 "display_name" to displayName.trim(),
                 "website" to website.trim(),
                 "bio" to bio.trim(),
