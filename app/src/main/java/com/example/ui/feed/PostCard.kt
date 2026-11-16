@@ -308,10 +308,10 @@ fun PostCard(
                 AsyncImage(
                     model = post.mediaUrls.first(),
                     contentDescription = "Post image attachment",
-                    contentScale = ContentScale.Crop,
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(4f / 3f),
+                        .heightIn(max = 520.dp),
                 )
             } else {
                 val pagerState = rememberPagerState(pageCount = { post.mediaUrls.size })
