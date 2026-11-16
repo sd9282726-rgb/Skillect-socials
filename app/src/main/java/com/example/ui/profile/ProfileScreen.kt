@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -53,6 +54,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
@@ -98,6 +100,13 @@ import com.example.core.media.MediaUploadManager
 import com.example.core.media.VideoPlayerBox
 import com.example.ui.feed.ReportContentDialog
 import kotlinx.coroutines.launch
+
+private val profileSkillOptions = listOf(
+    "Technology" to listOf("Programming", "Kotlin", "Java", "Python", "JavaScript", "TypeScript", "C++", "C", "Rust", "Go", "Android Development", "iOS Development", "Web Development", "Frontend Development", "Backend Development", "Full-Stack Development", "AI Engineering", "Machine Learning", "Data Science", "Cybersecurity", "Cloud Computing", "DevOps", "Robotics", "Blockchain", "Game Development", "AR/VR", "Database Design", "API Development", "QA Testing"),
+    "Design & Creative" to listOf("UI/UX Design", "Graphic Design", "Web Design", "Product Design", "Illustration", "Animation", "3D Modelling", "3D Art", "Photography", "Video Editing", "Filmmaking", "Motion Graphics", "Visual Effects", "Music Production", "Content Creation", "Writing", "Copywriting", "Storytelling"),
+    "Business & Growth" to listOf("Entrepreneurship", "Business Strategy", "Product Management", "Project Management", "Marketing", "Digital Marketing", "Social Media Marketing", "SEO", "Performance Marketing", "Sales", "Business Development", "Finance", "Accounting", "Investing", "Market Research", "Operations", "Human Resources", "Customer Support", "Community Management"),
+    "Communication & Learning" to listOf("Public Speaking", "Communication", "Teaching", "Mentoring", "Research", "Critical Thinking", "Leadership", "Teamwork", "Problem Solving", "Languages", "Event Management", "Career Development")
+).flatMap { (_, skills) -> skills }.distinct()
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -824,7 +833,9 @@ fun ProfileScreen(
     if (showEditDialog) {
         var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
         var username by remember { mutableStateOf(profile?.username.orEmpty()) }
-        var skills by remember { mutableStateOf(profile?.skills?.joinToString(", ").orEmpty()) }
+        var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.toSet().orEmpty()) }
+        var skillsMenuExpanded by remember { mutableStateOf(false) }
+        var skillSearch by remember { mutableStateOf("") }
         var website by remember { mutableStateOf(profile?.website.orEmpty()) }
         var bio by remember { mutableStateOf(profile?.bio.orEmpty()) }
         var region by remember { mutableStateOf(profile?.regionLabel.orEmpty()) }
@@ -834,10 +845,56 @@ fun ProfileScreen(
             onDismissRequest = { showEditDialog = false },
             title = { Text("Edit Profile") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Display Name") })
                     OutlinedTextField(value = username, onValueChange = { username = it.lowercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' } }, label = { Text("Username") }, supportingText = { Text("3–24 letters, numbers or underscores") })
-                    OutlinedTextField(value = skills, onValueChange = { skills = it }, label = { Text("Skills (comma-separated)") }, minLines = 2)
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SkillectOutlinedButton(
+                                text = if (selectedSkills.isEmpty()) "Choose skills" else "Skills (${selectedSkills.size} selected)",
+                                leadingIcon = Icons.Rounded.Code,
+                                onClick = { skillsMenuExpanded = true },
+                            )
+                            if (selectedSkills.isNotEmpty()) {
+                                Text(
+                                    selectedSkills.sorted().joinToString(" · "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = skillsMenuExpanded,
+                            onDismissRequest = { skillsMenuExpanded = false },
+                        ) {
+                            OutlinedTextField(
+                                value = skillSearch,
+                                onValueChange = { skillSearch = it },
+                                label = { Text("Search skills") },
+                                singleLine = true,
+                                modifier = Modifier.padding(horizontal = 10.dp).widthIn(min = 220.dp),
+                            )
+                            profileSkillOptions.filter { it.contains(skillSearch, ignoreCase = true) }.forEach { skill ->
+                                DropdownMenuItem(
+                                    text = { Text(skill) },
+                                    leadingIcon = {
+                                        Checkbox(
+                                            checked = skill in selectedSkills,
+                                            onCheckedChange = { checked ->
+                                                selectedSkills = if (checked) selectedSkills + skill else selectedSkills - skill
+                                            },
+                                        )
+                                    },
+                                    onClick = {
+                                        selectedSkills = if (skill in selectedSkills) selectedSkills - skill else selectedSkills + skill
+                                    },
+                                )
+                            }
+                        }
+                    }
                     OutlinedTextField(value = website, onValueChange = { website = it }, label = { Text("Website URL") })
                     OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, minLines = 2)
                     OutlinedTextField(value = region, onValueChange = { region = it }, label = { Text("Country / Region (privacy-safe)") })
@@ -900,7 +957,7 @@ fun ProfileScreen(
                     onClick = {
                         isSavingProfile = true
                         viewModel.updateProfile(
-                            displayName, website, bio, region, interests, username, skills, avatarUrlForEdit, coverUrlForEdit,
+                            displayName, website, bio, region, interests, username, selectedSkills.sorted().joinToString(", "), avatarUrlForEdit, coverUrlForEdit,
                         ) { saved ->
                             isSavingProfile = false
                             if (saved) showEditDialog = false
