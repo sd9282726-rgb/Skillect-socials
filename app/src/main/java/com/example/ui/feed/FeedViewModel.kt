@@ -50,6 +50,8 @@ class FeedViewModel(
 
     private val pageSize = 20
     private var commentsLoadJob: Job? = null
+    private var feedLoadJob: Job? = null
+    private var feedRequestGeneration: Long = 0L
 
     init {
         refreshAll()
@@ -141,31 +143,43 @@ class FeedViewModel(
             _uiState.update { it.copy(isLoading = false, isLoadingMore = false, isBackendConfigured = false) }
             return
         }
+        if (reset) {
+            feedRequestGeneration += 1
+            feedLoadJob?.cancel()
+        } else if (feedLoadJob?.isActive == true || current.isLoading || current.isLoadingMore || !current.hasMore) {
+            return
+        }
+        val generation = feedRequestGeneration
+        val tab = current.selectedTab
         val offset = if (reset) 0 else current.posts.size
-        viewModelScope.launch {
+        feedLoadJob = viewModelScope.launch {
             _uiState.update {
                 if (reset) it.copy(isLoading = true, errorMessage = null)
                 else it.copy(isLoadingMore = true, errorMessage = null)
             }
-            repository.fetchFeed(current.selectedTab, limit = pageSize, offset = offset).fold(
-                onSuccess = { loaded ->
-                    _uiState.update { state ->
-                        val merged = if (reset) loaded else (state.posts + loaded).distinctBy { it.id }
-                        state.copy(
-                            posts = merged,
-                            isLoading = false,
-                            isLoadingMore = false,
-                            hasMore = loaded.size >= pageSize,
-                        )
-                    }
-                },
-                onFailure = { err ->
-                    val message = if (err is BackendNotConfiguredException) null else err.message
-                    _uiState.update {
-                        it.copy(isLoading = false, isLoadingMore = false, errorMessage = message)
-                    }
-                },
-            )
+            try {
+                repository.fetchFeed(tab, limit = pageSize, offset = offset).fold(
+                    onSuccess = { loaded ->
+                        if (generation != feedRequestGeneration || _uiState.value.selectedTab != tab) return@fold
+                        _uiState.update { state ->
+                            val merged = if (reset) loaded else (state.posts + loaded).distinctBy { it.id }
+                            state.copy(
+                                posts = merged,
+                                hasMore = loaded.size >= pageSize,
+                            )
+                        }
+                    },
+                    onFailure = { err ->
+                        if (generation != feedRequestGeneration) return@fold
+                        val message = if (err is BackendNotConfiguredException) null else err.message
+                        _uiState.update { it.copy(errorMessage = message) }
+                    },
+                )
+            } finally {
+                if (generation == feedRequestGeneration) {
+                    _uiState.update { it.copy(isLoading = false, isLoadingMore = false) }
+                }
+            }
         }
     }
 
