@@ -17,6 +17,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Restore SkillectApp and apply navigation freeze fix
+        run: |
+          set -euo pipefail
+          bash scripts/restore_nav_fix.sh
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -89,7 +94,6 @@ jobs:
           KOTLIN_DAEMON_JVMARGS: -Xmx2g
         run: |
           set -euo pipefail
-          # Retry once on known intermittent KSP ApplicationManager null crash
           set +e
           gradle --no-daemon --no-configuration-cache --no-build-cache :app:assembleRelease :app:bundleRelease --stacktrace
           RC=$?
