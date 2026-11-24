@@ -5,6 +5,7 @@ on:
     branches:
       - fix/onboarding
       - fix/first-launch-notification-permission
+      - fix/feed-shorts-comments-connect
   workflow_dispatch:
 
 permissions:
