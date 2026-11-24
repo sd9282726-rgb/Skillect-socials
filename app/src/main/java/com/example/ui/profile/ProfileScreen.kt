@@ -101,13 +101,6 @@ import com.example.core.media.VideoPlayerBox
 import com.example.ui.feed.ReportContentDialog
 import kotlinx.coroutines.launch
 
-private val profileSkillOptions = listOf(
-    "Technology" to listOf("Programming", "Kotlin", "Java", "Python", "JavaScript", "TypeScript", "C++", "C", "Rust", "Go", "Android Development", "iOS Development", "Web Development", "Frontend Development", "Backend Development", "Full-Stack Development", "AI Engineering", "Machine Learning", "Data Science", "Cybersecurity", "Cloud Computing", "DevOps", "Robotics", "Blockchain", "Game Development", "AR/VR", "Database Design", "API Development", "QA Testing"),
-    "Design & Creative" to listOf("UI/UX Design", "Graphic Design", "Web Design", "Product Design", "Illustration", "Animation", "3D Modelling", "3D Art", "Photography", "Video Editing", "Filmmaking", "Motion Graphics", "Visual Effects", "Music Production", "Content Creation", "Writing", "Copywriting", "Storytelling"),
-    "Business & Growth" to listOf("Entrepreneurship", "Business Strategy", "Product Management", "Project Management", "Marketing", "Digital Marketing", "Social Media Marketing", "SEO", "Performance Marketing", "Sales", "Business Development", "Finance", "Accounting", "Investing", "Market Research", "Operations", "Human Resources", "Customer Support", "Community Management"),
-    "Communication & Learning" to listOf("Public Speaking", "Communication", "Teaching", "Mentoring", "Research", "Critical Thinking", "Leadership", "Teamwork", "Problem Solving", "Languages", "Event Management", "Career Development")
-).flatMap { (_, skills) -> skills }.distinct()
-
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
