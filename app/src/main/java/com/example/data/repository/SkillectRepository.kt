@@ -510,6 +510,7 @@ class SkillectRepository(
                 "website" -> saved.website
                 "bio" -> saved.bio
                 "location" -> saved.regionLabel
+                "country" -> saved.countryCode
                 "interests" -> saved.interests
                 "skills" -> saved.skills
                 "avatar_url" -> saved.avatarUrl

@@ -513,13 +513,7 @@ fun OnboardingScreen(
         }
     }
 
-    val categorizedSkills = remember {
-        listOf(
-            "TECH & ENGINEERING" to listOf("Kotlin", "App Dev", "AI Engineering", "Web Design", "Robotics", "Product Strategy"),
-            "CREATIVE & ARTS" to listOf("UI/UX Design", "Photography", "Filmmaking", "Illustration", "Animation", "3D Art"),
-            "BUSINESS & WORDS" to listOf("Marketing", "Finance", "Writing", "Public Speaking", "Research", "Community Lead"),
-        )
-    }
+    val categorizedSkills = OnboardingSkillCatalog.categories
 
     val onboardingGoals = remember {
         listOf(

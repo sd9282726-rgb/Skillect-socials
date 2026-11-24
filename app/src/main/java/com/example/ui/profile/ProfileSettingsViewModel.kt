@@ -321,6 +321,7 @@ class ProfileSettingsViewModel(
         displayName: String,
         website: String,
         bio: String,
+        countryCode: String,
         regionLabel: String,
         interestsCsv: String,
         username: String,
@@ -350,6 +351,7 @@ class ProfileSettingsViewModel(
                 "display_name" to displayName.trim(),
                 "website" to website.trim(),
                 "bio" to bio.trim(),
+                "country" to countryCode.trim().uppercase(),
                 "location" to regionLabel.trim(),
                 "interests" to interests,
             )

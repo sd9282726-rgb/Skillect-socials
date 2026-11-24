@@ -101,13 +101,6 @@ import com.example.core.media.VideoPlayerBox
 import com.example.ui.feed.ReportContentDialog
 import kotlinx.coroutines.launch
 
-private val profileSkillOptions = listOf(
-    "Technology" to listOf("Programming", "Kotlin", "Java", "Python", "JavaScript", "TypeScript", "C++", "C", "Rust", "Go", "Android Development", "iOS Development", "Web Development", "Frontend Development", "Backend Development", "Full-Stack Development", "AI Engineering", "Machine Learning", "Data Science", "Cybersecurity", "Cloud Computing", "DevOps", "Robotics", "Blockchain", "Game Development", "AR/VR", "Database Design", "API Development", "QA Testing"),
-    "Design & Creative" to listOf("UI/UX Design", "Graphic Design", "Web Design", "Product Design", "Illustration", "Animation", "3D Modelling", "3D Art", "Photography", "Video Editing", "Filmmaking", "Motion Graphics", "Visual Effects", "Music Production", "Content Creation", "Writing", "Copywriting", "Storytelling"),
-    "Business & Growth" to listOf("Entrepreneurship", "Business Strategy", "Product Management", "Project Management", "Marketing", "Digital Marketing", "Social Media Marketing", "SEO", "Performance Marketing", "Sales", "Business Development", "Finance", "Accounting", "Investing", "Market Research", "Operations", "Human Resources", "Customer Support", "Community Management"),
-    "Communication & Learning" to listOf("Public Speaking", "Communication", "Teaching", "Mentoring", "Research", "Critical Thinking", "Leadership", "Teamwork", "Problem Solving", "Languages", "Event Management", "Career Development")
-).flatMap { (_, skills) -> skills }.distinct()
-
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -408,6 +401,25 @@ fun ProfileScreen(
                     if (profile?.bio?.isNotBlank() == true) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(text = profile.bio, style = MaterialTheme.typography.bodyMedium)
+                    }
+
+                    if (profile?.website?.isNotBlank() == true) {
+                        val websiteUrl = profile.website.trim().let { raw ->
+                            if (raw.startsWith("https://", true) || raw.startsWith("http://", true)) raw else "https://$raw"
+                        }
+                        Row(
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable {
+                                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(websiteUrl))) }
+                                }
+                                .padding(vertical = 6.dp, horizontal = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(Icons.Rounded.WorkOutline, contentDescription = "Website", tint = MaterialTheme.colorScheme.primary)
+                            Text(profile.website, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -833,24 +845,33 @@ fun ProfileScreen(
     if (showEditDialog) {
         var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
         var username by remember { mutableStateOf(profile?.username.orEmpty()) }
-        var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.toSet().orEmpty()) }
+        var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.filter { it in OnboardingSkillCatalog.all }?.toSet().orEmpty()) }
         var skillsMenuExpanded by remember { mutableStateOf(false) }
         var skillSearch by remember { mutableStateOf("") }
+        var selectedCountry by remember(profile?.id) {
+            mutableStateOf(AppConfig.supportedCountries.firstOrNull { it.isoCode.equals(profile?.countryCode, true) } ?: AppConfig.supportedCountries.first())
+        }
+        var countryMenuExpanded by remember { mutableStateOf(false) }
+        var countrySearch by remember { mutableStateOf("") }
+        var selectedInterests by remember(profile?.id) {
+            mutableStateOf(profile?.interests?.filter { it in OnboardingSkillCatalog.interests }?.toSet().orEmpty())
+        }
+        var interestsMenuExpanded by remember { mutableStateOf(false) }
         var website by remember { mutableStateOf(profile?.website.orEmpty()) }
         var bio by remember { mutableStateOf(profile?.bio.orEmpty()) }
-        var region by remember { mutableStateOf(profile?.regionLabel.orEmpty()) }
-        var interests by remember { mutableStateOf(profile?.interests?.joinToString(", ").orEmpty()) }
 
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title = { Text("Edit Profile") },
+            title = { Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { Text("Edit your profile", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Text("Make it easier for people to discover what you do", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    Text("BASIC INFORMATION", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Display Name") })
                     OutlinedTextField(value = username, onValueChange = { username = it.lowercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' } }, label = { Text("Username") }, supportingText = { Text("3–24 letters, numbers or underscores") })
+                    Text("SKILLS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     Box(modifier = Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             SkillectOutlinedButton(
@@ -877,26 +898,103 @@ fun ProfileScreen(
                                 singleLine = true,
                                 modifier = Modifier.padding(horizontal = 10.dp).widthIn(min = 220.dp),
                             )
-                            (profileSkillOptions + selectedSkills).distinct().filter { it.contains(skillSearch, ignoreCase = true) }.forEach { skill ->
+                            OnboardingSkillCatalog.categories.forEach { (category, skills) ->
+                                val filteredSkills = skills.filter { it.contains(skillSearch, ignoreCase = true) }
+                                if (filteredSkills.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text(category, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
+                                        onClick = {},
+                                        enabled = false,
+                                    )
+                                }
+                                filteredSkills.forEach { skill ->
+                                    DropdownMenuItem(
+                                        text = { Text(skill) },
+                                        leadingIcon = {
+                                            Checkbox(
+                                                checked = skill in selectedSkills,
+                                                onCheckedChange = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedSkills = if (skill in selectedSkills) selectedSkills - skill else selectedSkills + skill
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Text("PUBLIC PROFILE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(
+                        value = website,
+                        onValueChange = { website = it },
+                        label = { Text("Website URL") },
+                        placeholder = { Text("yourwebsite.com") },
+                        supportingText = { Text("Your website will appear as a clickable link on your profile.") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, minLines = 2, modifier = Modifier.fillMaxWidth())
+                    Text("COUNTRY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        SkillectOutlinedButton(
+                            text = "${OnboardingValidation.countryFlagEmoji(selectedCountry.isoCode)}  ${selectedCountry.name}",
+                            leadingIcon = Icons.Rounded.Flag,
+                            onClick = { countryMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        DropdownMenu(
+                            expanded = countryMenuExpanded,
+                            onDismissRequest = { countryMenuExpanded = false; countrySearch = "" },
+                        ) {
+                            OutlinedTextField(
+                                value = countrySearch,
+                                onValueChange = { countrySearch = it },
+                                placeholder = { Text("Search countries") },
+                                singleLine = true,
+                                leadingIcon = { Icon(Icons.Rounded.LocationOn, contentDescription = null) },
+                                modifier = Modifier.padding(horizontal = 10.dp).widthIn(min = 240.dp),
+                            )
+                            AppConfig.supportedCountries.filter {
+                                countrySearch.isBlank() || it.name.contains(countrySearch, true) || it.isoCode.contains(countrySearch, true)
+                            }.forEach { country ->
                                 DropdownMenuItem(
-                                    text = { Text(skill) },
-                                    leadingIcon = {
-                                        Checkbox(
-                                            checked = skill in selectedSkills,
-                                            onCheckedChange = null,
-                                        )
-                                    },
+                                    text = { Text("${OnboardingValidation.countryFlagEmoji(country.isoCode)}  ${country.name}") },
+                                    onClick = { selectedCountry = country; countryMenuExpanded = false; countrySearch = "" },
+                                )
+                            }
+                        }
+                    }
+                    Text("INTERESTS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            SkillectOutlinedButton(
+                                text = if (selectedInterests.isEmpty()) "Choose interests" else "Interests (${selectedInterests.size} selected)",
+                                leadingIcon = Icons.Rounded.Flag,
+                                onClick = { interestsMenuExpanded = true },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            if (selectedInterests.isNotEmpty()) {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    selectedInterests.sorted().forEach { SkillChip(label = it, selected = true) }
+                                }
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = interestsMenuExpanded,
+                            onDismissRequest = { interestsMenuExpanded = false },
+                        ) {
+                            OnboardingSkillCatalog.interests.forEach { interest ->
+                                DropdownMenuItem(
+                                    text = { Text(interest) },
+                                    leadingIcon = { Checkbox(checked = interest in selectedInterests, onCheckedChange = null) },
                                     onClick = {
-                                        selectedSkills = if (skill in selectedSkills) selectedSkills - skill else selectedSkills + skill
+                                        selectedInterests = if (interest in selectedInterests) selectedInterests - interest else selectedInterests + interest
                                     },
                                 )
                             }
                         }
                     }
-                    OutlinedTextField(value = website, onValueChange = { website = it }, label = { Text("Website URL") })
-                    OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Bio") }, minLines = 2)
-                    OutlinedTextField(value = region, onValueChange = { region = it }, label = { Text("Country / Region (privacy-safe)") })
-                    OutlinedTextField(value = interests, onValueChange = { interests = it }, label = { Text("Interests (comma-separated)") })
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -955,7 +1053,7 @@ fun ProfileScreen(
                     onClick = {
                         isSavingProfile = true
                         viewModel.updateProfile(
-                            displayName, website, bio, region, interests, username, selectedSkills.sorted().joinToString(", "), avatarUrlForEdit, coverUrlForEdit,
+                            displayName, website, bio, selectedCountry.isoCode, selectedCountry.name, selectedInterests.sorted().joinToString(", "), username, selectedSkills.sorted().joinToString(", "), avatarUrlForEdit, coverUrlForEdit,
                         ) { saved ->
                             isSavingProfile = false
                             if (saved) showEditDialog = false
