@@ -26,11 +26,15 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.PlayCircleOutline
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,6 +53,7 @@ import com.example.core.config.AppConfig
 import com.example.core.designsystem.EmptyStateCard
 import com.example.core.designsystem.SkillectAvatar
 import com.example.core.designsystem.SkillectCrimson
+import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.core.media.VideoPlayerBox
 import com.example.core.network.PostDto
 
@@ -66,6 +71,7 @@ fun ShortsScreen(
     val isGuest = currentUserId.isBlank()
     val context = LocalContext.current
     var reportTarget by remember { mutableStateOf<PostDto?>(null) }
+    var quoteTarget by remember { mutableStateOf<PostDto?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.loadShortVideos()
@@ -178,10 +184,13 @@ fun ShortsScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            IconButton(onClick = {
-                                if (isGuest) onRequireAuth(false, "Sign in to like short videos.")
-                                else viewModel.toggleLike(videoPost)
-                            }) {
+                            IconButton(
+                                enabled = videoPost.id !in uiState.pendingLikePostIds,
+                                onClick = {
+                                    if (isGuest) onRequireAuth(false, "Sign in to like short videos.")
+                                    else viewModel.toggleLike(videoPost)
+                                },
+                            ) {
                                 Icon(
                                     imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
                                     contentDescription = "Like video",
@@ -210,6 +219,17 @@ fun ShortsScreen(
                                 text = AppConfig.formatCompactCount(videoPost.commentsCount),
                                 color = Color.White,
                                 style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        IconButton(onClick = {
+                            if (isGuest) onRequireAuth(false, "Sign in to quote a video.")
+                            else quoteTarget = videoPost
+                        }) {
+                            Icon(
+                                imageVector = Icons.Rounded.Repeat,
+                                contentDescription = "Quote video",
+                                tint = Color.White,
+                                modifier = Modifier.size(26.dp),
                             )
                         }
                         IconButton(onClick = {
@@ -274,6 +294,34 @@ fun ShortsScreen(
         viewModel = viewModel,
         onRequireAuth = onRequireAuth,
     )
+
+    quoteTarget?.let { target ->
+        var quoteText by remember(target.id) { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { quoteTarget = null },
+            title = { Text("Quote this video") },
+            text = {
+                OutlinedTextField(
+                    value = quoteText,
+                    onValueChange = { quoteText = it },
+                    label = { Text("Add your thoughts") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                SkillectPrimaryButton(
+                    text = "Publish quote",
+                    enabled = quoteText.isNotBlank(),
+                    onClick = {
+                        viewModel.repost(target, quoteText)
+                        quoteTarget = null
+                    },
+                )
+            },
+            dismissButton = { TextButton(onClick = { quoteTarget = null }) { Text("Cancel") } },
+        )
+    }
 
     reportTarget?.let { target ->
         ReportContentDialog(

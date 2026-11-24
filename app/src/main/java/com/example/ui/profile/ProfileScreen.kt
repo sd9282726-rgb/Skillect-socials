@@ -41,6 +41,7 @@ import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.WorkOutline
@@ -492,7 +493,7 @@ fun ProfileScreen(
 
             item {
                 Spacer(modifier = Modifier.height(14.dp))
-                val tabs = if (isOwnProfile) listOf("Posts", "Projects", "Career", "Saved") else listOf("Posts", "Projects", "Career")
+                val tabs = if (isOwnProfile) listOf("Posts", "Quotes", "Projects", "Career", "Saved") else listOf("Posts", "Quotes", "Projects", "Career")
                 SecondaryTabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = MaterialTheme.colorScheme.background,
@@ -530,7 +531,8 @@ fun ProfileScreen(
 
             when (selectedTab) {
                 0 -> {
-                    if (uiState.posts.isEmpty()) {
+                    val regularPosts = uiState.posts.filterNot { it.postType == "quote" || it.quotedPostId != null }
+                    if (regularPosts.isEmpty()) {
                         item {
                             Box(modifier = Modifier.padding(16.dp)) {
                                 EmptyStateCard(
@@ -541,7 +543,7 @@ fun ProfileScreen(
                             }
                         }
                     } else {
-                        items(uiState.posts, key = { it.id }) { post ->
+                        items(regularPosts, key = { it.id }) { post ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
                                 Row(
                                     modifier = Modifier
@@ -613,6 +615,42 @@ fun ProfileScreen(
                     }
                 }
                 1 -> {
+                    val quotePosts = uiState.posts.filter { it.postType == "quote" || it.quotedPostId != null }
+                    if (quotePosts.isEmpty()) {
+                        item {
+                            Box(modifier = Modifier.padding(16.dp)) {
+                                EmptyStateCard(
+                                    icon = Icons.Rounded.Repeat,
+                                    title = "No quotes yet",
+                                    subtitle = "When this member quotes a post or video, it will appear here.",
+                                )
+                            }
+                        }
+                    } else {
+                        items(quotePosts, key = { "quote_${it.id}" }) { quote ->
+                            SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
+                                Text("QUOTE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                if (quote.content.isNotBlank()) {
+                                    Text(quote.content, style = MaterialTheme.typography.bodyLarge)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Quoted post or video", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (isOwnProfile) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                        TextButton(onClick = { pendingProfileDelete = "post" to quote.id }) { Text("Delete") }
+                                    }
+                                }
+                                Text(
+                                    "${AppConfig.formatCompactCount(quote.likesCount)} likes · ${AppConfig.formatCompactCount(quote.commentsCount)} comments",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+                2 -> {
                     if (isOwnProfile) {
                         item {
                             Row(
@@ -659,7 +697,7 @@ fun ProfileScreen(
                         }
                     }
                 }
-                2 -> {
+                3 -> {
                     if (isOwnProfile) {
                         item {
                             Row(
@@ -744,7 +782,7 @@ fun ProfileScreen(
                         }
                     }
                 }
-                3 -> {
+                4 -> {
                     item {
                         Row(
                             modifier = Modifier

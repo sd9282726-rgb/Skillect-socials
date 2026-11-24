@@ -110,6 +110,7 @@ interface SupabasePostgrestApi {
         @Query("author_id") authorIdFilter: String? = null,
         @Query("community_id") communityIdFilter: String? = null,
         @Query("category") postTypeFilter: String? = null,
+        @Query("post_type") postTypeColumnFilter: String? = null,
         @Query("or") orFilter: String? = null,
         @Query("order") order: String = "created_at.desc",
         @Query("limit") limit: Int = 20,

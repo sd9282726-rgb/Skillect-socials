@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -306,14 +307,19 @@ fun PostCard(
                         .aspectRatio(16f / 10f),
                 )
             } else if (post.mediaUrls.size == 1) {
-                AsyncImage(
-                    model = post.mediaUrls.first(),
-                    contentDescription = "Post image attachment",
-                    contentScale = ContentScale.Fit,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 520.dp),
-                )
+                        .aspectRatio(4f / 5f)
+                        .background(Color.Black),
+                ) {
+                    AsyncImage(
+                        model = post.mediaUrls.first(),
+                        contentDescription = "Post image attachment",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             } else {
                 val pagerState = rememberPagerState(pageCount = { post.mediaUrls.size })
                 Box(modifier = Modifier.fillMaxWidth()) {
@@ -321,13 +327,14 @@ fun PostCard(
                         state = pagerState,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(4f / 3f),
+                            .aspectRatio(4f / 5f)
+                            .background(Color.Black),
                     ) { page ->
                         AsyncImage(
                             model = post.mediaUrls[page],
                             contentDescription = "Carousel image ${page + 1}",
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
+                            modifier = Modifier.fillMaxSize(),
                         )
                     }
 

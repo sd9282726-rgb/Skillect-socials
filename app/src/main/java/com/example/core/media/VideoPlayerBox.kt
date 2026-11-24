@@ -1,7 +1,6 @@
 package com.example.core.media
 
 import android.net.Uri
-import android.view.TextureView
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +34,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -93,9 +94,16 @@ fun VideoPlayerBox(
         // TextureView lets Compose receive vertical drag gestures from the feed.
         AndroidView(
             factory = { ctx ->
-                TextureView(ctx).also { textureView ->
-                    exoPlayer.setVideoTextureView(textureView)
+                PlayerView(ctx).apply {
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    player = exoPlayer
+                    setOnTouchListener { _, _ -> false }
                 }
+            },
+            update = { playerView ->
+                playerView.player = exoPlayer
+                playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
             },
             modifier = Modifier.fillMaxSize(),
         )
