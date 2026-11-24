@@ -284,7 +284,7 @@ class ProfileSettingsViewModel(
                     achievements = loadedAchievements,
                     // A profile refresh can finish after the user taps Connect/Disconnect.
                     // Keep the immediate button state until that action returns.
-                    isFollowing = if (state.isFollowActionPending) state.isFollowing else loadedFollowing,
+                    isFollowing = loadedFollowing,
                     postsCount = loadedPostCount,
                     followersCount = loadedFollowersCount,
                     followingCount = loadedFollowingCount,
@@ -310,7 +310,8 @@ class ProfileSettingsViewModel(
                     projects = loadedProjects,
                     experiences = loadedExperiences,
                     achievements = loadedAchievements,
-                    isFollowing = loadedFollowing,
+                    // Keep the immediate Connect/Disconnect state if its save is still pending.
+                    isFollowing = if (state.isFollowActionPending) state.isFollowing else loadedFollowing,
                     postsCount = loadedPostCount,
                     followersCount = loadedFollowersCount,
                     followingCount = loadedFollowingCount,
