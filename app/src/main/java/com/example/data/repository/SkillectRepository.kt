@@ -67,6 +67,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -868,7 +869,21 @@ class SkillectRepository(
     }
 
     suspend fun deleteStory(storyId: String): Result<Unit> = guardConfigured {
-        requireUserId("delete stories") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete stories"))
+        val uid = requireUserId("delete Memories")
+            ?: return@guardConfigured Result.failure(AuthenticationRequiredException("delete Memories"))
+        val existing = postgrestApi.getStoryForDeletion(idEq = "eq.$storyId")
+        if (!existing.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(existing.parseError()))
+        val memory = existing.body()?.firstOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Memory was not found or is no longer available."))
+        if (memory.authorId != uid) return@guardConfigured Result.failure(IllegalStateException("You can only delete your own Memory."))
+        val path = memory.mediaUrl.trim()
+        if (path.isNotBlank() && !path.startsWith("http", ignoreCase = true)) {
+            val api = storageApi ?: return@guardConfigured Result.failure(IllegalStateException("Secure media storage is unavailable."))
+            val body = JSONObject().put("prefixes", JSONArray().put(path))
+                .toString().toRequestBody("application/json".toMediaType())
+            val removed = api.deleteObjects("stories-media", body)
+            if (!removed.isSuccessful) return@guardConfigured Result.failure(IllegalStateException("Could not remove Memory media (HTTP ${removed.code()})."))
+        }
         val resp = postgrestApi.deleteStory("eq.$storyId")
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
     }
