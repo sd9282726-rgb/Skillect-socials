@@ -123,6 +123,7 @@ fun FeedScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var activeStory by remember { mutableStateOf<StoryDto?>(null) }
+    val ownMemory = uiState.stories.firstOrNull { it.authorId == currentUserId }
     var quoteTarget by remember { mutableStateOf<PostDto?>(null) }
     var editTarget by remember { mutableStateOf<PostDto?>(null) }
     var reportTarget by remember { mutableStateOf<PostDto?>(null) }
@@ -393,75 +394,82 @@ fun FeedScreen(
                     }
                 }
 
-                // Stories Strip (24h expiration)
+                // Memories: an editorial media shelf, not circular story bubbles.
                 item {
                     Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Memories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                Text("Moments that stay for 12 hours", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            TextButton(onClick = {
+                                if (isGuest) onRequireAuth(false, "Sign in to add a Memory.")
+                                else storyPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                            }) { Text("Add Memory") }
+                        }
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             item {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                Box(
                                     modifier = Modifier
-                                        .width(68.dp)
-                                        .testTag("add_story_button")
+                                        .width(112.dp)
+                                        .height(136.dp)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                         .clickable {
-                                            if (isGuest) {
-                                                onRequireAuth(false, "Sign in to share 24h stories.")
-                                            } else {
-                                                storyPicker.launch(
-                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
-                                                )
-                                            }
+                                            if (ownMemory != null) activeStory = ownMemory
+                                            else if (isGuest) onRequireAuth(false, "Sign in to add a Memory.")
+                                            else storyPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
                                         },
                                 ) {
-                                    SkillectAvatar(
-                                        avatarUrl = null,
-                                        contentDescription = "Add 24h story",
-                                        size = 58.dp,
-                                        showAddBadge = true,
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = "Add story",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
+                                    if (ownMemory != null && ownMemory.mediaType == "image") {
+                                        AsyncImage(model = ownMemory.mediaUrl, contentDescription = "Your Memory", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                    } else {
+                                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
+                                            Text(if (ownMemory?.mediaType == "video") "▶ VIDEO" else "+", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Column(
+                                        modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
+                                            .background(Color.Black.copy(alpha = 0.62f)).padding(8.dp),
+                                    ) {
+                                        Text("YOUR SPACE", color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.labelSmall)
+                                        Text(if (ownMemory != null) "View your Memory" else "Create a Memory", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                                    }
                                 }
                             }
-
-                            items(uiState.stories, key = { it.id }) { story ->
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
+                            items(uiState.stories.filterNot { it.authorId == currentUserId }, key = { it.id }) { memory ->
+                                Box(
                                     modifier = Modifier
-                                        .width(68.dp)
-                                        .clickable { activeStory = story },
+                                        .width(112.dp)
+                                        .height(136.dp)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(Color(0xFF252B3A))
+                                        .clickable { activeStory = memory },
                                 ) {
-                                    SkillectAvatar(
-                                        avatarUrl = story.author?.avatarUrl,
-                                        contentDescription = "View ${story.author?.displayName ?: "user"} story",
-                                        size = 56.dp,
-                                        hasActiveStory = true,
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = story.author?.username?.takeIf { it.isNotBlank() }
-                                            ?: story.author?.displayName ?: "Creator",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
+                                    if (memory.mediaType == "image") {
+                                        AsyncImage(model = memory.mediaUrl, contentDescription = "Memory from ${memory.author?.displayName ?: "member"}", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                    } else {
+                                        Box(Modifier.fillMaxSize().background(Color(0xFF252B3A)), contentAlignment = Alignment.Center) {
+                                            Text("▶ VIDEO", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    Column(
+                                        modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
+                                            .background(Color.Black.copy(alpha = 0.62f)).padding(8.dp),
+                                    ) {
+                                        Text("MEMORY", color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.labelSmall)
+                                        Text(memory.author?.username?.takeIf { it.isNotBlank() } ?: memory.author?.displayName ?: "Member", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
                                 }
                             }
                         }
-                        HorizontalDivider(
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                        )
+                        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
 
@@ -603,7 +611,7 @@ fun FeedScreen(
                 } else {
                     AsyncImage(
                         model = story.mediaUrl,
-                        contentDescription = "Story media",
+                        contentDescription = "Memory media",
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize(),
                     )
@@ -617,7 +625,7 @@ fun FeedScreen(
                 ) {
                     SkillectAvatar(
                         avatarUrl = story.author?.avatarUrl,
-                        contentDescription = "Story author",
+                        contentDescription = "Memory author",
                         size = 38.dp,
                     )
                     Spacer(modifier = Modifier.width(10.dp))
@@ -638,11 +646,11 @@ fun FeedScreen(
                             viewModel.deleteStory(story.id)
                             activeStory = null
                         }) {
-                            Icon(Icons.Rounded.Delete, contentDescription = "Delete story", tint = Color.White)
+                            Icon(Icons.Rounded.Delete, contentDescription = "Delete memory", tint = Color.White)
                         }
                     }
                     IconButton(onClick = { activeStory = null }) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Close story", tint = Color.White)
+                        Icon(Icons.Rounded.Close, contentDescription = "Close memory", tint = Color.White)
                     }
                 }
             }
