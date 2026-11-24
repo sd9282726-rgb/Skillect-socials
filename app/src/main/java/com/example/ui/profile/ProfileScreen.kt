@@ -638,7 +638,13 @@ fun ProfileScreen(
                                 Text("QUOTE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(6.dp))
                                 if (quote.content.isNotBlank()) {
-                                    Text(quote.content, style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        text = quote.content,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        softWrap = true,
+                                        maxLines = Int.MAX_VALUE,
+                                    )
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text("Quoted post or video", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -686,13 +692,29 @@ fun ProfileScreen(
                     } else {
                         items(uiState.projects, key = { it.id }) { proj ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(proj.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                                    if (isOwnProfile) TextButton(onClick = { pendingProfileDelete = "project" to proj.id }) { Text("Delete") }
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = proj.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        softWrap = true,
+                                        maxLines = Int.MAX_VALUE,
+                                    )
+                                    if (isOwnProfile) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                            TextButton(onClick = { pendingProfileDelete = "project" to proj.id }) { Text("Delete") }
+                                        }
+                                    }
                                 }
                                 Text(proj.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Text(proj.description, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = proj.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    softWrap = true,
+                                    maxLines = Int.MAX_VALUE,
+                                )
                                 if (proj.skillsUsed.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -739,14 +761,27 @@ fun ProfileScreen(
                         if (uiState.experiences.isNotEmpty()) {
                             items(uiState.experiences, key = { it.id }) { exp ->
                                 SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(exp.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                                        if (isOwnProfile) TextButton(onClick = { pendingProfileDelete = "experience" to exp.id }) { Text("Delete") }
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            text = exp.title,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            softWrap = true,
+                                            maxLines = Int.MAX_VALUE,
+                                        )
+                                        if (isOwnProfile) {
+                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                                TextButton(onClick = { pendingProfileDelete = "experience" to exp.id }) { Text("Delete") }
+                                            }
+                                        }
                                     }
                                     Text(
                                         text = "${exp.organization} · ${exp.startDate}",
                                         style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.fillMaxWidth(),
                                         color = MaterialTheme.colorScheme.primary,
+                                        softWrap = true,
+                                        maxLines = Int.MAX_VALUE,
                                     )
                                     if (exp.description.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(6.dp))
@@ -765,8 +800,18 @@ fun ProfileScreen(
                                             tint = MaterialTheme.colorScheme.primary,
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(ach.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                                        if (isOwnProfile) TextButton(onClick = { pendingProfileDelete = "achievement" to ach.id }) { Text("Delete") }
+                                        Text(
+                                            text = ach.title,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.weight(1f),
+                                            softWrap = true,
+                                            maxLines = Int.MAX_VALUE,
+                                        )
+                                    }
+                                    if (isOwnProfile) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                            TextButton(onClick = { pendingProfileDelete = "achievement" to ach.id }) { Text("Delete") }
+                                        }
                                     }
                                     val subtitle = listOfNotNull(
                                         ach.issuer.takeIf { it.isNotBlank() },
