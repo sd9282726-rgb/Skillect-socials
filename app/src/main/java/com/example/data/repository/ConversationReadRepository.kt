@@ -29,33 +29,39 @@ private interface ConversationReadApi {
         @Query("user_id") userIdEq: String,
         @Body updates: Map<String, String>,
     ): Response<List<ConversationReadDto>>
+
+    @Headers("Prefer: return=representation")
+    @PATCH("rest/v1/conversation_reads")
+    suspend fun markConversationDelivered(
+        @Query("conversation_id") conversationIdEq: String,
+        @Query("user_id") userIdEq: String,
+        @Body updates: Map<String, String>,
+    ): Response<List<ConversationReadDto>>
 }
 
+private fun currentUtcTimestamp(): String =
+    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }.format(Date())
+
 /**
- * Persists the signed-in participant's read cursor.
- * The existing conversation_reads RLS policy scopes updates to the signed-in participant; migration 0007 restricts column-level UPDATE to last_read_at.
+ * Persists the signed-in participant's read cursor and delivery acknowledgement.
+ * RLS scopes both writes to the signed-in participant; column grants are limited
+ * to last_read_at and last_delivered_at.
  */
 suspend fun SkillectRepository.markConversationRead(conversationId: String): Result<String> {
-    if (!AppConfig.isSupabaseConfigured) {
-        return Result.failure(BackendNotConfiguredException())
-    }
-    if (conversationId.isBlank()) {
-        return Result.failure(IllegalArgumentException("Conversation is required."))
-    }
+    if (!AppConfig.isSupabaseConfigured) return Result.failure(BackendNotConfiguredException())
+    if (conversationId.isBlank()) return Result.failure(IllegalArgumentException("Conversation is required."))
     return try {
         val uid = sessionStore.currentSession().userId
-        if (uid.isBlank()) {
-            return Result.failure(AuthenticationRequiredException("update conversation read state"))
-        }
-        val readAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-            timeZone = TimeZone.getTimeZone("UTC")
-        }.format(Date())
-        val api = SupabaseClientFactory.createRetrofit(sessionStore)
-            .create(ConversationReadApi::class.java)
+        if (uid.isBlank()) return Result.failure(AuthenticationRequiredException("update conversation read state"))
+        val readAt = currentUtcTimestamp()
+        val api = SupabaseClientFactory.createRetrofit(sessionStore).create(ConversationReadApi::class.java)
         val marker = mapOf(
             "conversation_id" to conversationId,
             "user_id" to uid,
             "last_read_at" to readAt,
+            "last_delivered_at" to readAt,
         )
         val insertResponse = api.createReadMarker(marker)
         val savedResponse = if (insertResponse.isSuccessful) {
@@ -64,7 +70,7 @@ suspend fun SkillectRepository.markConversationRead(conversationId: String): Res
             api.markConversationRead(
                 conversationIdEq = "eq.$conversationId",
                 userIdEq = "eq.$uid",
-                updates = mapOf("last_read_at" to readAt),
+                updates = mapOf("last_read_at" to readAt, "last_delivered_at" to readAt),
             )
         } else {
             val detail = insertResponse.errorBody()?.string()?.take(400)
@@ -79,6 +85,37 @@ suspend fun SkillectRepository.markConversationRead(conversationId: String): Res
                 Result.failure(IllegalStateException("The server did not confirm the conversation read update."))
             } else {
                 Result.success(saved.lastReadAt ?: readAt)
+            }
+        }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        Result.failure(error)
+    }
+}
+
+suspend fun SkillectRepository.markConversationDelivered(conversationId: String): Result<String> {
+    if (!AppConfig.isSupabaseConfigured) return Result.failure(BackendNotConfiguredException())
+    if (conversationId.isBlank()) return Result.failure(IllegalArgumentException("Conversation is required."))
+    return try {
+        val uid = sessionStore.currentSession().userId
+        if (uid.isBlank()) return Result.failure(AuthenticationRequiredException("update conversation delivery state"))
+        val deliveredAt = currentUtcTimestamp()
+        val api = SupabaseClientFactory.createRetrofit(sessionStore).create(ConversationReadApi::class.java)
+        val response = api.markConversationDelivered(
+            conversationIdEq = "eq.$conversationId",
+            userIdEq = "eq.$uid",
+            updates = mapOf("last_delivered_at" to deliveredAt),
+        )
+        if (!response.isSuccessful) {
+            val detail = response.errorBody()?.string()?.take(400)
+            Result.failure(IllegalStateException(detail ?: "Message delivery could not be confirmed (HTTP ${response.code()})."))
+        } else {
+            val saved = response.body()?.firstOrNull()
+            if (saved == null || saved.conversationId != conversationId || saved.userId != uid) {
+                Result.failure(IllegalStateException("The server did not confirm message delivery."))
+            } else {
+                Result.success(saved.lastDeliveredAt ?: deliveredAt)
             }
         }
     } catch (cancelled: CancellationException) {
