@@ -60,6 +60,8 @@ class FeedViewModel(
 
     init {
         refreshAll()
+        // Fetch Shorts in the background while the user is browsing the feed.
+        loadShortVideos()
         viewModelScope.launch {
             repository.realtimeClient.events.collect { event ->
                 if (event is RealtimeEvent.FeedUpdated) {
