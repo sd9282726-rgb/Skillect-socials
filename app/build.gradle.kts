@@ -121,6 +121,7 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.I
 dependencies {
   coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
   implementation(libs.androidx.activity.compose)
+  implementation(libs.androidx.fragment.ktx)
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.compose.material.icons.extended)
   implementation(libs.androidx.compose.material3)
