@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
@@ -64,6 +65,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.border
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -394,7 +396,7 @@ fun FeedScreen(
                     }
                 }
 
-                // Memories: an editorial media shelf, not circular story bubbles.
+                // Memories use familiar circular story previews.
                 item {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
@@ -403,7 +405,7 @@ fun FeedScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Memories", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                Text("Moments that stay for 12 hours", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Visible for 12 hours", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             TextButton(onClick = {
                                 if (isGuest) onRequireAuth(false, "Sign in to add a Memory.")
@@ -412,60 +414,68 @@ fun FeedScreen(
                         }
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             item {
-                                Box(
-                                    modifier = Modifier
-                                        .width(112.dp)
-                                        .height(136.dp)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                        .clickable {
-                                            if (ownMemory != null) activeStory = ownMemory
-                                            else if (isGuest) onRequireAuth(false, "Sign in to add a Memory.")
-                                            else storyPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-                                        },
+                                Column(
+                                    modifier = Modifier.width(78.dp).clickable {
+                                        if (ownMemory != null) activeStory = ownMemory
+                                        else if (isGuest) onRequireAuth(false, "Sign in to add a Memory.")
+                                        else storyPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                                    },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
-                                    if (ownMemory != null && ownMemory.mediaType == "image") {
-                                        AsyncImage(model = ownMemory.mediaUrl, contentDescription = "Your Memory", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                                    } else {
-                                        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
-                                            Text(if (ownMemory?.mediaType == "video") "▶ VIDEO" else "+", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                    Box(
+                                        modifier = Modifier.size(74.dp)
+                                            .clip(CircleShape)
+                                            .border(2.dp, SkillectCrimson, CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        if (ownMemory?.mediaType == "image") {
+                                            AsyncImage(model = ownMemory.mediaUrl, contentDescription = "Your Memory", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                        } else if (ownMemory?.mediaType == "video") {
+                                            Text("▶", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.headlineMedium)
+                                        } else {
+                                            Text("+", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.headlineLarge)
                                         }
                                     }
-                                    Column(
-                                        modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                                            .background(Color.Black.copy(alpha = 0.62f)).padding(8.dp),
-                                    ) {
-                                        Text("YOUR SPACE", color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.labelSmall)
-                                        Text(if (ownMemory != null) "View your Memory" else "Create a Memory", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 2)
-                                    }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = if (ownMemory != null) "Your story" else "Add story",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
                                 }
                             }
                             items(uiState.stories.filterNot { it.authorId == currentUserId }, key = { it.id }) { memory ->
-                                Box(
-                                    modifier = Modifier
-                                        .width(112.dp)
-                                        .height(136.dp)
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .background(Color(0xFF252B3A))
-                                        .clickable { activeStory = memory },
+                                Column(
+                                    modifier = Modifier.width(78.dp).clickable { activeStory = memory },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
-                                    if (memory.mediaType == "image") {
-                                        AsyncImage(model = memory.mediaUrl, contentDescription = "Memory from ${memory.author?.displayName ?: "member"}", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                                    } else {
-                                        Box(Modifier.fillMaxSize().background(Color(0xFF252B3A)), contentAlignment = Alignment.Center) {
-                                            Text("▶ VIDEO", color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Box(
+                                        modifier = Modifier.size(74.dp)
+                                            .clip(CircleShape)
+                                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                            .background(Color(0xFF252B3A)),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        if (memory.mediaType == "image") {
+                                            AsyncImage(model = memory.mediaUrl, contentDescription = "Memory from ${memory.author?.displayName ?: "member"}", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                        } else {
+                                            Text("▶", color = Color.White, style = MaterialTheme.typography.headlineMedium)
                                         }
                                     }
-                                    Column(
-                                        modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-                                            .background(Color.Black.copy(alpha = 0.62f)).padding(8.dp),
-                                    ) {
-                                        Text("MEMORY", color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.labelSmall)
-                                        Text(memory.author?.username?.takeIf { it.isNotBlank() } ?: memory.author?.displayName ?: "Member", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = memory.author?.username?.takeIf { it.isNotBlank() }
+                                            ?: memory.author?.displayName ?: "Member",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
                                 }
                             }
                         }
@@ -591,7 +601,7 @@ fun FeedScreen(
         }
     }
 
-    // Story Viewer Dialog (24h expiring media)
+    // Full-screen 12-hour Memory viewer
     activeStory?.let { story ->
         Dialog(
             onDismissRequest = { activeStory = null },
@@ -612,7 +622,7 @@ fun FeedScreen(
                     AsyncImage(
                         model = story.mediaUrl,
                         contentDescription = "Memory media",
-                        contentScale = ContentScale.Fit,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
@@ -634,11 +644,6 @@ fun FeedScreen(
                             text = story.author?.displayName ?: "Member",
                             color = Color.White,
                             style = MaterialTheme.typography.titleSmall,
-                        )
-                        Text(
-                            text = AppConfig.formatRelativeTimestamp(story.createdAt),
-                            color = Color.White.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                     if (story.authorId == currentUserId && currentUserId.isNotBlank()) {
