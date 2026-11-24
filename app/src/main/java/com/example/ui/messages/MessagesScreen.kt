@@ -171,7 +171,7 @@ fun MessagesInboxScreen(
                 if (!AppConfig.isSupabaseConfigured) {
                     item {
                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                            Text("Messages are temporarily unavailable. Please try again shortly.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                            Text("Messages are temporarily unavailable. Please try again soon.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -229,8 +229,8 @@ fun MessagesInboxScreen(
                     item {
                         EmptyStateCard(
                             icon = Icons.Rounded.ChatBubbleOutline,
-                            title = "Real-Time Private Messaging",
-                            subtitle = "Start a conversation, share ideas, and stay connected. Members aged 16–17 can message within their connected network.",
+                            title = "No conversations yet",
+                            subtitle = "Start a conversation, share ideas, and stay connected. Members aged 16–17 can message people in their network.",
                         )
                     }
                 } else {
