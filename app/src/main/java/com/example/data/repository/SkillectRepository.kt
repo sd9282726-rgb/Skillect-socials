@@ -62,6 +62,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.SupervisorJob
+import java.time.Duration
+import java.time.Instant
+import java.time.OffsetDateTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -824,7 +827,11 @@ class SkillectRepository(
         if (path.isBlank()) return null
         if (path.startsWith("http", ignoreCase = true)) return story
         return try {
-            val body = JSONObject().put("expiresIn", 24 * 60 * 60)
+            val remainingSeconds = runCatching {
+                Duration.between(Instant.now(), OffsetDateTime.parse(story.expiresAt).toInstant()).seconds
+            }.getOrDefault(12L * 60L * 60L)
+            if (remainingSeconds <= 0L) return null
+            val body = JSONObject().put("expiresIn", remainingSeconds.coerceAtMost(12L * 60L * 60L))
                 .toString().toRequestBody("application/json".toMediaType())
             val response = api.createSignedUrl("stories-media", path, body)
             if (!response.isSuccessful) return null
@@ -853,7 +860,11 @@ class SkillectRepository(
         val uid = requireUserId("share a story") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("share a story"))
         val resp = postgrestApi.createStory(CreateStoryRequest(uid, mediaUrl, mediaType, caption.trim().take(280)))
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
-        Result.success(resp.body()!!.first())
+        val created = resp.body()?.firstOrNull()
+            ?: return@guardConfigured Result.failure(IllegalStateException("Memory was uploaded but the saved item could not be loaded."))
+        val signed = createSignedStory(created)
+            ?: return@guardConfigured Result.failure(IllegalStateException("Memory was saved, but its private media link could not be prepared."))
+        Result.success(signed)
     }
 
     suspend fun deleteStory(storyId: String): Result<Unit> = guardConfigured {
