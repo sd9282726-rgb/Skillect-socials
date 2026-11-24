@@ -132,6 +132,7 @@ class ProfileSettingsViewModel(
         profileLoadJob = null
         profileCache.clear()
         profileSectionsCache.clear()
+        networkListCache.clear()
         _uiState.update {
             it.copy(
                 myProfile = null,
