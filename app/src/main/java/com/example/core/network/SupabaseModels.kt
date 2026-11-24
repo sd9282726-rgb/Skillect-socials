@@ -372,6 +372,7 @@ data class ConversationReadDto(
     @Json(name = "conversation_id") val conversationId: String,
     @Json(name = "user_id") val userId: String,
     @Json(name = "last_read_at") val lastReadAt: String? = null,
+    @Json(name = "last_delivered_at") val lastDeliveredAt: String? = null,
 )
 
 @JsonClass(generateAdapter = true)
