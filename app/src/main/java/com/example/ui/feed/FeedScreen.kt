@@ -860,7 +860,11 @@ fun CommentsBottomSheet(
                                     text = comment.author?.displayName?.takeIf { it.isNotBlank() } ?: "Member",
                                     style = MaterialTheme.typography.labelMedium,
                                 )
-                                Text(text = comment.content, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    text = comment.content + if (comment.moderationStatus == "pending") "  · Sending…" else "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (comment.moderationStatus == "pending") MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                                )
                                 TextButton(onClick = {
                                     if (isGuest) {
                                         onRequireAuth(false, "Sign in to reply to comments.")
