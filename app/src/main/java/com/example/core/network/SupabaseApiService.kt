@@ -184,6 +184,13 @@ interface SupabasePostgrestApi {
         @Query("limit") limit: Int = 40,
     ): Response<List<StoryDto>>
 
+    @GET("rest/v1/stories")
+    suspend fun getStoryForDeletion(
+        @Query("id") idEq: String,
+        @Query("select") select: String = "id,author_id,media_url,media_type,caption,created_at,expires_at,moderation_status",
+        @Query("limit") limit: Int = 1,
+    ): Response<List<StoryDto>>
+
     @Headers("Prefer: return=representation")
     @POST("rest/v1/stories")
     suspend fun createStory(@Body request: CreateStoryRequest): Response<List<StoryDto>>
@@ -505,6 +512,12 @@ interface SupabaseStorageApi {
         @Path("path", encoded = true) path: String,
         @Header("Content-Type") contentType: String,
         @Header("x-upsert") upsert: String = "false",
+        @Body body: RequestBody,
+    ): Response<ResponseBody>
+
+    @retrofit2.http.DELETE("storage/v1/object/{bucket}")
+    suspend fun deleteObjects(
+        @Path("bucket") bucket: String,
         @Body body: RequestBody,
     ): Response<ResponseBody>
 }
