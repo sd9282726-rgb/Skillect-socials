@@ -377,6 +377,7 @@ class MessagesNotificationsViewModel(
                 messages = emptyList(),
                 notifications = emptyList(),
                 activeConversationId = null,
+                isSendingMessage = false,
                 statusMessage = null,
                 errorMessage = null,
             )
