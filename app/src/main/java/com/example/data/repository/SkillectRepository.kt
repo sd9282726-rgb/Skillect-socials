@@ -858,7 +858,7 @@ class SkillectRepository(
     }
 
     suspend fun createStory(mediaUrl: String, mediaType: String, caption: String): Result<StoryDto> = guardConfigured {
-        val uid = requireUserId("share a story") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("share a story"))
+        val uid = requireUserId("share a Memory") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("share a Memory"))
         val resp = postgrestApi.createStory(CreateStoryRequest(uid, mediaUrl, mediaType, caption.trim().take(280)))
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
         val created = resp.body()?.firstOrNull()
