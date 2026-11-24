@@ -785,7 +785,13 @@ fun ProfileScreen(
                                     )
                                     if (exp.description.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(6.dp))
-                                        Text(exp.description, style = MaterialTheme.typography.bodyMedium)
+                                        Text(
+                                            text = exp.description,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            softWrap = true,
+                                            maxLines = Int.MAX_VALUE,
+                                        )
                                     }
                                 }
                             }
@@ -821,12 +827,21 @@ fun ProfileScreen(
                                         Text(
                                             text = subtitle,
                                             style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.fillMaxWidth(),
                                             color = MaterialTheme.colorScheme.primary,
+                                            softWrap = true,
+                                            maxLines = Int.MAX_VALUE,
                                         )
                                     }
                                     if (ach.description.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(6.dp))
-                                        Text(ach.description, style = MaterialTheme.typography.bodyMedium)
+                                        Text(
+                                            text = ach.description,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            softWrap = true,
+                                            maxLines = Int.MAX_VALUE,
+                                        )
                                     }
                                 }
                             }
