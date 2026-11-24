@@ -588,12 +588,14 @@ class SkillectRepository(
             }
             val resp = postgrestApi.getPosts(
                 authorIdFilter = authorFilter,
+                postTypeColumnFilter = "not.eq.video",
                 order = order,
                 limit = limit,
                 offset = offset,
             )
             if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
             val posts = resp.body().orEmpty().map { it.normalizedForUi() }
+                .filterNot { it.postType == "video" || it.mediaTypes.contains("video") }
             posts.mapNotNull { it.author }.forEach { author -> profileByIdCache[author.id] = author }
             Result.success(posts)
         } finally {
@@ -627,7 +629,11 @@ class SkillectRepository(
     }
 
     suspend fun fetchShortVideos(): Result<List<PostDto>> = guardConfigured {
-        val resp = postgrestApi.getPosts(order = "created_at.desc", limit = 30)
+        val resp = postgrestApi.getPosts(
+            postTypeColumnFilter = "eq.video",
+            order = "created_at.desc",
+            limit = 60,
+        )
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
         val videos = resp.body().orEmpty()
             .map { it.normalizedForUi() }
@@ -758,22 +764,15 @@ class SkillectRepository(
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
     }
 
-    suspend fun toggleLike(postId: String): Result<Boolean> = guardConfigured {
+    suspend fun setPostLike(postId: String, shouldLike: Boolean): Result<Boolean> = guardConfigured {
         val uid = requireUserId("like posts") ?: return@guardConfigured Result.failure(AuthenticationRequiredException("like posts"))
-        val current = postgrestApi.getPostLikes(
-            userIdEq = "eq.$uid",
-            postIdEq = "eq.$postId",
-            limit = 1,
-        )
-        if (!current.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(current.parseError()))
-        val currentlyLiked = !current.body().isNullOrEmpty()
-        val resp = if (currentlyLiked) {
-            postgrestApi.unlikePost("eq.$postId", "eq.$uid")
-        } else {
+        val response = if (shouldLike) {
             postgrestApi.likePost(mapOf("post_id" to postId, "user_id" to uid))
+        } else {
+            postgrestApi.unlikePost("eq.$postId", "eq.$uid")
         }
-        if (resp.isSuccessful) Result.success(!currentlyLiked)
-        else Result.failure(IllegalStateException(resp.parseError()))
+        if (response.isSuccessful) Result.success(shouldLike)
+        else Result.failure(IllegalStateException(response.parseError()))
     }
 
     suspend fun votePoll(postId: String, optionId: String): Result<Unit> = guardConfigured {
