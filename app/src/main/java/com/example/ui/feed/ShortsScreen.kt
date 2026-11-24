@@ -91,11 +91,11 @@ fun ShortsScreen(
             ) {
                 EmptyStateCard(
                     icon = Icons.Rounded.PlayCircleOutline,
-                    title = "Short Vertical Videos",
+                    title = "No Shorts yet",
                     subtitle = if (uiState.isBackendConfigured) {
-                        "No short videos posted yet. Share a vertical creative clip or skill demo."
+                        "Short videos shared by the community will appear here."
                     } else {
-                        "Connect your Supabase project in AI Studio Secrets to stream vertical short videos."
+                        "Short videos are temporarily unavailable. Please try again soon."
                     },
                     actionLabel = "Upload Short Video",
                     onAction = {

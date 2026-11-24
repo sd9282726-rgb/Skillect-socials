@@ -1,6 +1,7 @@
 package com.example.ui.profile
 
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -100,6 +101,8 @@ import com.example.core.designsystem.VerifiedCreatorBadge
 import com.example.core.media.MediaUploadManager
 import com.example.core.media.VideoPlayerBox
 import com.example.ui.feed.ReportContentDialog
+import com.example.ui.auth.OnboardingSkillCatalog
+import com.example.ui.auth.OnboardingValidation
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -302,7 +305,11 @@ fun ProfileScreen(
             item {
                 Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 46.dp)) {
                     if (!AppConfig.isSupabaseConfigured) {
-                        BackendConfigBanner()
+                        Text(
+                            "Some profile details are temporarily unavailable.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                         Spacer(modifier = Modifier.height(14.dp))
                     }
                     if (!uiState.errorMessage.isNullOrBlank()) {
@@ -366,7 +373,7 @@ fun ProfileScreen(
                                 )
                                 SkillectPrimaryButton(
                                     text = if (uiState.isFollowing) "Disconnect" else "Connect",
-                                    enabled = !uiState.isFollowActionPending && !uiState.isLoading,
+                                    enabled = !uiState.isFollowActionPending,
                                     onClick = {
                                         if (effectiveCurrentUserId.isBlank()) {
                                             onRequireAuth(false, "Sign in to connect with creators and build your network.")
@@ -1226,7 +1233,7 @@ fun ProfileScreen(
                 Text(uiState.networkTitle, style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(12.dp))
                 when {
-                    uiState.isLoadingNetwork -> CircularProgressIndicator()
+                    uiState.isLoadingNetwork && uiState.networkProfiles.isEmpty() -> CircularProgressIndicator()
                     uiState.networkProfiles.isEmpty() -> Text(
                         "No accounts to show yet.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -55,9 +55,13 @@ class FeedViewModel(
     private var feedLoadJob: Job? = null
     private var feedRequestGeneration: Long = 0L
     private var shortVideosLoadJob: Job? = null
+    private val feedCache = mutableMapOf<FeedTab, List<PostDto>>()
+    private val commentsCache = mutableMapOf<String, List<CommentDto>>()
 
     init {
         refreshAll()
+        // Fetch Shorts in the background while the user is browsing the feed.
+        loadShortVideos()
         viewModelScope.launch {
             repository.realtimeClient.events.collect { event ->
                 if (event is RealtimeEvent.FeedUpdated) {
@@ -68,7 +72,16 @@ class FeedViewModel(
     }
 
     fun selectTab(tab: FeedTab) {
-        _uiState.update { it.copy(selectedTab = tab, errorMessage = null) }
+        val cached = feedCache[tab].orEmpty()
+        _uiState.update {
+            it.copy(
+                selectedTab = tab,
+                posts = cached,
+                hasMore = true,
+                isLoading = cached.isEmpty(),
+                errorMessage = null,
+            )
+        }
         refreshFeed(reset = true)
     }
 
@@ -160,7 +173,7 @@ class FeedViewModel(
         val offset = if (reset) 0 else current.posts.size
         feedLoadJob = viewModelScope.launch {
             _uiState.update {
-                if (reset) it.copy(isLoading = true, errorMessage = null)
+                if (reset) it.copy(isLoading = it.posts.isEmpty(), errorMessage = null)
                 else it.copy(isLoadingMore = true, errorMessage = null)
             }
             try {
@@ -169,6 +182,7 @@ class FeedViewModel(
                         if (generation != feedRequestGeneration || _uiState.value.selectedTab != tab) return@fold
                         _uiState.update { state ->
                             val merged = if (reset) loaded else (state.posts + loaded).distinctBy { it.id }
+                            feedCache[tab] = merged
                             state.copy(
                                 posts = merged,
                                 hasMore = loaded.size >= pageSize,
@@ -226,21 +240,36 @@ class FeedViewModel(
         }
     }
 
+    private val deletingStoryIds = mutableSetOf<String>()
+
     fun deleteStory(storyId: String) {
+        if (!deletingStoryIds.add(storyId)) return
+        val previousStory = _uiState.value.stories.firstOrNull { it.id == storyId }
+        // Remove it from the shelf immediately; perform network and storage cleanup in the background.
+        _uiState.update { state ->
+            state.copy(
+                stories = state.stories.filterNot { it.id == storyId },
+                snackbarMessage = "Deleting Memory…",
+            )
+        }
         viewModelScope.launch {
             repository.deleteStory(storyId).fold(
                 onSuccess = {
+                    _uiState.update { it.copy(snackbarMessage = "Memory deleted.") }
+                },
+                onFailure = { error ->
                     _uiState.update { state ->
+                        val restored = if (previousStory != null && state.stories.none { it.id == storyId }) {
+                            listOf(previousStory) + state.stories
+                        } else state.stories
                         state.copy(
-                            stories = state.stories.filterNot { it.id == storyId },
-                            snackbarMessage = "Memory deleted.",
+                            stories = restored,
+                            snackbarMessage = error.message ?: "Could not delete Memory.",
                         )
                     }
                 },
-                onFailure = { error ->
-                    _uiState.update { it.copy(snackbarMessage = error.message ?: "Could not delete Memory.") }
-                },
             )
+            deletingStoryIds.remove(storyId)
         }
     }
 
@@ -286,19 +315,28 @@ class FeedViewModel(
 
     fun toggleSave(post: PostDto) {
         val wasSaved = post.id in _uiState.value.savedPostIds
+        val shouldSave = !wasSaved
+        _uiState.update { state ->
+            val saved = state.savedPostIds.toMutableSet()
+            if (shouldSave) saved.add(post.id) else saved.remove(post.id)
+            state.copy(savedPostIds = saved)
+        }
         viewModelScope.launch {
             repository.toggleSavePost(post.id, wasSaved).fold(
                 onSuccess = { nowSaved ->
                     _uiState.update { state ->
                         val saved = state.savedPostIds.toMutableSet()
                         if (nowSaved) saved.add(post.id) else saved.remove(post.id)
-                        state.copy(
-                            savedPostIds = saved,
-                            snackbarMessage = if (nowSaved) "Saved to your private collection." else "Removed from saved.",
-                        )
+                        state.copy(savedPostIds = saved)
                     }
                 },
-                onFailure = { err -> _uiState.update { it.copy(snackbarMessage = err.message) } },
+                onFailure = { err ->
+                    _uiState.update { state ->
+                        val saved = state.savedPostIds.toMutableSet()
+                        if (wasSaved) saved.add(post.id) else saved.remove(post.id)
+                        state.copy(savedPostIds = saved, snackbarMessage = err.message)
+                    }
+                },
             )
         }
     }
@@ -402,10 +440,18 @@ class FeedViewModel(
 
     fun openComments(post: PostDto) {
         commentsLoadJob?.cancel()
-        _uiState.update { it.copy(activeCommentsPost = post, comments = emptyList(), loadingComments = true) }
+        val cached = commentsCache[post.id].orEmpty()
+        _uiState.update {
+            it.copy(
+                activeCommentsPost = post,
+                comments = cached,
+                loadingComments = cached.isEmpty(),
+            )
+        }
         commentsLoadJob = viewModelScope.launch {
             repository.fetchComments(post.id).fold(
                 onSuccess = { list ->
+                    commentsCache[post.id] = list
                     _uiState.update { state ->
                         if (state.activeCommentsPost?.id == post.id) state.copy(comments = list, loadingComments = false) else state
                     }
@@ -432,29 +478,34 @@ class FeedViewModel(
     ) {
         val post = _uiState.value.activeCommentsPost ?: return
         if (content.isBlank() || _uiState.value.isSubmittingComment) return
-        val pendingId = "pending-${System.nanoTime()}"
         val cleanContent = content.trim()
-        val userId = repository.sessionStore.currentSession().userId
-        val pendingComment = CommentDto(
-            id = pendingId,
-            postId = post.id,
-            authorId = userId,
-            parentCommentId = parentCommentId,
-            content = cleanContent,
-            moderationStatus = "pending",
-        )
-        _uiState.update { state ->
-            state.copy(
-                comments = if (state.activeCommentsPost?.id == post.id) state.comments + pendingComment else state.comments,
-                posts = state.posts.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
-                shortVideos = state.shortVideos.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
-                isSubmittingComment = true,
-                snackbarMessage = null,
-            )
-        }
+        _uiState.update { it.copy(isSubmittingComment = true, snackbarMessage = null) }
         viewModelScope.launch {
+            val userId = repository.sessionStore.currentSession().userId
+            if (userId.isBlank()) {
+                _uiState.update { it.copy(isSubmittingComment = false, snackbarMessage = "Sign in again to comment.") }
+                onComplete(false)
+                return@launch
+            }
+            val pendingId = "pending-${System.nanoTime()}"
+            val pendingComment = CommentDto(
+                id = pendingId,
+                postId = post.id,
+                authorId = userId,
+                parentCommentId = parentCommentId,
+                content = cleanContent,
+                moderationStatus = "pending",
+            )
+            _uiState.update { state ->
+                state.copy(
+                    comments = if (state.activeCommentsPost?.id == post.id) state.comments + pendingComment else state.comments,
+                    posts = state.posts.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
+                    shortVideos = state.shortVideos.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
+                )
+            }
             repository.addComment(post.id, cleanContent, parentCommentId).fold(
                 onSuccess = { added ->
+                    commentsCache[post.id] = (commentsCache[post.id].orEmpty() + added).distinctBy { it.id }
                     _uiState.update { state ->
                         state.copy(
                             comments = if (state.activeCommentsPost?.id == post.id) {
