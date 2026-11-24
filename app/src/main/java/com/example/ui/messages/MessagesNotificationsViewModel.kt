@@ -10,6 +10,7 @@ import com.example.core.network.NotificationDto
 import com.example.core.network.RealtimeEvent
 import com.example.data.repository.SkillectRepository
 import com.example.data.repository.markConversationRead
+import com.example.data.repository.markConversationDelivered
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.isActive
@@ -41,6 +42,7 @@ class MessagesNotificationsViewModel(
     private val messageLoadsInFlight = mutableSetOf<String>()
     private var inboxRefreshJob: Job? = null
     private var inboxRefreshQueued = false
+    private var inFlightMessageSends = 0
     val uiState: StateFlow<MessagesNotificationsUiState> = _uiState.asStateFlow()
 
     init {
@@ -54,9 +56,11 @@ class MessagesNotificationsViewModel(
                             if (event.conversationId == _uiState.value.activeConversationId) {
                                 loadMessages(event.conversationId)
                             } else {
+                                markDelivered(event.conversationId)
                                 refreshInbox()
                             }
                         }
+                        is RealtimeEvent.ConversationReadChanged -> refreshInbox()
                         is RealtimeEvent.NewNotification -> { refreshNotifications(); refreshInbox() }
                         else -> Unit
                     }
@@ -88,6 +92,20 @@ class MessagesNotificationsViewModel(
                             viewModelScope.launch {
                                 repository.fetchRecentMessagesForConversations(conversationIds).onSuccess { cached ->
                                     messageCache.putAll(cached)
+                                    val uid = repository.sessionStore.currentSession().userId
+                                    cached.forEach { (conversationId, messages) ->
+                                        val latestIncoming = messages.lastOrNull { it.senderId != uid }
+                                        val marker = _uiState.value.conversations
+                                            .firstOrNull { it.id == conversationId }
+                                            ?.readMarkers
+                                            ?.firstOrNull { it.userId == uid }
+                                        if (latestIncoming != null &&
+                                            (marker?.lastDeliveredAt.isNullOrBlank() ||
+                                                com.example.core.util.TimeCompat.isAfter(latestIncoming.createdAt, marker?.lastDeliveredAt.orEmpty()))
+                                        ) {
+                                            markDelivered(conversationId)
+                                        }
+                                    }
                                     val activeId = _uiState.value.activeConversationId
                                     if (activeId != null && activeId in cached) {
                                         _uiState.update { state ->
@@ -117,7 +135,6 @@ class MessagesNotificationsViewModel(
                 activeConversationId = conversationId,
                 messages = cached ?: if (state.activeConversationId == conversationId) state.messages else emptyList(),
                 statusMessage = null,
-                isSendingMessage = false,
                 errorMessage = null,
             )
         }
@@ -130,7 +147,7 @@ class MessagesNotificationsViewModel(
                     conversations = state.conversations.map { conv ->
                         if (conv.id != conversationId) conv
                         else conv.copy(
-                            readMarkers = conv.readMarkers.filterNot { it.userId == uid } + com.example.core.network.ConversationReadDto(conversationId, uid, optimisticReadAt),
+                            readMarkers = conv.readMarkers.filterNot { it.userId == uid } + com.example.core.network.ConversationReadDto(conversationId, uid, optimisticReadAt, optimisticReadAt),
                         )
                     },
                 )
@@ -142,7 +159,7 @@ class MessagesNotificationsViewModel(
                     // A history refresh can finish after the user has already sent a
                     // message. Preserve any local pending bubbles while merging history.
                     val pending = messageCache[conversationId].orEmpty()
-                        .filter { it.deliveryStatus == "sending" }
+                        .filter { it.deliveryStatus == "sending" || it.deliveryStatus == "failed" }
                     val merged = (list + pending).distinctBy { it.id }.sortedBy { it.createdAt }
                     messageCache[conversationId] = merged
                     if (_uiState.value.activeConversationId == conversationId) {
@@ -162,7 +179,7 @@ class MessagesNotificationsViewModel(
                             conversations = state.conversations.map { conv ->
                                 if (conv.id != conversationId) conv
                                 else conv.copy(
-                                    readMarkers = conv.readMarkers.filterNot { it.userId == uid } + com.example.core.network.ConversationReadDto(conversationId, uid, persistedReadAt),
+                                    readMarkers = conv.readMarkers.filterNot { it.userId == uid } + com.example.core.network.ConversationReadDto(conversationId, uid, persistedReadAt, persistedReadAt),
                                 )
                             },
                         )
@@ -202,31 +219,44 @@ class MessagesNotificationsViewModel(
         mediaUrl: String? = null,
         onSent: (Boolean) -> Unit = {},
     ) {
-        if (content.isBlank()) return
         val clean = content.trim()
-        viewModelScope.launch {
-            val uid = repository.sessionStore.currentSession().userId
-            val pendingId = "pending-" + java.util.UUID.randomUUID().toString()
-            val pending = MessageDto(
-                id = pendingId,
-                conversationId = conversationId,
-                senderId = uid,
-                content = clean,
-                deliveryStatus = "sending",
-                createdAt = com.example.core.util.TimeCompat.nowUtcIso(),
+        if (clean.isBlank()) return
+        val uid = repository.sessionStore.currentSession().userId
+        if (uid.isBlank()) {
+            _uiState.update { it.copy(statusMessage = "Sign in again to send this message.") }
+            onSent(false)
+            return
+        }
+
+        // Add the bubble before starting network work. The input can clear immediately
+        // and the conversation never waits for the server before showing the message.
+        val pendingId = "pending-" + java.util.UUID.randomUUID().toString()
+        val pending = MessageDto(
+            id = pendingId,
+            conversationId = conversationId,
+            senderId = uid,
+            content = clean,
+            deliveryStatus = "sending",
+            createdAt = com.example.core.util.TimeCompat.nowUtcIso(),
+        )
+        val wasActive = _uiState.value.activeConversationId == conversationId
+        val baseMessages = if (wasActive) _uiState.value.messages else messageCache[conversationId].orEmpty()
+        val optimistic = baseMessages + pending
+        messageCache[conversationId] = optimistic
+        inFlightMessageSends += 1
+        _uiState.update { state ->
+            state.copy(
+                messages = if (state.activeConversationId == conversationId) optimistic else state.messages,
+                isSendingMessage = true,
+                statusMessage = null,
             )
-            val wasActive = _uiState.value.activeConversationId == conversationId
-            val baseMessages = if (wasActive) _uiState.value.messages else messageCache[conversationId].orEmpty()
-            val optimistic = baseMessages + pending
-            messageCache[conversationId] = optimistic
-            _uiState.update { state ->
-                state.copy(
-                    messages = if (state.activeConversationId == conversationId) optimistic else state.messages,
-                    isSendingMessage = true,
-                    statusMessage = null,
-                )
-            }
-            repository.sendMessage(conversationId, clean, mediaUrl).fold(
+        }
+
+        viewModelScope.launch {
+            val result = runCatching {
+                repository.sendMessage(conversationId, clean, mediaUrl)
+            }.getOrElse { Result.failure(it) }
+            result.fold(
                 onSuccess = { msg ->
                     val updatedMessages = messageCache[conversationId].orEmpty()
                         .map { if (it.id == pendingId) msg else it }
@@ -234,7 +264,6 @@ class MessagesNotificationsViewModel(
                     _uiState.update { state ->
                         state.copy(
                             messages = if (state.activeConversationId == conversationId) updatedMessages else state.messages,
-                            isSendingMessage = false,
                         )
                     }
                     _uiState.update { state ->
@@ -247,18 +276,65 @@ class MessagesNotificationsViewModel(
                     onSent(true)
                 },
                 onFailure = { err ->
-                    val updatedMessages = messageCache[conversationId].orEmpty().filterNot { it.id == pendingId }
+                    // Keep failed text visible so the user can retry instead of losing it.
+                    val updatedMessages = messageCache[conversationId].orEmpty()
+                        .map { if (it.id == pendingId) it.copy(deliveryStatus = "failed") else it }
                     messageCache[conversationId] = updatedMessages
                     _uiState.update { state ->
                         state.copy(
                             messages = if (state.activeConversationId == conversationId) updatedMessages else state.messages,
-                            isSendingMessage = false,
-                            statusMessage = err.message,
+                            statusMessage = err.message ?: "Message could not be sent. Tap the message to retry.",
                         )
                     }
                     onSent(false)
                 },
             )
+            inFlightMessageSends = (inFlightMessageSends - 1).coerceAtLeast(0)
+            _uiState.update { it.copy(isSendingMessage = inFlightMessageSends > 0) }
+        }
+    }
+
+    fun retryMessage(conversationId: String, messageId: String) {
+        val failed = messageCache[conversationId].orEmpty().firstOrNull {
+            it.id == messageId && it.deliveryStatus == "failed"
+        } ?: _uiState.value.messages.firstOrNull {
+            it.id == messageId && it.deliveryStatus == "failed"
+        } ?: return
+        val remaining = messageCache[conversationId].orEmpty().filterNot { it.id == messageId }
+        messageCache[conversationId] = remaining
+        _uiState.update { state ->
+            state.copy(
+                messages = if (state.activeConversationId == conversationId) remaining else state.messages,
+                statusMessage = null,
+            )
+        }
+        sendMessage(conversationId, failed.content, failed.mediaUrl)
+    }
+
+    private fun markDelivered(conversationId: String) {
+        viewModelScope.launch {
+            repository.markConversationDelivered(conversationId).onSuccess { deliveredAt ->
+                val uid = repository.sessionStore.currentSession().userId
+                _uiState.update { state ->
+                    state.copy(
+                        conversations = state.conversations.map { conversation ->
+                            if (conversation.id != conversationId) conversation
+                            else {
+                                val existing = conversation.readMarkers.firstOrNull { it.userId == uid }
+                                conversation.copy(
+                                    readMarkers = conversation.readMarkers.filterNot { it.userId == uid } +
+                                        com.example.core.network.ConversationReadDto(
+                                            conversationId = conversationId,
+                                            userId = uid,
+                                            lastReadAt = existing?.lastReadAt,
+                                            lastDeliveredAt = deliveredAt,
+                                        ),
+                                )
+                            }
+                        },
+                    )
+                }
+            }
         }
     }
 
@@ -291,6 +367,7 @@ class MessagesNotificationsViewModel(
     }
 
     fun clearPrivateState() {
+        inFlightMessageSends = 0
         messageCache.clear()
         messageLoadsInFlight.clear()
         _uiState.update {
