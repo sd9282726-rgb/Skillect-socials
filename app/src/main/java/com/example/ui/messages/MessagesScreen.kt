@@ -301,6 +301,10 @@ fun ChatDetailScreen(
     LaunchedEffect(conversationId) {
         viewModel.loadMessages(conversationId)
     }
+    val peerReadMarker = uiState.conversations
+        .firstOrNull { it.id == conversationId }
+        ?.readMarkers
+        ?.firstOrNull { it.userId != currentUserId }
 
     Box(
         modifier = modifier
@@ -410,12 +414,36 @@ fun ChatDetailScreen(
                                     horizontalArrangement = Arrangement.End,
                                 ) {
                                     if (isMine) {
+                                        val peerReadAt = peerReadMarker?.lastReadAt
+                                        val peerDeliveredAt = peerReadMarker?.lastDeliveredAt
+                                        val hasBeenSeen = !peerReadAt.isNullOrBlank() &&
+                                            (peerReadAt == msg.createdAt || TimeCompat.isAfter(peerReadAt, msg.createdAt))
+                                        val hasBeenDelivered = !peerDeliveredAt.isNullOrBlank() &&
+                                            (peerDeliveredAt == msg.createdAt || TimeCompat.isAfter(peerDeliveredAt, msg.createdAt))
+                                        val receiptLabel = when (msg.deliveryStatus) {
+                                            "sending" -> "Sending…"
+                                            "failed" -> "Not sent · Tap to retry"
+                                            else -> when {
+                                                hasBeenSeen -> "Seen"
+                                                hasBeenDelivered -> "Delivered"
+                                                else -> "Sent"
+                                            }
+                                        }
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Icon(
                                             imageVector = Icons.Rounded.DoneAll,
-                                            contentDescription = msg.deliveryStatus,
+                                            contentDescription = receiptLabel,
                                             tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
                                             modifier = Modifier.size(14.dp),
+                                        )
+                                        Text(
+                                            text = receiptLabel,
+                                            color = if (msg.deliveryStatus == "failed") MaterialTheme.colorScheme.error
+                                                else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = if (msg.deliveryStatus == "failed") {
+                                                Modifier.clickable { viewModel.retryMessage(conversationId, msg.id) }
+                                            } else Modifier,
                                         )
                                     }
                                 }
@@ -448,11 +476,11 @@ fun ChatDetailScreen(
                         .testTag("chat_message_input"),
                 )
                 IconButton(
-                    enabled = draft.isNotBlank() && !uiState.isSendingMessage,
+                    enabled = draft.isNotBlank(),
                     onClick = {
-                        viewModel.sendMessage(conversationId, draft) { sent ->
-                            if (sent) draft = ""
-                        }
+                        val messageToSend = draft
+                        draft = ""
+                        viewModel.sendMessage(conversationId, messageToSend)
                     },
                     modifier = Modifier.testTag("chat_send_button"),
                 ) {
