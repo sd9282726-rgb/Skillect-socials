@@ -6,6 +6,7 @@ on:
       - fix/onboarding
       - fix/first-launch-notification-permission
       - fix/feed-shorts-comments-connect
+      - feat/splash-and-profile-text-wrap
   workflow_dispatch:
 
 permissions:
@@ -22,9 +23,9 @@ jobs:
       - name: Verify release version
         run: |
           set -euo pipefail
-          grep -q 'versionCode = 27' app/build.gradle.kts
-          grep -q 'versionName = "2.1.1"' app/build.gradle.kts
-          echo "Building Skillect 2.1.0 (26) from the checked-out source without replacing app files."
+          grep -q 'versionCode = 28' app/build.gradle.kts
+          grep -q 'versionName = "2.1.2"' app/build.gradle.kts
+          echo "Building Skillect 2.1.2 (28) from the checked-out source without replacing app files."
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
