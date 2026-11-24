@@ -100,6 +100,8 @@ import com.example.core.designsystem.VerifiedCreatorBadge
 import com.example.core.media.MediaUploadManager
 import com.example.core.media.VideoPlayerBox
 import com.example.ui.feed.ReportContentDialog
+import com.example.ui.auth.OnboardingSkillCatalog
+import com.example.ui.auth.OnboardingValidation
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
