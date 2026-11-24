@@ -67,7 +67,7 @@ class MediaUploadManager(
         val isStoryUpload = bucket == "stories-media"
         val isQuarantineUpload = bucket == "media-quarantine"
         if (!isStoryUpload && (!isQuarantineUpload || !isVideo)) {
-            send(UploadProgressState.Failed("Choose a supported image or video for your story."))
+            send(UploadProgressState.Failed("Choose a supported image or video for your Memory."))
             return@channelFlow
         }
         val supportedVideoTypes = setOf("video/mp4", "video/webm", "video/quicktime")

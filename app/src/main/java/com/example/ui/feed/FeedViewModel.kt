@@ -211,12 +211,16 @@ class FeedViewModel(
     fun createStory(mediaUrl: String, mediaType: String, caption: String) {
         viewModelScope.launch {
             repository.createStory(mediaUrl, mediaType, caption).fold(
-                onSuccess = {
-                    loadStories()
-                    _uiState.update { it.copy(snackbarMessage = "Story shared (expires in 24h).") }
+                onSuccess = { created ->
+                    _uiState.update { state ->
+                        state.copy(
+                            stories = listOf(created) + state.stories.filterNot { it.id == created.id },
+                            snackbarMessage = "Memory shared. It disappears after 12 hours.",
+                        )
+                    }
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(snackbarMessage = err.message ?: "Could not publish story.") }
+                    _uiState.update { it.copy(snackbarMessage = err.message ?: "Could not publish Memory.") }
                 },
             )
         }
@@ -224,14 +228,19 @@ class FeedViewModel(
 
     fun deleteStory(storyId: String) {
         viewModelScope.launch {
-            repository.deleteStory(storyId).onSuccess {
-                _uiState.update { state ->
-                    state.copy(
-                        stories = state.stories.filterNot { it.id == storyId },
-                        snackbarMessage = "Story deleted.",
-                    )
-                }
-            }
+            repository.deleteStory(storyId).fold(
+                onSuccess = {
+                    _uiState.update { state ->
+                        state.copy(
+                            stories = state.stories.filterNot { it.id == storyId },
+                            snackbarMessage = "Memory deleted.",
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(snackbarMessage = error.message ?: "Could not delete Memory.") }
+                },
+            )
         }
     }
 
