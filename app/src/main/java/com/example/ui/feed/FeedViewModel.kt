@@ -503,6 +503,7 @@ class FeedViewModel(
             }
             repository.addComment(post.id, cleanContent, parentCommentId).fold(
                 onSuccess = { added ->
+                    commentsCache[post.id] = (commentsCache[post.id].orEmpty() + added).distinctBy { it.id }
                     _uiState.update { state ->
                         state.copy(
                             comments = if (state.activeCommentsPost?.id == post.id) {
