@@ -67,6 +67,21 @@ import com.example.core.designsystem.SkillectOutlinedButton
 import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.ui.feed.ReportContentDialog
 
+private fun isAtOrAfterChatTimestamp(candidate: String?, reference: String): Boolean {
+    if (candidate.isNullOrBlank() || reference.isBlank()) return false
+    fun parse(raw: String): Long? {
+        // PostgREST may return six fractional digits while the local read cursor
+        // uses milliseconds. Normalize the fraction before parsing to avoid
+        // interpreting microseconds as milliseconds on Android.
+        val normalized = Regex("(\\.\\d{3})\\d+(?=Z|[+-]\\d{2}:?\\d{2}$)")
+            .replace(raw.trim()) { match -> match.groupValues[1] }
+        return TimeCompat.parseToEpochMillis(normalized)
+    }
+    val candidateMillis = parse(candidate) ?: return false
+    val referenceMillis = parse(reference) ?: return false
+    return candidateMillis >= referenceMillis
+}
+
 @Composable
 fun MessagesInboxScreen(
     uiState: MessagesNotificationsUiState,
@@ -417,9 +432,9 @@ fun ChatDetailScreen(
                                         val peerReadAt = peerReadMarker?.lastReadAt
                                         val peerDeliveredAt = peerReadMarker?.lastDeliveredAt
                                         val hasBeenSeen = !peerReadAt.isNullOrBlank() &&
-                                            (peerReadAt == msg.createdAt || TimeCompat.isAfter(peerReadAt, msg.createdAt))
+                                            isAtOrAfterChatTimestamp(peerReadAt, msg.createdAt)
                                         val hasBeenDelivered = !peerDeliveredAt.isNullOrBlank() &&
-                                            (peerDeliveredAt == msg.createdAt || TimeCompat.isAfter(peerDeliveredAt, msg.createdAt))
+                                            isAtOrAfterChatTimestamp(peerDeliveredAt, msg.createdAt)
                                         val receiptLabel = when (msg.deliveryStatus) {
                                             "sending" -> "Sending…"
                                             "failed" -> "Not sent · Tap to retry"
