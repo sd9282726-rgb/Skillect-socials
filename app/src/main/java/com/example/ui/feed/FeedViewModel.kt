@@ -55,6 +55,8 @@ class FeedViewModel(
     private var feedLoadJob: Job? = null
     private var feedRequestGeneration: Long = 0L
     private var shortVideosLoadJob: Job? = null
+    private val feedCache = mutableMapOf<FeedTab, List<PostDto>>()
+    private val commentsCache = mutableMapOf<String, List<CommentDto>>()
 
     init {
         refreshAll()
@@ -68,7 +70,16 @@ class FeedViewModel(
     }
 
     fun selectTab(tab: FeedTab) {
-        _uiState.update { it.copy(selectedTab = tab, errorMessage = null) }
+        val cached = feedCache[tab].orEmpty()
+        _uiState.update {
+            it.copy(
+                selectedTab = tab,
+                posts = cached,
+                hasMore = true,
+                isLoading = cached.isEmpty(),
+                errorMessage = null,
+            )
+        }
         refreshFeed(reset = true)
     }
 
@@ -160,7 +171,7 @@ class FeedViewModel(
         val offset = if (reset) 0 else current.posts.size
         feedLoadJob = viewModelScope.launch {
             _uiState.update {
-                if (reset) it.copy(isLoading = true, errorMessage = null)
+                if (reset) it.copy(isLoading = it.posts.isEmpty(), errorMessage = null)
                 else it.copy(isLoadingMore = true, errorMessage = null)
             }
             try {
@@ -169,6 +180,7 @@ class FeedViewModel(
                         if (generation != feedRequestGeneration || _uiState.value.selectedTab != tab) return@fold
                         _uiState.update { state ->
                             val merged = if (reset) loaded else (state.posts + loaded).distinctBy { it.id }
+                            feedCache[tab] = merged
                             state.copy(
                                 posts = merged,
                                 hasMore = loaded.size >= pageSize,
@@ -301,19 +313,28 @@ class FeedViewModel(
 
     fun toggleSave(post: PostDto) {
         val wasSaved = post.id in _uiState.value.savedPostIds
+        val shouldSave = !wasSaved
+        _uiState.update { state ->
+            val saved = state.savedPostIds.toMutableSet()
+            if (shouldSave) saved.add(post.id) else saved.remove(post.id)
+            state.copy(savedPostIds = saved)
+        }
         viewModelScope.launch {
             repository.toggleSavePost(post.id, wasSaved).fold(
                 onSuccess = { nowSaved ->
                     _uiState.update { state ->
                         val saved = state.savedPostIds.toMutableSet()
                         if (nowSaved) saved.add(post.id) else saved.remove(post.id)
-                        state.copy(
-                            savedPostIds = saved,
-                            snackbarMessage = if (nowSaved) "Saved to your private collection." else "Removed from saved.",
-                        )
+                        state.copy(savedPostIds = saved)
                     }
                 },
-                onFailure = { err -> _uiState.update { it.copy(snackbarMessage = err.message) } },
+                onFailure = { err ->
+                    _uiState.update { state ->
+                        val saved = state.savedPostIds.toMutableSet()
+                        if (wasSaved) saved.add(post.id) else saved.remove(post.id)
+                        state.copy(savedPostIds = saved, snackbarMessage = err.message)
+                    }
+                },
             )
         }
     }
@@ -417,10 +438,18 @@ class FeedViewModel(
 
     fun openComments(post: PostDto) {
         commentsLoadJob?.cancel()
-        _uiState.update { it.copy(activeCommentsPost = post, comments = emptyList(), loadingComments = true) }
+        val cached = commentsCache[post.id].orEmpty()
+        _uiState.update {
+            it.copy(
+                activeCommentsPost = post,
+                comments = cached,
+                loadingComments = cached.isEmpty(),
+            )
+        }
         commentsLoadJob = viewModelScope.launch {
             repository.fetchComments(post.id).fold(
                 onSuccess = { list ->
+                    commentsCache[post.id] = list
                     _uiState.update { state ->
                         if (state.activeCommentsPost?.id == post.id) state.copy(comments = list, loadingComments = false) else state
                     }
