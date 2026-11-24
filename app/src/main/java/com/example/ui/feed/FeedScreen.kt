@@ -509,7 +509,7 @@ fun FeedScreen(
                                 subtitle = if (uiState.isBackendConfigured) {
                                     "Connect with creators, join skill communities, or publish your first post or project update."
                                 } else {
-                                    "Configure SUPABASE_URL and SUPABASE_ANON_KEY in AI Studio Secrets to stream live posts, stories, and discussions."
+                                    "Configure SUPABASE_URL and SUPABASE_ANON_KEY in AI Studio Secrets to stream live posts, Memories, and discussions."
                                 },
                                 actionLabel = "Create Post",
                                 onAction = {
