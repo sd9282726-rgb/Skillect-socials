@@ -369,7 +369,7 @@ fun ProfileScreen(
                                 )
                                 SkillectPrimaryButton(
                                     text = if (uiState.isFollowing) "Disconnect" else "Connect",
-                                    enabled = !uiState.isFollowActionPending && !uiState.isLoading,
+                                    enabled = !uiState.isFollowActionPending,
                                     onClick = {
                                         if (effectiveCurrentUserId.isBlank()) {
                                             onRequireAuth(false, "Sign in to connect with creators and build your network.")
@@ -1229,7 +1229,7 @@ fun ProfileScreen(
                 Text(uiState.networkTitle, style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(12.dp))
                 when {
-                    uiState.isLoadingNetwork -> CircularProgressIndicator()
+                    uiState.isLoadingNetwork && uiState.networkProfiles.isEmpty() -> CircularProgressIndicator()
                     uiState.networkProfiles.isEmpty() -> Text(
                         "No accounts to show yet.",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
