@@ -589,6 +589,7 @@ class SkillectRepository(
             val resp = postgrestApi.getPosts(
                 authorIdFilter = authorFilter,
                 postTypeColumnFilter = "not.eq.video",
+                orFilter = "(media_types.not.cs.{video},media_types.is.null)",
                 order = order,
                 limit = limit,
                 offset = offset,
@@ -630,7 +631,7 @@ class SkillectRepository(
 
     suspend fun fetchShortVideos(): Result<List<PostDto>> = guardConfigured {
         val resp = postgrestApi.getPosts(
-            postTypeColumnFilter = "eq.video",
+            orFilter = "(post_type.eq.video,media_types.cs.{video})",
             order = "created_at.desc",
             limit = 60,
         )
