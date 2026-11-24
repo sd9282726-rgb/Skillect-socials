@@ -282,7 +282,9 @@ class ProfileSettingsViewModel(
                     projects = loadedProjects,
                     experiences = loadedExperiences,
                     achievements = loadedAchievements,
-                    isFollowing = loadedFollowing,
+                    // A profile refresh can finish after the user taps Connect/Disconnect.
+                    // Never let that older response overwrite the optimistic action.
+                    isFollowing = if (state.isFollowActionPending) state.isFollowing else loadedFollowing,
                     postsCount = loadedPostCount,
                     followersCount = loadedFollowersCount,
                     followingCount = loadedFollowingCount,
