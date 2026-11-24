@@ -28,7 +28,7 @@ async function rest(base: string, key: string, path: string, method = "GET", bod
 
 function is16To17(value: unknown): boolean {
   if (typeof value !== "string") return false;
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return false;
   const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
   const birth = new Date(Date.UTC(year, month - 1, day));
@@ -79,6 +79,25 @@ function classify(scan: Record<string, any>): string[] {
   return [...new Set([...flagged, ...ruleMatches(scan)])];
 }
 
+async function scanText(form: FormData): Promise<Record<string, any>> {
+  const endpoint = "https://api.sightengine.com/1.0/text/check.json";
+  let response: Response;
+  try {
+    response = await fetch(endpoint, { method: "POST", body: form });
+  } catch (error) {
+    console.warn("Sightengine connection failed; retrying once", String(error));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    response = await fetch(endpoint, { method: "POST", body: form });
+  }
+  if (response.status === 429 || response.status >= 500) {
+    console.warn("Sightengine temporary response; retrying once", response.status);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    response = await fetch(endpoint, { method: "POST", body: form });
+  }
+  if (!response.ok) throw new Error("Sightengine returned HTTP " + response.status);
+  return await response.json();
+}
+
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -93,9 +112,15 @@ Deno.serve(async (request: Request) => {
 
   const authorization = request.headers.get("Authorization");
   if (!authorization?.startsWith("Bearer ")) return json(401, { error: "Sign in to publish" });
-  const userResponse = await fetch(base + "/auth/v1/user", {
-    headers: { apikey: anon, Authorization: authorization },
-  });
+  let userResponse: Response;
+  try {
+    userResponse = await fetch(base + "/auth/v1/user", {
+      headers: { apikey: anon, Authorization: authorization },
+    });
+  } catch (error) {
+    console.error("Auth verification request failed", error);
+    return json(503, { error: "Sign-in verification is temporarily unavailable. Please retry." });
+  }
   if (!userResponse.ok) return json(401, { error: "Invalid session" });
   const user = await userResponse.json();
   const userId = user?.id as string | undefined;
@@ -144,26 +169,33 @@ Deno.serve(async (request: Request) => {
     }
   }
 
-  if (type !== "profile") {
-    try {
-      const profiles = await rest(base, service, "profiles?select=onboarded,date_of_birth&id=eq." + encodeURIComponent(userId) + "&limit=1");
-      const profile = Array.isArray(profiles) ? profiles[0] : null;
-      if (!profile?.onboarded || !isAtLeast16(profile.date_of_birth)) {
-        return json(403, { error: "Complete your profile and verify that you are 16 or older before publishing or interacting." });
-      }
-    } catch {
-      return json(503, { error: "Could not verify your 16+ profile. Nothing was published." });
-    }
-  }
-
   const maxLength = type === "post" || type === "media_caption" ? 5000 : type === "comment" ? 1500 : type === "profile" ? 2500 : type === "project" ? 2500 : type === "community" ? 400 : 2000;
   if (!moderationText || moderationText.length > maxLength) return json(400, { error: "Text is empty or exceeds the allowed length" });
 
+  // Profile eligibility and account restrictions are independent checks.
+  // Run them together so they do not add two sequential database round-trips.
+  let profileRows: any = null;
+  let restrictions: any = null;
   try {
-    const restrictions = await rest(base, service, "account_enforcements?select=status&user_id=eq." + encodeURIComponent(userId) + "&limit=1");
-    if (Array.isArray(restrictions) && restrictions.length > 0) return json(403, { error: "This account is restricted" });
-  } catch {
-    return json(503, { error: "Could not verify account status" });
+    const profileTask = type === "profile"
+      ? Promise.resolve(null)
+      : rest(base, service, "profiles?select=onboarded,date_of_birth&id=eq." + encodeURIComponent(userId) + "&limit=1");
+    [profileRows, restrictions] = await Promise.all([
+      profileTask,
+      rest(base, service, "account_enforcements?select=status&user_id=eq." + encodeURIComponent(userId) + "&limit=1"),
+    ]);
+  } catch (error) {
+    console.error("Account eligibility verification failed", { type, error: String(error) });
+    return json(503, { error: "Could not verify account status. Please retry." });
+  }
+  if (type !== "profile") {
+    const profile = Array.isArray(profileRows) ? profileRows[0] : null;
+    if (!profile?.onboarded || !isAtLeast16(profile.date_of_birth)) {
+      return json(403, { error: "Complete your profile and verify that you are 16 or older before messaging." });
+    }
+  }
+  if (Array.isArray(restrictions) && restrictions.length > 0) {
+    return json(403, { error: "This account is restricted" });
   }
 
   if (type !== "profile" && (!apiUser || !apiSecret) && type !== "media_caption") return json(503, { error: "Text publishing moderation is not configured. Nothing was published." });
@@ -256,6 +288,20 @@ Deno.serve(async (request: Request) => {
     }
   }
 
+  const form = new FormData();
+  form.append("text", moderationText);
+  form.append("lang", "en");
+  form.append("mode", "rules,ml");
+  form.append("models", "general,self-harm");
+  form.append("categories", "profanity,personal,link,drug,weapon,spam,content-trade,money-transaction,extremism,violence,self-harm,medical");
+  form.append("opt_countries", "in");
+  form.append("api_user", apiUser);
+  form.append("api_secret", apiSecret);
+
+  // Start the external scan while conversation membership, block and minor-safety
+  // checks run. The message is still never saved until both checks approve it.
+  const messageScanPromise = type === "message" ? scanText(form) : null;
+
   if (type === "comment" || type === "message") {
     const parentId = String(type === "comment" ? input.post_id || "" : input.conversation_id || "");
     if (!parentId) return json(400, { error: type === "comment" ? "post_id is required" : "conversation_id is required" });
@@ -285,31 +331,22 @@ Deno.serve(async (request: Request) => {
             return json(403, { error: "This 16–17 account only accepts messages from people it follows" });
           }
         }
-      } catch { return json(503, { error: "Could not verify conversation permissions" }); }
+      } catch (error) {
+        console.error("Conversation permission verification failed", { conversationId: parentId, error: String(error) });
+        return json(503, { error: "Could not verify conversation permissions. Please retry." });
+      }
     }
   }
 
-  const form = new FormData();
-  form.append("text", moderationText);
-  form.append("lang", "en");
-  form.append("mode", "rules,ml");
-  form.append("models", "general,self-harm");
-  form.append("categories", "profanity,personal,link,drug,weapon,spam,content-trade,money-transaction,extremism,violence,self-harm,medical");
-  form.append("opt_countries", "in");
-  form.append("api_user", apiUser);
-  form.append("api_secret", apiSecret);
-
   let scan: Record<string, any>;
   try {
-    const response = await fetch("https://api.sightengine.com/1.0/text/check.json", { method: "POST", body: form });
-    if (!response.ok) {
-      if (type === "media_caption") return json(200, { status: "pending_review", message: "Caption will be reviewed with the uploaded media." });
-      return json(503, { error: "Text safety screening is temporarily unavailable. Nothing was published." });
-    }
-    scan = await response.json();
-  } catch {
+    scan = messageScanPromise
+      ? await messageScanPromise
+      : await scanText(form);
+  } catch (error) {
+    console.error("Text safety screening failed", { type, error: String(error) });
     if (type === "media_caption") return json(200, { status: "pending_review", message: "Caption will be reviewed with the uploaded media." });
-    return json(503, { error: "Text safety screening is temporarily unavailable. Nothing was published." });
+    return json(503, { error: "Text safety screening is temporarily unavailable. Your message was not sent. Please retry." });
   }
   if (scan.status !== "success" || !scan.moderation_classes) {
     if (type === "media_caption") return json(200, { status: "pending_review", message: "Caption will be reviewed with the uploaded media." });
@@ -447,7 +484,8 @@ Deno.serve(async (request: Request) => {
     }
     const created = await rest(base, service, table + "?select=id", "POST", record);
     return json(200, { status: "approved", id: Array.isArray(created) ? created[0]?.id : null });
-  } catch {
-    return json(503, { error: "The content passed screening but could not be saved. Nothing was published." });
+  } catch (error) {
+    console.error("Moderated content save failed", { type, error: String(error) });
+    return json(503, { error: type === "message" ? "Your message passed safety screening but could not be saved. Please retry." : "The content passed screening but could not be saved. Nothing was published." });
   }
 });
