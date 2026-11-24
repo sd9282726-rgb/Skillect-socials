@@ -305,7 +305,11 @@ fun ProfileScreen(
             item {
                 Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 46.dp)) {
                     if (!AppConfig.isSupabaseConfigured) {
-                        BackendConfigBanner()
+                        Text(
+                            "Some profile details are temporarily unavailable.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                         Spacer(modifier = Modifier.height(14.dp))
                     }
                     if (!uiState.errorMessage.isNullOrBlank()) {
