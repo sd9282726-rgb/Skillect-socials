@@ -211,7 +211,7 @@ fun ComposerScreen(
                         }
                         val cleanLink = linkUrl.trim().takeIf { it.isNotBlank() }
                         if (cleanLink != null && !AppConfig.isValidHttpUrl(cleanLink)) {
-                            errorMessage = "Link URL must be a valid http:// or https:// address."
+                            errorMessage = "Enter a valid website or link."
                             return@SkillectPrimaryButton
                         }
 
@@ -434,7 +434,7 @@ fun ComposerScreen(
                     OutlinedTextField(
                         value = linkUrl,
                         onValueChange = { linkUrl = it },
-                        label = { Text("Link URL (https://...)") },
+                        label = { Text("Website or link") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
