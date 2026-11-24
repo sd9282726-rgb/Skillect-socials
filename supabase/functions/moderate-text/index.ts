@@ -432,7 +432,10 @@ Deno.serve(async (request: Request) => {
       : imageUrl ? [imageUrl] : [];
     const mediaTypes = Array.isArray(input.media_types)
       ? input.media_types.map((item: unknown) => String(item).trim().toLowerCase()).filter(Boolean).slice(0, 10)
-      : mediaUrls.map((url: string) => /\\.(mp4|mov|m4v|webm)(?:\\?|$)/i.test(url) ? "video" : "image");
+      : mediaUrls.map((url: string) => {
+          const path = url.split("?")[0].toLowerCase();
+          return [".mp4", ".mov", ".m4v", ".webm"].some((extension) => path.endsWith(extension)) ? "video" : "image";
+        });
     const listField = (value: unknown, max = 20) =>
       Array.isArray(value) ? value.map((item: unknown) => String(item).trim()).filter(Boolean).slice(0, max) : [];
     record = {
