@@ -427,14 +427,31 @@ Deno.serve(async (request: Request) => {
         if (!Array.isArray(assets) || assets.length === 0) return json(403, { error: "Image has not passed media screening" });
       } catch { return json(503, { error: "Could not verify image approval" }); }
     }
+    const mediaUrls = Array.isArray(input.media_urls)
+      ? input.media_urls.map((item: unknown) => String(item).trim()).filter(Boolean).slice(0, 10)
+      : imageUrl ? [imageUrl] : [];
+    const mediaTypes = Array.isArray(input.media_types)
+      ? input.media_types.map((item: unknown) => String(item).trim().toLowerCase()).filter(Boolean).slice(0, 10)
+      : mediaUrls.map((url: string) => /\\.(mp4|mov|m4v|webm)(?:\\?|$)/i.test(url) ? "video" : "image");
+    const listField = (value: unknown, max = 20) =>
+      Array.isArray(value) ? value.map((item: unknown) => String(item).trim()).filter(Boolean).slice(0, max) : [];
     record = {
       author_id: userId,
       content,
       tags: postTags,
       image_url: imageUrl,
+      post_type: String(input.post_type || (mediaTypes.includes("video") ? "video" : imageUrl ? "image" : "text")).trim().toLowerCase(),
+      media_urls: mediaUrls,
+      media_types: mediaTypes,
+      hashtags: listField(input.hashtags, 20),
+      mentions: listField(input.mentions, 20),
+      skill_tags: listField(input.skill_tags, 20),
     };
     if (postCategory) record.category = postCategory;
     if (communityId) record.community_id = communityId;
+    for (const field of ["link_url", "link_title", "project_id", "reposted_post_id", "quoted_post_id"]) {
+      if (typeof input[field] === "string" && input[field].trim()) record[field] = input[field].trim();
+    }
   } else if (type === "comment") {
     record = { post_id: String(input.post_id), author_id: userId, content };
     if (input.parent_id) record.parent_id = String(input.parent_id);
