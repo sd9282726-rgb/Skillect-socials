@@ -852,7 +852,7 @@ fun ProfileScreen(
     if (showEditDialog) {
         var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
         var username by remember { mutableStateOf(profile?.username.orEmpty()) }
-        var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.toSet().orEmpty()) }
+        var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.filter { it in OnboardingSkillCatalog.all }?.toSet().orEmpty()) }
         var skillsMenuExpanded by remember { mutableStateOf(false) }
         var skillSearch by remember { mutableStateOf("") }
         var selectedCountry by remember(profile?.id) {
@@ -869,14 +869,16 @@ fun ProfileScreen(
 
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title = { Text("Edit Profile") },
+            title = { Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { Text("Edit your profile", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Text("Make it easier for people to discover what you do", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    Text("BASIC INFORMATION", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Display Name") })
                     OutlinedTextField(value = username, onValueChange = { username = it.lowercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' } }, label = { Text("Username") }, supportingText = { Text("3–24 letters, numbers or underscores") })
+                    Text("SKILLS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     Box(modifier = Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             SkillectOutlinedButton(
@@ -929,6 +931,7 @@ fun ProfileScreen(
                             }
                         }
                     }
+                    Text("PUBLIC PROFILE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
                         value = website,
                         onValueChange = { website = it },
