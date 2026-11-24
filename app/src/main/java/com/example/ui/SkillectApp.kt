@@ -521,7 +521,6 @@ fun SkillectApp(
                                     currentUserId = currentUserId,
                                     uiState = msgState,
                                     viewModel = msgVm,
-                                    mediaUploadManager = container.mediaUploadManager,
                                     onBack = { navController.popBackStack() },
                                 )
                             }
@@ -544,6 +543,7 @@ fun SkillectApp(
                                     currentUserId = currentUserId,
                                     uiState = profileState,
                                     viewModel = profileVm,
+                                    mediaUploadManager = container.mediaUploadManager,
                                     onOpenSettings = { navController.navigate(SkillectRoute.Settings) },
                                     onOpenConversation = { cid, peerName ->
                                         navController.navigate(SkillectRoute.ChatDetail(cid, peerName))
