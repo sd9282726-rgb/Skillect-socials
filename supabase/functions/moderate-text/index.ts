@@ -300,7 +300,11 @@ Deno.serve(async (request: Request) => {
 
   // Start the external scan while conversation membership, block and minor-safety
   // checks run. The message is still never saved until both checks approve it.
-  const messageScanPromise = type === "message" ? scanText(form) : null;
+  const messageScanPromise = type === "message"
+    ? scanText(form)
+        .then((scan) => ({ scan, error: null as unknown }))
+        .catch((error: unknown) => ({ scan: null, error }))
+    : null;
 
   if (type === "comment" || type === "message") {
     const parentId = String(type === "comment" ? input.post_id || "" : input.conversation_id || "");
@@ -340,9 +344,13 @@ Deno.serve(async (request: Request) => {
 
   let scan: Record<string, any>;
   try {
-    scan = messageScanPromise
-      ? await messageScanPromise
-      : await scanText(form);
+    if (messageScanPromise) {
+      const scanResult = await messageScanPromise;
+      if (scanResult.error) throw scanResult.error;
+      scan = scanResult.scan ?? {};
+    } else {
+      scan = await scanText(form);
+    }
   } catch (error) {
     console.error("Text safety screening failed", { type, error: String(error) });
     if (type === "media_caption") return json(200, { status: "pending_review", message: "Caption will be reviewed with the uploaded media." });
