@@ -179,7 +179,7 @@ class ProfileSettingsViewModel(
             _uiState.update { state ->
                 state.copy(
                     isLoading = cachedProfile == null,
-                    isFollowActionPending = false,
+                    isFollowActionPending = if (state.viewedProfile?.id == effectiveId) state.isFollowActionPending else false,
                     errorMessage = null,
                     viewedProfile = cachedProfile,
                     posts = if (state.viewedProfile?.id == effectiveId) state.posts else emptyList(),
@@ -198,7 +198,7 @@ class ProfileSettingsViewModel(
                 val sameProfile = current.viewedProfile?.id == effectiveId
                 state.copy(
                     isLoading = cachedProfile == null && cachedSections == null,
-                    isFollowActionPending = false,
+                    isFollowActionPending = if (sameProfile) state.isFollowActionPending else false,
                     errorMessage = null,
                     viewedProfile = cachedProfile,
                     posts = cachedSections?.posts ?: if (sameProfile) state.posts else emptyList(),
