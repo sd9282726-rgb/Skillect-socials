@@ -226,21 +226,36 @@ class FeedViewModel(
         }
     }
 
+    private val deletingStoryIds = mutableSetOf<String>()
+
     fun deleteStory(storyId: String) {
+        if (!deletingStoryIds.add(storyId)) return
+        val previousStory = _uiState.value.stories.firstOrNull { it.id == storyId }
+        // Remove it from the shelf immediately; perform network and storage cleanup in the background.
+        _uiState.update { state ->
+            state.copy(
+                stories = state.stories.filterNot { it.id == storyId },
+                snackbarMessage = "Deleting Memory…",
+            )
+        }
         viewModelScope.launch {
             repository.deleteStory(storyId).fold(
                 onSuccess = {
+                    _uiState.update { it.copy(snackbarMessage = "Memory deleted.") }
+                },
+                onFailure = { error ->
                     _uiState.update { state ->
+                        val restored = if (previousStory != null && state.stories.none { it.id == storyId }) {
+                            listOf(previousStory) + state.stories
+                        } else state.stories
                         state.copy(
-                            stories = state.stories.filterNot { it.id == storyId },
-                            snackbarMessage = "Memory deleted.",
+                            stories = restored,
+                            snackbarMessage = error.message ?: "Could not delete Memory.",
                         )
                     }
                 },
-                onFailure = { error ->
-                    _uiState.update { it.copy(snackbarMessage = error.message ?: "Could not delete Memory.") }
-                },
             )
+            deletingStoryIds.remove(storyId)
         }
     }
 
