@@ -161,7 +161,10 @@ fun ComposerScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
@@ -171,11 +174,17 @@ fun ComposerScreen(
                         Text(
                             text = if (communityId != null) "Create in community" else "Create a post",
                             style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                         Text(
                             text = if (communityId != null) "Share with your community" else "Share ideas, work and moments",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         )
                     }
                 }
@@ -185,7 +194,7 @@ fun ComposerScreen(
                     isLoading = isSubmitting,
                     shape = RoundedCornerShape(50),
                     enabled = !isUploadBusy && !isSubmitting && (content.isNotBlank() || selectedUris.isNotEmpty()),
-                    modifier = Modifier.testTag("publish_post_button"),
+                    modifier = Modifier.widthIn(min = 104.dp).testTag("publish_post_button"),
                     onClick = {
                         if (currentUserId.isBlank()) {
                             errorMessage = "Sign in to share your post."
