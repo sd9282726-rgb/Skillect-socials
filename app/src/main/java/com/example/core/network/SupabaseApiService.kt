@@ -515,7 +515,7 @@ interface SupabaseStorageApi {
         @Body body: RequestBody,
     ): Response<ResponseBody>
 
-    @retrofit2.http.DELETE("storage/v1/object/{bucket}")
+    @retrofit2.http.HTTP(method = "DELETE", path = "storage/v1/object/{bucket}", hasBody = true)
     suspend fun deleteObjects(
         @Path("bucket") bucket: String,
         @Body body: RequestBody,
