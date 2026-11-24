@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 sealed class RealtimeEvent {
     data class NewMessage(val conversationId: String, val messageId: String) : RealtimeEvent()
+    data class ConversationReadChanged(val conversationId: String) : RealtimeEvent()
     data class NewNotification(val recipientId: String) : RealtimeEvent()
     data object AccountStatusChanged : RealtimeEvent()
     data object FeedUpdated : RealtimeEvent()
@@ -71,6 +72,7 @@ class SupabaseRealtimeClient(
                         AppConfig.supabaseAnonKey.takeIf { !it.startsWith("sb_publishable_") }.orEmpty()
                     }
                     joinChannel(ws, "realtime:public:messages", "messages", token)
+                    joinChannel(ws, "realtime:public:conversation_reads", "conversation_reads", token)
                     joinChannel(ws, "realtime:public:notifications", "notifications", token, filter = "user_id=eq.$userId")
                     joinChannel(ws, "realtime:public:account_enforcements", "account_enforcements", token, filter = "user_id=eq.$userId")
                     joinChannel(ws, "realtime:public:account_enforcements_updates", "account_enforcements", token, filter = "user_id=eq.$userId", changeEvent = "UPDATE")
@@ -186,6 +188,10 @@ class SupabaseRealtimeClient(
                     if (convId.isNotBlank()) {
                         _events.tryEmit(RealtimeEvent.NewMessage(convId, msgId))
                     }
+                }
+                "conversation_reads" -> {
+                    val convId = record.optString("conversation_id")
+                    if (convId.isNotBlank()) _events.tryEmit(RealtimeEvent.ConversationReadChanged(convId))
                 }
                 "notifications" -> {
                     val recipientId = record.optString("user_id").ifBlank { record.optString("recipient_id") }
