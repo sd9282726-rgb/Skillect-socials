@@ -87,6 +87,7 @@ class ProfileSettingsViewModel(
     private var profileLoadJob: Job? = null
     private val profileCache = mutableMapOf<String, ProfileDto>()
     private val profileSectionsCache = mutableMapOf<String, CachedProfileSections>()
+    private val networkListCache = mutableMapOf<Pair<String, Boolean>, List<ProfileDto>>()
     val uiState: StateFlow<ProfileSettingsUiState> = _uiState.asStateFlow()
 
     init {
@@ -584,16 +585,19 @@ class ProfileSettingsViewModel(
     }
 
     fun loadNetworkList(userId: String, followers: Boolean) {
+        val key = userId to followers
+        val cached = networkListCache[key].orEmpty()
         _uiState.update {
             it.copy(
-                networkProfiles = emptyList(),
+                networkProfiles = cached,
                 networkTitle = if (followers) "Networks" else "Connected",
-                isLoadingNetwork = true,
+                isLoadingNetwork = cached.isEmpty(),
             )
         }
         viewModelScope.launch {
             repository.fetchNetworkProfiles(userId, followers).fold(
                 onSuccess = { profiles ->
+                    networkListCache[key] = profiles
                     _uiState.update {
                         it.copy(networkProfiles = profiles, isLoadingNetwork = false)
                     }
