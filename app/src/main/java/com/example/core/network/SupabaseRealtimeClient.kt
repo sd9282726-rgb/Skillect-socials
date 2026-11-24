@@ -73,6 +73,7 @@ class SupabaseRealtimeClient(
                     }
                     joinChannel(ws, "realtime:public:messages", "messages", token)
                     joinChannel(ws, "realtime:public:conversation_reads", "conversation_reads", token)
+                    joinChannel(ws, "realtime:public:conversation_reads_updates", "conversation_reads", token, changeEvent = "UPDATE")
                     joinChannel(ws, "realtime:public:notifications", "notifications", token, filter = "user_id=eq.$userId")
                     joinChannel(ws, "realtime:public:account_enforcements", "account_enforcements", token, filter = "user_id=eq.$userId")
                     joinChannel(ws, "realtime:public:account_enforcements_updates", "account_enforcements", token, filter = "user_id=eq.$userId", changeEvent = "UPDATE")
