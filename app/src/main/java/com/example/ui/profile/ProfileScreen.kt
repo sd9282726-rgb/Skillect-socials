@@ -373,7 +373,6 @@ fun ProfileScreen(
                                 )
                                 SkillectPrimaryButton(
                                     text = if (uiState.isFollowing) "Disconnect" else "Connect",
-                                    enabled = !uiState.isFollowActionPending,
                                     onClick = {
                                         if (effectiveCurrentUserId.isBlank()) {
                                             onRequireAuth(false, "Sign in to connect with creators and build your network.")
