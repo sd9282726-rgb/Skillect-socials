@@ -112,7 +112,19 @@ Deno.serve(async (request: Request) => {
   const postResponse = await fetch(base + "/rest/v1/posts?select=id", {
     method: "POST",
     headers: { ...adminHeaders(service), "Content-Type": "application/json", Prefer: "return=representation" },
-    body: JSON.stringify({ author_id: userId, content: caption, image_url: postMediaValue, media_type: "video", tags, ...(category ? { category } : {}), ...(communityId ? { community_id: communityId } : {}), moderation_hidden: false }),
+    body: JSON.stringify({
+      author_id: userId,
+      content: caption,
+      image_url: postMediaValue,
+      media_type: "video",
+      post_type: "video",
+      media_urls: [postMediaValue],
+      media_types: ["video"],
+      tags,
+      ...(category ? { category } : {}),
+      ...(communityId ? { community_id: communityId } : {}),
+      moderation_hidden: false,
+    }),
   });
   const postRows = postResponse.ok ? await postResponse.json() : [];
   if (!postResponse.ok || !postRows[0]?.id) {
