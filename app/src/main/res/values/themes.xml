@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material Light NoActionBar: valid on all API levels we target; Compose owns the real theme. -->
     <style name="Theme.Skillect" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- The system splash is dismissed as soon as the first app frame is ready.
+         No artificial hold or loading delay is added. -->
+    <style name="Theme.Skillect.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#0E0B1A</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Skillect</item>
+    </style>
 </resources>
