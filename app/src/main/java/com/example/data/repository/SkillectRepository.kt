@@ -586,17 +586,21 @@ class SkillectRepository(
             } else {
                 null
             }
+            // Fetch the regular feed without PostgREST array/OR filters. Older installs
+            // can contain mixed legacy media metadata; filtering after normalization
+            // keeps text, image, carousel and poll posts visible across schema versions.
             val resp = postgrestApi.getPosts(
                 authorIdFilter = authorFilter,
-                postTypeColumnFilter = "not.eq.video",
-                orFilter = "(media_types.not.cs.{video},media_types.is.null)",
                 order = order,
                 limit = limit,
                 offset = offset,
             )
             if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
             val posts = resp.body().orEmpty().map { it.normalizedForUi() }
-                .filterNot { it.postType == "video" || it.mediaTypes.contains("video") }
+                .filterNot { post ->
+                    post.postType.equals("video", ignoreCase = true) ||
+                        post.mediaTypes.any { it.equals("video", ignoreCase = true) }
+                }
             posts.mapNotNull { it.author }.forEach { author -> profileByIdCache[author.id] = author }
             Result.success(posts)
         } finally {
@@ -630,15 +634,25 @@ class SkillectRepository(
     }
 
     suspend fun fetchShortVideos(): Result<List<PostDto>> = guardConfigured {
+        // Do not rely on a PostgREST OR/array-containment expression here.
+        // Video uploads from older app versions may have post_type set but no
+        // media_types entry, while newer uploads may have the inverse.
         val resp = postgrestApi.getPosts(
-            orFilter = "(post_type.eq.video,media_types.cs.{video})",
             order = "created_at.desc",
-            limit = 60,
+            limit = 200,
         )
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
         val videos = resp.body().orEmpty()
             .map { it.normalizedForUi() }
-            .filter { it.postType == "video" || it.mediaTypes.contains("video") }
+            .filter { post ->
+                post.postType.equals("video", ignoreCase = true) ||
+                    post.mediaTypes.any { it.equals("video", ignoreCase = true) } ||
+                    post.mediaUrls.any { url ->
+                        val path = url.substringBefore('?').lowercase()
+                        path.endsWith(".mp4") || path.endsWith(".mov") ||
+                            path.endsWith(".m4v") || path.endsWith(".webm")
+                    }
+            }
         Result.success(videos)
     }
 
