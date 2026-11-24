@@ -432,27 +432,31 @@ class FeedViewModel(
     ) {
         val post = _uiState.value.activeCommentsPost ?: return
         if (content.isBlank() || _uiState.value.isSubmittingComment) return
-        val pendingId = "pending-${System.nanoTime()}"
         val cleanContent = content.trim()
-        val userId = repository.sessionStore.currentSession().userId
-        val pendingComment = CommentDto(
-            id = pendingId,
-            postId = post.id,
-            authorId = userId,
-            parentCommentId = parentCommentId,
-            content = cleanContent,
-            moderationStatus = "pending",
-        )
-        _uiState.update { state ->
-            state.copy(
-                comments = if (state.activeCommentsPost?.id == post.id) state.comments + pendingComment else state.comments,
-                posts = state.posts.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
-                shortVideos = state.shortVideos.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
-                isSubmittingComment = true,
-                snackbarMessage = null,
-            )
-        }
+        _uiState.update { it.copy(isSubmittingComment = true, snackbarMessage = null) }
         viewModelScope.launch {
+            val userId = repository.sessionStore.currentSession().userId
+            if (userId.isBlank()) {
+                _uiState.update { it.copy(isSubmittingComment = false, snackbarMessage = "Sign in again to comment.") }
+                onComplete(false)
+                return@launch
+            }
+            val pendingId = "pending-${System.nanoTime()}"
+            val pendingComment = CommentDto(
+                id = pendingId,
+                postId = post.id,
+                authorId = userId,
+                parentCommentId = parentCommentId,
+                content = cleanContent,
+                moderationStatus = "pending",
+            )
+            _uiState.update { state ->
+                state.copy(
+                    comments = if (state.activeCommentsPost?.id == post.id) state.comments + pendingComment else state.comments,
+                    posts = state.posts.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
+                    shortVideos = state.shortVideos.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
+                )
+            }
             repository.addComment(post.id, cleanContent, parentCommentId).fold(
                 onSuccess = { added ->
                     _uiState.update { state ->
