@@ -228,14 +228,19 @@ class FeedViewModel(
 
     fun deleteStory(storyId: String) {
         viewModelScope.launch {
-            repository.deleteStory(storyId).onSuccess {
-                _uiState.update { state ->
-                    state.copy(
-                        stories = state.stories.filterNot { it.id == storyId },
-                        snackbarMessage = "Memory deleted.",
-                    )
-                }
-            }
+            repository.deleteStory(storyId).fold(
+                onSuccess = {
+                    _uiState.update { state ->
+                        state.copy(
+                            stories = state.stories.filterNot { it.id == storyId },
+                            snackbarMessage = "Memory deleted.",
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(snackbarMessage = error.message ?: "Could not delete Memory.") }
+                },
+            )
         }
     }
 
