@@ -347,7 +347,11 @@ fun FeedScreen(
                 if (!uiState.isBackendConfigured) {
                     item {
                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                            BackendConfigBanner()
+                            Text(
+                                "Some features are temporarily unavailable. Please try again soon.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
                         }
                     }
                 }
