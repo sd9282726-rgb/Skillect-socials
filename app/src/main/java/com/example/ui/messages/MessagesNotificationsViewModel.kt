@@ -221,38 +221,38 @@ class MessagesNotificationsViewModel(
     ) {
         val clean = content.trim()
         if (clean.isBlank()) return
-        val uid = repository.sessionStore.currentSession().userId
-        if (uid.isBlank()) {
-            _uiState.update { it.copy(statusMessage = "Sign in again to send this message.") }
-            onSent(false)
-            return
-        }
-
-        // Add the bubble before starting network work. The input can clear immediately
-        // and the conversation never waits for the server before showing the message.
-        val pendingId = "pending-" + java.util.UUID.randomUUID().toString()
-        val pending = MessageDto(
-            id = pendingId,
-            conversationId = conversationId,
-            senderId = uid,
-            content = clean,
-            deliveryStatus = "sending",
-            createdAt = com.example.core.util.TimeCompat.nowUtcIso(),
-        )
-        val wasActive = _uiState.value.activeConversationId == conversationId
-        val baseMessages = if (wasActive) _uiState.value.messages else messageCache[conversationId].orEmpty()
-        val optimistic = baseMessages + pending
-        messageCache[conversationId] = optimistic
-        inFlightMessageSends += 1
-        _uiState.update { state ->
-            state.copy(
-                messages = if (state.activeConversationId == conversationId) optimistic else state.messages,
-                isSendingMessage = true,
-                statusMessage = null,
-            )
-        }
 
         viewModelScope.launch {
+            val uid = repository.sessionStore.currentSession().userId
+            if (uid.isBlank()) {
+                _uiState.update { it.copy(statusMessage = "Sign in again to send this message.") }
+                onSent(false)
+                return@launch
+            }
+
+            // Show the message optimistically as soon as the local session is available.
+            val pendingId = "pending-" + java.util.UUID.randomUUID().toString()
+            val pending = MessageDto(
+                id = pendingId,
+                conversationId = conversationId,
+                senderId = uid,
+                content = clean,
+                deliveryStatus = "sending",
+                createdAt = com.example.core.util.TimeCompat.nowUtcIso(),
+            )
+            val wasActive = _uiState.value.activeConversationId == conversationId
+            val baseMessages = if (wasActive) _uiState.value.messages else messageCache[conversationId].orEmpty()
+            val optimistic = baseMessages + pending
+            messageCache[conversationId] = optimistic
+            inFlightMessageSends += 1
+            _uiState.update { state ->
+                state.copy(
+                    messages = if (state.activeConversationId == conversationId) optimistic else state.messages,
+                    isSendingMessage = true,
+                    statusMessage = null,
+                )
+            }
+
             val result = runCatching {
                 repository.sendMessage(conversationId, clean, mediaUrl)
             }.getOrElse { Result.failure(it) }
