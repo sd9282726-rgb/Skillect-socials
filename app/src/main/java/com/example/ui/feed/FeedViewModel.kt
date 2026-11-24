@@ -247,28 +247,38 @@ class FeedViewModel(
     fun toggleLike(post: PostDto) {
         val snapshot = _uiState.value
         if (post.id in snapshot.pendingLikePostIds) return
-        _uiState.update { it.copy(pendingLikePostIds = it.pendingLikePostIds + post.id) }
+        val wasLiked = post.id in snapshot.likedPostIds
+        val shouldLike = !wasLiked
+        val delta = if (shouldLike) 1 else -1
+        _uiState.update { state ->
+            val liked = state.likedPostIds.toMutableSet().apply {
+                if (shouldLike) add(post.id) else remove(post.id)
+            }
+            state.copy(
+                likedPostIds = liked,
+                pendingLikePostIds = state.pendingLikePostIds + post.id,
+                posts = state.posts.map { if (it.id == post.id) it.copy(likesCount = maxOf(0, it.likesCount + delta)) else it },
+                shortVideos = state.shortVideos.map { if (it.id == post.id) it.copy(likesCount = maxOf(0, it.likesCount + delta)) else it },
+            )
+        }
         viewModelScope.launch {
-            repository.toggleLike(post.id).fold(
-                onSuccess = { nowLiked ->
-                    _uiState.update { state ->
-                        val likes = state.likedPostIds.toMutableSet()
-                        if (nowLiked) likes.add(post.id) else likes.remove(post.id)
-                        val delta = if (nowLiked) 1 else -1
-                        state.copy(
-                            likedPostIds = likes,
-                            pendingLikePostIds = state.pendingLikePostIds - post.id,
-                            posts = state.posts.map {
-                                if (it.id == post.id) it.copy(likesCount = maxOf(0, it.likesCount + delta)) else it
-                            },
-                            shortVideos = state.shortVideos.map {
-                                if (it.id == post.id) it.copy(likesCount = maxOf(0, it.likesCount + delta)) else it
-                            },
-                        )
-                    }
+            repository.setPostLike(post.id, shouldLike).fold(
+                onSuccess = {
+                    _uiState.update { it.copy(pendingLikePostIds = it.pendingLikePostIds - post.id) }
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(pendingLikePostIds = it.pendingLikePostIds - post.id, snackbarMessage = err.message) }
+                    _uiState.update { state ->
+                        val liked = state.likedPostIds.toMutableSet().apply {
+                            if (wasLiked) add(post.id) else remove(post.id)
+                        }
+                        state.copy(
+                            likedPostIds = liked,
+                            pendingLikePostIds = state.pendingLikePostIds - post.id,
+                            posts = state.posts.map { if (it.id == post.id) it.copy(likesCount = maxOf(0, it.likesCount - delta)) else it },
+                            shortVideos = state.shortVideos.map { if (it.id == post.id) it.copy(likesCount = maxOf(0, it.likesCount - delta)) else it },
+                            snackbarMessage = err.message,
+                        )
+                    }
                 },
             )
         }
@@ -422,23 +432,49 @@ class FeedViewModel(
     ) {
         val post = _uiState.value.activeCommentsPost ?: return
         if (content.isBlank() || _uiState.value.isSubmittingComment) return
+        val pendingId = "pending-${System.nanoTime()}"
+        val cleanContent = content.trim()
+        val userId = repository.sessionStore.currentSession().userId
+        val pendingComment = CommentDto(
+            id = pendingId,
+            postId = post.id,
+            authorId = userId,
+            parentCommentId = parentCommentId,
+            content = cleanContent,
+            moderationStatus = "pending",
+        )
+        _uiState.update { state ->
+            state.copy(
+                comments = if (state.activeCommentsPost?.id == post.id) state.comments + pendingComment else state.comments,
+                posts = state.posts.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
+                shortVideos = state.shortVideos.map { if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it },
+                isSubmittingComment = true,
+                snackbarMessage = null,
+            )
+        }
         viewModelScope.launch {
-            _uiState.update { it.copy(isSubmittingComment = true, snackbarMessage = null) }
-            repository.addComment(post.id, content.trim(), parentCommentId).fold(
+            repository.addComment(post.id, cleanContent, parentCommentId).fold(
                 onSuccess = { added ->
                     _uiState.update { state ->
                         state.copy(
-                            comments = if (state.activeCommentsPost?.id == post.id) state.comments + added else state.comments,
-                            posts = state.posts.map {
-                                if (it.id == post.id) it.copy(commentsCount = it.commentsCount + 1) else it
-                            },
+                            comments = if (state.activeCommentsPost?.id == post.id) {
+                                state.comments.map { if (it.id == pendingId) added else it }
+                            } else state.comments,
                             isSubmittingComment = false,
                         )
                     }
                     onComplete(true)
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(isSubmittingComment = false, snackbarMessage = err.message) }
+                    _uiState.update { state ->
+                        state.copy(
+                            comments = state.comments.filterNot { it.id == pendingId },
+                            posts = state.posts.map { if (it.id == post.id) it.copy(commentsCount = maxOf(0, it.commentsCount - 1)) else it },
+                            shortVideos = state.shortVideos.map { if (it.id == post.id) it.copy(commentsCount = maxOf(0, it.commentsCount - 1)) else it },
+                            isSubmittingComment = false,
+                            snackbarMessage = err.message,
+                        )
+                    }
                     onComplete(false)
                 },
             )
