@@ -105,6 +105,31 @@ import com.example.ui.auth.OnboardingSkillCatalog
 import com.example.ui.auth.OnboardingValidation
 import kotlinx.coroutines.launch
 
+/** Adds invisible break opportunities to very long unbroken profile strings (URLs/IDs/etc.). */
+private fun String.withProfileLineBreaks(maxRunLength: Int = 20): String {
+    if (length <= maxRunLength) return this
+    val output = StringBuilder(length + 8)
+    var index = 0
+    var runLength = 0
+    while (index < length) {
+        val codePoint = codePointAt(index)
+        val count = Character.charCount(codePoint)
+        if (Character.isWhitespace(codePoint)) {
+            output.appendCodePoint(codePoint)
+            runLength = 0
+        } else {
+            if (runLength >= maxRunLength) {
+                output.append('\\u200B')
+                runLength = 0
+            }
+            output.appendCodePoint(codePoint)
+            runLength++
+        }
+        index += count
+    }
+    return output.toString()
+}
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -639,7 +664,7 @@ fun ProfileScreen(
                                 Spacer(modifier = Modifier.height(6.dp))
                                 if (quote.content.isNotBlank()) {
                                     Text(
-                                        text = quote.content,
+                                        text = quote.content.withProfileLineBreaks(),
                                         style = MaterialTheme.typography.bodyLarge,
                                         modifier = Modifier.fillMaxWidth(),
                                         softWrap = true,
@@ -694,7 +719,7 @@ fun ProfileScreen(
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     Text(
-                                        text = proj.title,
+                                        text = proj.title.withProfileLineBreaks(),
                                         style = MaterialTheme.typography.titleMedium,
                                         modifier = Modifier.fillMaxWidth(),
                                         softWrap = true,
@@ -709,7 +734,7 @@ fun ProfileScreen(
                                 Text(proj.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = proj.description,
+                                    text = proj.description.withProfileLineBreaks(),
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.fillMaxWidth(),
                                     softWrap = true,
@@ -763,7 +788,7 @@ fun ProfileScreen(
                                 SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
                                     Column(modifier = Modifier.fillMaxWidth()) {
                                         Text(
-                                            text = exp.title,
+                                            text = exp.title.withProfileLineBreaks(),
                                             style = MaterialTheme.typography.titleMedium,
                                             modifier = Modifier.fillMaxWidth(),
                                             softWrap = true,
@@ -776,7 +801,7 @@ fun ProfileScreen(
                                         }
                                     }
                                     Text(
-                                        text = "${exp.organization} · ${exp.startDate}",
+                                        text = "${exp.organization} · ${exp.startDate}".withProfileLineBreaks(),
                                         style = MaterialTheme.typography.bodySmall,
                                         modifier = Modifier.fillMaxWidth(),
                                         color = MaterialTheme.colorScheme.primary,
@@ -786,7 +811,7 @@ fun ProfileScreen(
                                     if (exp.description.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(6.dp))
                                         Text(
-                                            text = exp.description,
+                                            text = exp.description.withProfileLineBreaks(),
                                             style = MaterialTheme.typography.bodyMedium,
                                             modifier = Modifier.fillMaxWidth(),
                                             softWrap = true,
@@ -807,7 +832,7 @@ fun ProfileScreen(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = ach.title,
+                                            text = ach.title.withProfileLineBreaks(),
                                             style = MaterialTheme.typography.titleMedium,
                                             modifier = Modifier.weight(1f),
                                             softWrap = true,
@@ -825,7 +850,7 @@ fun ProfileScreen(
                                     ).joinToString(" · ")
                                     if (subtitle.isNotBlank()) {
                                         Text(
-                                            text = subtitle,
+                                            text = subtitle.withProfileLineBreaks(),
                                             style = MaterialTheme.typography.bodySmall,
                                             modifier = Modifier.fillMaxWidth(),
                                             color = MaterialTheme.colorScheme.primary,
@@ -836,7 +861,7 @@ fun ProfileScreen(
                                     if (ach.description.isNotBlank()) {
                                         Spacer(modifier = Modifier.height(6.dp))
                                         Text(
-                                            text = ach.description,
+                                            text = ach.description.withProfileLineBreaks(),
                                             style = MaterialTheme.typography.bodyMedium,
                                             modifier = Modifier.fillMaxWidth(),
                                             softWrap = true,
