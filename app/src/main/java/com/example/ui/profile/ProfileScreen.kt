@@ -83,6 +83,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.R
 import com.example.core.config.AppConfig
@@ -100,6 +102,7 @@ import com.example.core.designsystem.SkillectPrimaryButton
 import com.example.core.designsystem.VerifiedCreatorBadge
 import com.example.core.media.MediaUploadManager
 import com.example.core.media.VideoPlayerBox
+import com.example.core.network.StoryDto
 import com.example.ui.feed.ReportContentDialog
 import com.example.ui.auth.OnboardingSkillCatalog
 import com.example.ui.auth.OnboardingValidation
@@ -119,7 +122,7 @@ private fun String.withProfileLineBreaks(maxRunLength: Int = 20): String {
             runLength = 0
         } else {
             if (runLength >= maxRunLength) {
-                output.append('\\u200B')
+                output.append('\u200B')
                 runLength = 0
             }
             output.appendCodePoint(codePoint)
@@ -136,6 +139,8 @@ fun ProfileScreen(
     targetUserId: String?,
     currentUserId: String,
     uiState: ProfileSettingsUiState,
+    memories: List<StoryDto> = emptyList(),
+    onDeleteMemory: (String) -> Unit = {},
     viewModel: ProfileSettingsViewModel,
     mediaUploadManager: MediaUploadManager,
     onOpenSettings: () -> Unit,
@@ -188,6 +193,8 @@ fun ProfileScreen(
         }
     }
     val isOwnProfile = targetUserId == null || (effectiveCurrentUserId.isNotBlank() && profile?.id == effectiveCurrentUserId)
+    val profileMemories = remember(memories, profile?.id) { memories.filter { it.authorId == profile?.id } }
+    var activeMemory by remember(profile?.id) { mutableStateOf<StoryDto?>(null) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showProjectDialog by remember { mutableStateOf(false) }
@@ -315,13 +322,15 @@ fun ProfileScreen(
                         modifier = Modifier
                             .padding(start = 16.dp)
                             .align(Alignment.BottomStart)
-                            .offset(y = 38.dp),
+                            .offset(y = 38.dp)
+                            .clickable(enabled = profileMemories.isNotEmpty()) { activeMemory = profileMemories.firstOrNull() }
+                            .testTag("profile_avatar_memories"),
                     ) {
                         SkillectAvatar(
                             avatarUrl = profile?.avatarUrl,
                             contentDescription = "Profile avatar",
                             size = 82.dp,
-                            hasActiveStory = true,
+                            hasActiveStory = profileMemories.isNotEmpty(),
                         )
                     }
                 }
@@ -916,6 +925,58 @@ fun ProfileScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+
+    activeMemory?.let { memory ->
+        Dialog(
+            onDismissRequest = { activeMemory = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black),
+            ) {
+                if (memory.mediaType == "video") {
+                    VideoPlayerBox(
+                        videoUrl = memory.mediaUrl,
+                        isActive = true,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    AsyncImage(
+                        model = memory.mediaUrl,
+                        contentDescription = "Memory media",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SkillectAvatar(
+                        avatarUrl = memory.author?.avatarUrl,
+                        contentDescription = "Memory author",
+                        size = 38.dp,
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(memory.author?.displayName ?: "Member", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                        Text("Memory · 12-hour post", color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.labelSmall)
+                    }
+                    TextButton(onClick = { activeMemory = null }) {
+                        Text("Close", color = Color.White)
+                    }
+                }
+                if (memory.caption.isNotBlank()) {
+                    Text(
+                        text = memory.caption,
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(24.dp),
+                    )
                 }
             }
         }
