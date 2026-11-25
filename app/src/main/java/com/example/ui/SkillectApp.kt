@@ -3,6 +3,7 @@ package com.example.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -202,8 +204,8 @@ fun SkillectApp(
     }
 
     // Handle FCM deep links if launched from notification
-    LaunchedEffect(deepLinkType, deepLinkEntityId, authState.isAuthenticated) {
-        if (deepLinkType != null) {
+    LaunchedEffect(deepLinkType, deepLinkEntityId, authState.isAuthenticated, authState.isRestoringSession) {
+        if (!authState.isRestoringSession && deepLinkType != null) {
             if (!authState.isAuthenticated) {
                 authVm.openAuthPrompt(AuthMode.SIGN_IN, "Sign in to view notifications and private messages.")
             } else {
@@ -227,6 +229,21 @@ fun SkillectApp(
     }
 
     SkillectTheme(themeMode = profileState.preferences.themeMode) {
+        // Never render guest/sign-in UI until the persisted session has been read.
+        // The branded holding frame prevents a returning member seeing Sign in before their account.
+        if (authState.isRestoringSession) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .testTag("session_restore_splash"),
+                contentAlignment = Alignment.Center,
+            ) {
+                SkillectBrandBadge(size = 76.dp)
+            }
+            return@SkillectTheme
+        }
+
         if (authState.isAuthenticated && authState.needsOnboarding) {
             OnboardingScreen(
                 uiState = authState,
