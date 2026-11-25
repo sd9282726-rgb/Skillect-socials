@@ -446,7 +446,7 @@ fun FeedScreen(
                                     }
                                     Spacer(Modifier.height(6.dp))
                                     Text(
-                                        text = if (ownMemory != null) "Your story" else "Add story",
+                                        text = if (ownMemory != null) "Your Memory" else "Add Memory",
                                         style = MaterialTheme.typography.labelSmall,
                                         maxLines = 1,
                                         color = MaterialTheme.colorScheme.onSurface,
