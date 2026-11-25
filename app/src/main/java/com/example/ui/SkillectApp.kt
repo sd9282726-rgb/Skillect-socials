@@ -558,6 +558,8 @@ fun SkillectApp(
                                     targetUserId = route.userId,
                                     currentUserId = currentUserId,
                                     uiState = profileState,
+                                    memories = feedState.stories,
+                                    onDeleteMemory = feedVm::deleteStory,
                                     viewModel = profileVm,
                                     mediaUploadManager = container.mediaUploadManager,
                                     onOpenSettings = { navController.navigate(SkillectRoute.Settings) },
