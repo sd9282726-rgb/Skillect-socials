@@ -1013,8 +1013,7 @@ fun OnboardingScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(profile.displayName.ifBlank { profile.username }, style = MaterialTheme.typography.titleSmall)
-                                                Text("@${profile.username}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                Text(profile.displayName.ifBlank { "Skillect Member" }, style = MaterialTheme.typography.titleSmall)
                                                 if (profile.bio.isNotBlank()) Text(profile.bio, style = MaterialTheme.typography.bodySmall, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             }
                                             TextButton(onClick = { viewModel.followSuggestedCreator(profile.id) }) { Text("Connect") }

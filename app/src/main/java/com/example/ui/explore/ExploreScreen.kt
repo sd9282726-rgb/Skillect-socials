@@ -236,7 +236,7 @@ fun ExploreScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            text = "@${person.username}",
+                                            text = person.displayName.ifBlank { "Skillect Member" },
                                             style = MaterialTheme.typography.titleMedium,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
@@ -247,12 +247,7 @@ fun ExploreScreen(
                                         }
                                     }
                                     val loc = person.regionLabel.ifBlank { person.countryCode }
-                                    val sub = person.headline.ifBlank {
-                                        listOf(person.displayName, loc)
-                                            .filter { it.isNotBlank() }
-                                            .joinToString(" · ")
-                                            .ifBlank { person.bio.ifBlank { "Skillect Creator" } }
-                                    }
+                                    val sub = person.headline.ifBlank { loc.ifBlank { person.bio.ifBlank { "Skillect Creator" } } }
                                     Text(
                                         text = sub,
                                         style = MaterialTheme.typography.bodySmall,
@@ -349,11 +344,6 @@ fun ExploreScreen(
                                     Text(
                                         text = post.author?.displayName ?: "Skillect Member",
                                         style = MaterialTheme.typography.titleSmall,
-                                    )
-                                    Text(
-                                        text = "@${post.author?.username ?: "member"}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
