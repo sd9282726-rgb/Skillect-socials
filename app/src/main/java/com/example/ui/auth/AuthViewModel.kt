@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class AuthMode { SIGN_IN, SIGN_UP, RECOVER, RESET_PASSWORD }
+enum class AuthMode { SIGN_IN, SIGN_UP, RECOVER, VERIFY_RECOVERY_OTP, RESET_PASSWORD }
 
 data class RecoveryDeepLinkPayload(
     val accessToken: String? = null,
@@ -324,11 +324,21 @@ class AuthViewModel(
     }
 
     fun setMode(mode: AuthMode) {
-        _uiState.update { it.copy(mode = mode, errorMessage = null, infoMessage = null) }
+        _uiState.update {
+            it.copy(
+                mode = mode,
+                recoveryToken = if (mode == AuthMode.RECOVER) "" else it.recoveryToken,
+                errorMessage = null,
+                infoMessage = null,
+            )
+        }
     }
 
     fun updateEmail(value: String) = _uiState.update { it.copy(email = value, errorMessage = null) }
     fun updatePassword(value: String) = _uiState.update { it.copy(password = value, errorMessage = null) }
+    fun updateRecoveryToken(value: String) = _uiState.update {
+        it.copy(recoveryToken = value.filter(Char::isDigit).take(6), errorMessage = null)
+    }
     fun updateNewPassword(value: String) = _uiState.update { it.copy(newPassword = value, errorMessage = null) }
     fun updateConfirmNewPassword(value: String) = _uiState.update { it.copy(confirmNewPassword = value, errorMessage = null) }
     fun updateBirthDate(value: String) = _uiState.update { it.copy(birthDateIso = value, errorMessage = null) }
@@ -336,6 +346,36 @@ class AuthViewModel(
 
     fun submitAuth() {
         val state = _uiState.value
+        if (state.mode == AuthMode.VERIFY_RECOVERY_OTP) {
+            if (state.recoveryToken.length != 6) {
+                _uiState.update { it.copy(errorMessage = "Enter the 6-digit code sent to your email.") }
+                return
+            }
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+                repository.verifyPasswordRecoveryOtp(state.email, state.recoveryToken).fold(
+                    onSuccess = { accessToken ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                mode = AuthMode.RESET_PASSWORD,
+                                recoveryToken = accessToken,
+                                newPassword = "",
+                                confirmNewPassword = "",
+                                errorMessage = null,
+                                infoMessage = "Code verified. Choose a new password for your Skillect account.",
+                            )
+                        }
+                    },
+                    onFailure = { err ->
+                        _uiState.update {
+                            it.copy(isLoading = false, errorMessage = err.message ?: "The code is invalid or expired.")
+                        }
+                    },
+                )
+            }
+            return
+        }
         if (state.mode == AuthMode.RESET_PASSWORD) {
             if (state.newPassword.length < 8) {
                 _uiState.update { it.copy(errorMessage = "New password must be at least 8 characters.") }
@@ -451,7 +491,9 @@ class AuthViewModel(
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
-                                    infoMessage = "Password reset link sent to ${state.email}. Open the link in your email to create a new password.",
+                                    mode = AuthMode.VERIFY_RECOVERY_OTP,
+                                    recoveryToken = "",
+                                    infoMessage = "We sent a 6-digit password reset code to ${state.email}. Enter it here to continue.",
                                 )
                             }
                         },
@@ -460,7 +502,7 @@ class AuthViewModel(
                         },
                     )
                 }
-                AuthMode.RESET_PASSWORD -> Unit
+                AuthMode.VERIFY_RECOVERY_OTP, AuthMode.RESET_PASSWORD -> Unit
             }
         }
     }

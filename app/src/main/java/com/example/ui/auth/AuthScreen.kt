@@ -237,7 +237,7 @@ fun AuthScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
                 contentPadding = PaddingValues(20.dp),
             ) {
-                if (uiState.mode != AuthMode.RESET_PASSWORD) {
+                if (uiState.mode != AuthMode.RESET_PASSWORD && uiState.mode != AuthMode.VERIFY_RECOVERY_OTP) {
                     // Pill Segmented Mode Selector
                     Surface(
                         shape = RoundedCornerShape(14.dp),
@@ -277,11 +277,20 @@ fun AuthScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(18.dp))
-                } else {
+                } else if (uiState.mode == AuthMode.RESET_PASSWORD) {
                     Text("Set a New Password", style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Choose a strong password (8+ characters) for your Skillect account.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                } else {
+                    Text("Enter your 6-digit code", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "We sent a password reset code to ${uiState.email}.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -307,6 +316,15 @@ fun AuthScreen(
                         leadingIcon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
                         visualTransformation = PasswordVisualTransformation(),
                         fieldModifier = Modifier.testTag("reset_confirm_password_input"),
+                    )
+                } else if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP) {
+                    SkillectLabeledField(
+                        label = "6-digit verification code",
+                        value = uiState.recoveryToken,
+                        onValueChange = viewModel::updateRecoveryToken,
+                        placeholder = "123456",
+                        leadingIcon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
+                        fieldModifier = Modifier.testTag("recovery_otp_input"),
                     )
                 } else {
                     SkillectLabeledField(
@@ -384,7 +402,8 @@ fun AuthScreen(
                     text = when (uiState.mode) {
                         AuthMode.SIGN_IN -> "Sign In to Skillect"
                         AuthMode.SIGN_UP -> "Create Account"
-                        AuthMode.RECOVER -> "Send Reset Email"
+                        AuthMode.RECOVER -> "Send Reset Code"
+                        AuthMode.VERIFY_RECOVERY_OTP -> "Verify Code"
                         AuthMode.RESET_PASSWORD -> "Update Password"
                     },
                     onClick = viewModel::submitAuth,
@@ -394,13 +413,13 @@ fun AuthScreen(
                         .testTag("auth_submit_button"),
                 )
 
-                if (uiState.mode == AuthMode.RESET_PASSWORD) {
+                if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.RESET_PASSWORD) {
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(
                         onClick = { viewModel.setMode(AuthMode.RECOVER) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Link expired? Request a new reset email")
+                        Text("Need a new code? Change email or resend")
                     }
                 }
 

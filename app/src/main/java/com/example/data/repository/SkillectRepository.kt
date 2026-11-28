@@ -255,6 +255,28 @@ class SkillectRepository(
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
     }
 
+    suspend fun verifyPasswordRecoveryOtp(email: String, token: String): Result<String> = guardConfigured {
+        val cleanEmail = email.trim()
+        val cleanToken = token.filter(Char::isDigit)
+        if (cleanEmail.isBlank() || !cleanEmail.contains("@") || cleanToken.length != 6) {
+            return@guardConfigured Result.failure(
+                IllegalArgumentException("Enter a valid email address and the 6-digit reset code."),
+            )
+        }
+        val response = authApi.verifyOtp(
+            VerifyOtpRequest(email = cleanEmail, token = cleanToken, type = "recovery"),
+        )
+        if (!response.isSuccessful) {
+            return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        }
+        val accessToken = response.body()?.accessToken.orEmpty()
+        if (accessToken.isBlank()) {
+            Result.failure(IllegalStateException("Supabase did not return a recovery session. Request a new code."))
+        } else {
+            Result.success(accessToken)
+        }
+    }
+
     suspend fun completePasswordRecovery(recoveryAccessToken: String, newPassword: String): Result<Unit> =
         guardConfigured {
             if (recoveryAccessToken.isBlank()) {

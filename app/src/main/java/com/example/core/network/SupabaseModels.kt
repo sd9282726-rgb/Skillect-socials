@@ -40,6 +40,13 @@ data class RecoverPasswordRequest(
 )
 
 @JsonClass(generateAdapter = true)
+data class VerifyOtpRequest(
+    val email: String,
+    val token: String,
+    val type: String = "recovery",
+)
+
+@JsonClass(generateAdapter = true)
 data class UpdatePasswordRequest(
     val password: String,
 )
