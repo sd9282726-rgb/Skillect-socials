@@ -46,7 +46,10 @@ interface SupabaseAuthApi {
     suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<AuthTokenResponse>
 
     @POST("auth/v1/recover")
-    suspend fun recoverPassword(@Body request: RecoverPasswordRequest): Response<ResponseBody>
+    suspend fun recoverPassword(
+        @Query("redirect_to") redirectTo: String?,
+        @Body request: RecoverPasswordRequest,
+    ): Response<ResponseBody>
 
     @POST("auth/v1/verify")
     suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthTokenResponse>
