@@ -36,7 +36,6 @@ data class PasswordSignInRequest(
 @JsonClass(generateAdapter = true)
 data class RecoverPasswordRequest(
     val email: String,
-    @Json(name = "redirect_to") val redirectTo: String? = "skillect://auth-callback",
 )
 
 @JsonClass(generateAdapter = true)
