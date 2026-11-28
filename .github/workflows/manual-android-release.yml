@@ -8,6 +8,7 @@ on:
       - fix/feed-shorts-comments-connect
       - feat/splash-and-profile-text-wrap
       - fix/session-startup-and-profile-wrapping
+      - design/skillect-orange-studio-ui
   workflow_dispatch:
 
 permissions:
@@ -24,9 +25,9 @@ jobs:
       - name: Verify release version
         run: |
           set -euo pipefail
-          grep -q 'versionCode = 31' app/build.gradle.kts
-          grep -q 'versionName = "2.1.5"' app/build.gradle.kts
-          echo "Building Skillect 2.1.5 (31) from the checked-out source without replacing app files."
+          grep -q 'versionCode = 32' app/build.gradle.kts
+          grep -q 'versionName = "2.2.0"' app/build.gradle.kts
+          echo "Building Skillect 2.2.0 (32) from the checked-out source without replacing app files."
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
