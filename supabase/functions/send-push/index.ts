@@ -134,6 +134,7 @@ Deno.serve(async (request: Request) => {
 
   let sent = 0;
   let failed = 0;
+  const failureSummary: Array<{ httpStatus: number; code: string; message: string }> = [];
   for (const row of rows) {
     const fcmToken = row.token as string;
     const response = await fetch(
@@ -166,12 +167,25 @@ Deno.serve(async (request: Request) => {
     failed++;
     let errorText = "";
     try { errorText = await response.text(); } catch { /* ignore */ }
-    if (response.status === 404 || errorText.includes("UNREGISTERED") || errorText.includes("registration-token-not-registered")) {
+    let fcmError: Record<string, unknown> = {};
+    try { fcmError = JSON.parse(errorText)?.error ?? {}; } catch { /* keep raw response out of logs */ }
+    const errorCode = String(fcmError.status ?? "UNKNOWN");
+    const errorMessage = String(fcmError.message ?? "FCM rejected the message").slice(0, 240);
+    console.error("FCM delivery failed", JSON.stringify({
+      httpStatus: response.status,
+      code: errorCode,
+      message: errorMessage,
+    }));
+    failureSummary.push({ httpStatus: response.status, code: errorCode, message: errorMessage });
+
+    // Only delete tokens that Firebase explicitly marks as unregistered.
+    // Other 404/403 responses can indicate project or sender configuration errors.
+    if (errorCode === "UNREGISTERED" || errorText.includes("registration-token-not-registered")) {
       await fetch(base + "/rest/v1/device_tokens?platform=eq.android&token=eq." + encodeURIComponent(fcmToken), {
         method: "DELETE",
         headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey },
       });
     }
   }
-  return json(200, { sent, failed });
+  return json(200, { sent, failed, failures: failureSummary });
 });
