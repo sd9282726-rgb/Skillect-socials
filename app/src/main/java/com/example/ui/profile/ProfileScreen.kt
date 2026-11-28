@@ -1041,18 +1041,24 @@ fun ProfileScreen(
     if (showEditDialog) {
         var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
         var username by remember { mutableStateOf(profile?.username.orEmpty()) }
-        var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.filter { it in OnboardingSkillCatalog.all }?.toSet().orEmpty()) }
+        // Keep every saved profile skill, including values from older catalog versions.
+        // Otherwise editing a profile silently drops skills that are not in today's picker.
+        var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.map { it.trim() }?.filter { it.isNotBlank() }?.toSet().orEmpty()) }
         var skillsMenuExpanded by remember { mutableStateOf(false) }
         var skillSearch by remember { mutableStateOf("") }
+        val savedSkillsOutsideCatalog = selectedSkills.filterNot { it in OnboardingSkillCatalog.all }.sorted()
         var selectedCountry by remember(profile?.id) {
             mutableStateOf(AppConfig.supportedCountries.firstOrNull { it.isoCode.equals(profile?.countryCode, true) } ?: AppConfig.supportedCountries.first())
         }
         var countryMenuExpanded by remember { mutableStateOf(false) }
         var countrySearch by remember { mutableStateOf("") }
+        // Preserve every saved interest, not only values in the current onboarding list.
         var selectedInterests by remember(profile?.id) {
-            mutableStateOf(profile?.interests?.filter { it in OnboardingSkillCatalog.interests }?.toSet().orEmpty())
+            mutableStateOf(profile?.interests?.map { it.trim() }?.filter { it.isNotBlank() }?.toSet().orEmpty())
         }
         var interestsMenuExpanded by remember { mutableStateOf(false) }
+        var interestSearch by remember { mutableStateOf("") }
+        val availableProfileInterests = (OnboardingSkillCatalog.interests + selectedInterests.filterNot { it in OnboardingSkillCatalog.interests }.sorted()).distinct()
         var website by remember { mutableStateOf(profile?.website.orEmpty()) }
         var bio by remember { mutableStateOf(profile?.bio.orEmpty()) }
 
@@ -1112,6 +1118,22 @@ fun ProfileScreen(
                                                 onCheckedChange = null,
                                             )
                                         },
+                                        onClick = {
+                                            selectedSkills = if (skill in selectedSkills) selectedSkills - skill else selectedSkills + skill
+                                        },
+                                    )
+                                }
+                            }
+                            if (savedSkillsOutsideCatalog.any { it.contains(skillSearch, ignoreCase = true) }) {
+                                DropdownMenuItem(
+                                    text = { Text("PREVIOUSLY SAVED", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
+                                    onClick = {},
+                                    enabled = false,
+                                )
+                                savedSkillsOutsideCatalog.filter { it.contains(skillSearch, ignoreCase = true) }.forEach { skill ->
+                                    DropdownMenuItem(
+                                        text = { Text(skill) },
+                                        leadingIcon = { Checkbox(checked = skill in selectedSkills, onCheckedChange = null) },
                                         onClick = {
                                             selectedSkills = if (skill in selectedSkills) selectedSkills - skill else selectedSkills + skill
                                         },
@@ -1180,7 +1202,16 @@ fun ProfileScreen(
                             expanded = interestsMenuExpanded,
                             onDismissRequest = { interestsMenuExpanded = false },
                         ) {
-                            OnboardingSkillCatalog.interests.forEach { interest ->
+                            OutlinedTextField(
+                                value = interestSearch,
+                                onValueChange = { interestSearch = it },
+                                placeholder = { Text("Search interests") },
+                                singleLine = true,
+                                modifier = Modifier.padding(horizontal = 10.dp).widthIn(min = 220.dp),
+                            )
+                            availableProfileInterests.filter {
+                                interestSearch.isBlank() || it.contains(interestSearch, ignoreCase = true)
+                            }.forEach { interest ->
                                 DropdownMenuItem(
                                     text = { Text(interest) },
                                     leadingIcon = { Checkbox(checked = interest in selectedInterests, onCheckedChange = null) },
