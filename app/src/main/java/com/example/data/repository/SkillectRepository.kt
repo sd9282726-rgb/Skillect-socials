@@ -247,10 +247,8 @@ class SkillectRepository(
             return@guardConfigured Result.failure(IllegalArgumentException("Please enter a valid email address."))
         }
         val resp = authApi.recoverPassword(
-            RecoverPasswordRequest(
-                email = clean,
-                redirectTo = "skillect://auth-callback",
-            ),
+            redirectTo = "skillect://auth-callback",
+            request = RecoverPasswordRequest(email = clean),
         )
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))
     }
