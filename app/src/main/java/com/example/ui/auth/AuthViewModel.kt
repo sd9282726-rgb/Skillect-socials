@@ -80,9 +80,6 @@ data class AuthUiState(
     val authSheetOpen: Boolean = false,
     val authPromptReason: String? = null,
     val displayName: String = "",
-    val username: String = "",
-    val usernameAvailable: Boolean? = null,
-    val checkingUsername: Boolean = false,
     val bio: String = "",
     val headline: String = "",
     val selectedSkills: Set<String> = emptySet(),
@@ -509,17 +506,14 @@ class AuthViewModel(
 
     fun updateOnboardingFields(
         displayName: String = _uiState.value.displayName,
-        username: String = _uiState.value.username,
         bio: String = _uiState.value.bio,
         headline: String = _uiState.value.headline,
     ) {
         _uiState.update {
             it.copy(
                 displayName = displayName,
-                username = username,
                 bio = bio,
                 headline = headline,
-                usernameAvailable = if (username != it.username) null else it.usernameAvailable,
                 errorMessage = null,
             )
         }
@@ -541,35 +535,10 @@ class AuthViewModel(
         }
     }
 
-    fun checkUsernameAvailability() {
-        val candidate = _uiState.value.username.trim().lowercase()
-        if (!candidate.matches(Regex("^[a-z0-9_.]{3,30}$"))) {
-            _uiState.update {
-                it.copy(
-                    usernameAvailable = false,
-                    errorMessage = "Username must be 3–30 chars (letters, numbers, _ or .).",
-                )
-            }
-            return
-        }
-        viewModelScope.launch {
-            _uiState.update { it.copy(checkingUsername = true, errorMessage = null) }
-            repository.checkUsernameAvailable(candidate).fold(
-                onSuccess = { available ->
-                    _uiState.update { it.copy(checkingUsername = false, usernameAvailable = available) }
-                },
-                onFailure = { err ->
-                    _uiState.update { it.copy(checkingUsername = false, errorMessage = err.message) }
-                },
-            )
-        }
-    }
-
     fun completeOnboarding(avatarUrl: String? = null) {
         val state = _uiState.value
-        val cleanUsername = state.username.trim().lowercase()
-        if (state.displayName.isBlank() || cleanUsername.length < 3) {
-            _uiState.update { it.copy(errorMessage = "Display name and valid username are required.") }
+        if (state.displayName.isBlank()) {
+            _uiState.update { it.copy(errorMessage = "Display name is required.") }
             return
         }
         viewModelScope.launch {
@@ -580,9 +549,10 @@ class AuthViewModel(
             } else {
                 true
             }
+            val legacyProfileKey = "member_" + session.userId.filter { it.isLetterOrDigit() }.lowercase().takeLast(20)
             val dto = ProfileUpsertDto(
                 id = session.userId,
-                username = cleanUsername,
+                username = legacyProfileKey,
                 displayName = state.displayName.trim(),
                 bio = state.bio.trim(),
                 headline = state.headline.trim(),

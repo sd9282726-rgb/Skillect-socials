@@ -714,62 +714,6 @@ fun OnboardingScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            Text(
-                                text = "Username",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                OutlinedTextField(
-                                    value = uiState.username,
-                                    onValueChange = {
-                                        localStepError = null
-                                        viewModel.updateOnboardingFields(username = it)
-                                    },
-                                    placeholder = { Text("your.handle") },
-                                    prefix = {
-                                        Text(
-                                            text = "@",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontWeight = FontWeight.SemiBold,
-                                        )
-                                    },
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                                    ),
-                                    modifier = Modifier.weight(1f),
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                SkillectOutlinedButton(
-                                    text = if (uiState.checkingUsername) "..." else "Check",
-                                    onClick = viewModel::checkUsernameAvailability,
-                                )
-                            }
-
-                            if (uiState.usernameAvailable != null) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.CheckCircle,
-                                        contentDescription = null,
-                                        tint = if (uiState.usernameAvailable) SkillectEmerald else MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(16.dp),
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = if (uiState.usernameAvailable) "Username is available" else "Username is unavailable or invalid",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = if (uiState.usernameAvailable) SkillectEmerald else MaterialTheme.colorScheme.error,
-                                    )
-                                }
-                            }
-
                             Spacer(modifier = Modifier.height(14.dp))
                             SkillectLabeledField(
                                 label = "Headline (optional)",
@@ -802,9 +746,8 @@ fun OnboardingScreen(
                             SkillectPrimaryButton(
                                 text = "Continue",
                                 onClick = {
-                                    val cleanUsername = uiState.username.trim().lowercase()
-                                    if (uiState.displayName.isBlank() || cleanUsername.length < 3) {
-                                        localStepError = "Enter your display name and a username (at least 3 characters)."
+                                    if (uiState.displayName.isBlank()) {
+                                        localStepError = "Enter your display name to continue."
                                     } else {
                                         localStepError = null
                                         currentStep = 2
