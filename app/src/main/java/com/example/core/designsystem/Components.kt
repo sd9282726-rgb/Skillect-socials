@@ -163,7 +163,7 @@ fun SkillectBrandBadge(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(size * 0.13f)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
             val scale = this.size.minDimension / 24f
             val white = Color.White
             drawRoundRect(
