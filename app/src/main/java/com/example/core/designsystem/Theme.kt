@@ -18,19 +18,19 @@ import androidx.core.view.WindowCompat
 import com.example.core.config.ThemeMode
 
 private val SkillectDarkColorScheme = darkColorScheme(
-    primary = SkillectVioletBright,
-    onPrimary = SkillectWhite,
-    primaryContainer = SkillectVioletContainer,
-    onPrimaryContainer = SkillectLavender,
-    secondary = SkillectPurple,
+    primary = SkillectOrange,
+    onPrimary = Color.White,
+    primaryContainer = SkillectOrangeContainer,
+    onPrimaryContainer = SkillectOrangeSoft,
+    secondary = SkillectOrangeSoft,
     onSecondary = SkillectNearBlack,
     secondaryContainer = SkillectGraphiteElevated,
     onSecondaryContainer = SkillectWhite,
-    tertiary = SkillectLavender,
+    tertiary = SkillectOrangeSoft,
     onTertiary = SkillectNearBlack,
     background = SkillectNearBlack,
     onBackground = SkillectWhite,
-    surface = SkillectNearBlack,
+    surface = SkillectCharcoal,
     onSurface = SkillectWhite,
     surfaceVariant = SkillectGraphite,
     onSurfaceVariant = SkillectMutedGrey,
@@ -41,15 +41,15 @@ private val SkillectDarkColorScheme = darkColorScheme(
     outline = SkillectBorderDark,
     outlineVariant = SkillectHairlineDark,
     error = SkillectCrimson,
-    onError = SkillectWhite,
+    onError = Color.White,
 )
 
 private val SkillectLightColorScheme = lightColorScheme(
     primary = SkillectLightPrimary,
     onPrimary = Color.White,
     primaryContainer = SkillectLightPrimaryContainer,
-    onPrimaryContainer = SkillectVioletDim,
-    secondary = SkillectViolet,
+    onPrimaryContainer = SkillectOrangeDim,
+    secondary = SkillectOrange,
     onSecondary = Color.White,
     secondaryContainer = SkillectLightCard,
     onSecondaryContainer = SkillectLightOnText,
@@ -62,9 +62,9 @@ private val SkillectLightColorScheme = lightColorScheme(
     surfaceContainerLowest = Color.White,
     surfaceContainerLow = SkillectLightBg,
     surfaceContainer = SkillectLightCard,
-    surfaceContainerHigh = Color(0xFFE7E5F5),
+    surfaceContainerHigh = Color(0xFFDFDAD0),
     outline = SkillectLightBorder,
-    outlineVariant = Color(0xFFECEBF6),
+    outlineVariant = Color(0x14202228),
     error = SkillectCrimson,
     onError = Color.White,
 )
@@ -72,7 +72,7 @@ private val SkillectLightColorScheme = lightColorScheme(
 val SkillectShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(16.dp),
+    medium = RoundedCornerShape(14.dp),
     large = RoundedCornerShape(20.dp),
     extraLarge = RoundedCornerShape(28.dp),
 )
@@ -96,6 +96,8 @@ fun SkillectTheme(
             if (window != null) {
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
                 WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !isDark
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+                window.navigationBarColor = android.graphics.Color.TRANSPARENT
             }
         }
     }
