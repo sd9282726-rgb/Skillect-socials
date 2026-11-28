@@ -246,6 +246,7 @@ fun SkillectCard(
         color = containerColor,
         contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.dp, borderColor),
+        shadowElevation = 4.dp,
     ) {
         Column(modifier = Modifier.padding(contentPadding), content = content)
     }
@@ -489,7 +490,7 @@ fun SkillChip(
 ) {
     val bg by animateColorAsState(
         targetValue = if (selected) {
-            MaterialTheme.colorScheme.onBackground
+            MaterialTheme.colorScheme.primary
         } else if (onClick != null) {
             MaterialTheme.colorScheme.surfaceContainerLow
         } else {
@@ -499,7 +500,7 @@ fun SkillChip(
     )
     val fg by animateColorAsState(
         targetValue = if (selected) {
-            MaterialTheme.colorScheme.background
+            MaterialTheme.colorScheme.onPrimary
         } else {
             MaterialTheme.colorScheme.onSurface
         },
@@ -507,7 +508,7 @@ fun SkillChip(
     )
     val border by animateColorAsState(
         targetValue = if (selected) {
-            MaterialTheme.colorScheme.onBackground
+            MaterialTheme.colorScheme.primary
         } else {
             MaterialTheme.colorScheme.outline
         },
