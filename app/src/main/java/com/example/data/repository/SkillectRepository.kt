@@ -198,32 +198,15 @@ class SkillectRepository(
             userId = userId,
             email = trimmedEmail,
         )
-        if (accessToken.isNotBlank() && userId.isNotBlank()) {
-            sessionStore.saveSession(session)
+        if (!session.isAuthenticated) {
+            return@guardConfigured Result.failure(
+                IllegalStateException(
+                    "Supabase is still requiring email confirmation. In Supabase Dashboard open Authentication → Providers → Email and turn OFF Confirm email. Skillect signup does not use email verification.",
+                ),
+            )
         }
-        analyticsTracker.logEvent("sign_up", mapOf("country" to countryCode))
-        Result.success(session)
-    }
-
-    suspend fun resendSignupOtp(email: String): Result<Unit> = guardConfigured {
-        val cleanEmail = email.trim()
-        if (cleanEmail.isBlank() || !cleanEmail.contains("@")) return@guardConfigured Result.failure(IllegalArgumentException("Enter a valid email address."))
-        val response = authApi.resendSignupOtp(RecoverPasswordRequest(email = cleanEmail))
-        if (response.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(response.parseError()))
-    }
-
-    suspend fun verifySignupOtp(email: String, token: String): Result<PersistedSession> = guardConfigured {
-        val cleanEmail = email.trim()
-        val cleanToken = token.filter(Char::isDigit)
-        if (cleanEmail.isBlank() || !cleanEmail.contains("@") || cleanToken.length != 6) {
-            return@guardConfigured Result.failure(IllegalArgumentException("Enter the 6-digit code sent to your email."))
-        }
-        val response = authApi.verifyOtp(VerifyOtpRequest(email = cleanEmail, token = cleanToken, type = "email"))
-        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
-        val body = response.body() ?: return@guardConfigured Result.failure(IllegalStateException("Supabase returned an empty verification response."))
-        val session = PersistedSession(accessToken = body.accessToken.orEmpty(), refreshToken = body.refreshToken.orEmpty(), userId = body.user?.id.orEmpty(), email = cleanEmail)
-        if (!session.isAuthenticated) return@guardConfigured Result.failure(IllegalStateException("Email code was accepted but Supabase did not return a sign-in session."))
         sessionStore.saveSession(session)
+        analyticsTracker.logEvent("sign_up", mapOf("country" to countryCode))
         Result.success(session)
     }
 
@@ -270,7 +253,6 @@ class SkillectRepository(
             return@guardConfigured Result.failure(IllegalArgumentException("Please enter a valid email address."))
         }
         val resp = authApi.recoverPassword(
-            redirectTo = "skillect://auth-callback",
             request = RecoverPasswordRequest(email = clean),
         )
         if (resp.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(resp.parseError()))

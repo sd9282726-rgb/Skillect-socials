@@ -237,7 +237,7 @@ fun AuthScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
                 contentPadding = PaddingValues(20.dp),
             ) {
-                if (uiState.mode != AuthMode.RESET_PASSWORD && uiState.mode != AuthMode.VERIFY_RECOVERY_OTP && uiState.mode != AuthMode.VERIFY_SIGNUP_OTP) {
+                if (uiState.mode != AuthMode.RESET_PASSWORD && uiState.mode != AuthMode.VERIFY_RECOVERY_OTP) {
                     // Pill Segmented Mode Selector
                     Surface(
                         shape = RoundedCornerShape(14.dp),
@@ -277,11 +277,6 @@ fun AuthScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(18.dp))
-                } else if (uiState.mode == AuthMode.VERIFY_SIGNUP_OTP) {
-                    Text("Verify your email", style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("We sent a 6-digit signup code to ${uiState.email}. Enter it below to activate your account.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(14.dp))
                 } else if (uiState.mode == AuthMode.RESET_PASSWORD) {
                     Text("Set a New Password", style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -322,7 +317,7 @@ fun AuthScreen(
                         visualTransformation = PasswordVisualTransformation(),
                         fieldModifier = Modifier.testTag("reset_confirm_password_input"),
                     )
-                } else if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.VERIFY_SIGNUP_OTP) {
+                } else if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP) {
                     SkillectLabeledField(
                         label = "6-digit verification code",
                         value = uiState.recoveryToken,
@@ -408,7 +403,6 @@ fun AuthScreen(
                         AuthMode.SIGN_IN -> "Sign In to Skillect"
                         AuthMode.SIGN_UP -> "Create Account"
                         AuthMode.RECOVER -> "Send Reset Code"
-                        AuthMode.VERIFY_SIGNUP_OTP -> "Verify Email"
                         AuthMode.VERIFY_RECOVERY_OTP -> "Verify Code"
                         AuthMode.RESET_PASSWORD -> "Update Password"
                     },
@@ -419,12 +413,7 @@ fun AuthScreen(
                         .testTag("auth_submit_button"),
                 )
 
-                if (uiState.mode == AuthMode.VERIFY_SIGNUP_OTP) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(onClick = viewModel::resendSignupOtp, modifier = Modifier.fillMaxWidth()) {
-                        Text("Resend signup code")
-                    }
-                } else if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.RESET_PASSWORD) {
+                if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.RESET_PASSWORD) {
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(onClick = { viewModel.setMode(AuthMode.RECOVER) }, modifier = Modifier.fillMaxWidth()) {
                         Text("Need a new code? Change email or resend")
