@@ -237,7 +237,7 @@ fun FeedScreen(
                     TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(tabIdx, matchContentSize = false),
                         height = 2.dp,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 },
                 divider = {
@@ -264,7 +264,7 @@ fun FeedScreen(
                                 style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp,
                                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                                 ),
-                                color = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         },
                     )
