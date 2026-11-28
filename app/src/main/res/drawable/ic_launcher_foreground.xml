@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:drawable="@drawable/skillect_icon_fg"
-        android:gravity="fill" />
-</layer-list>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#F2FFFFFF"
+        android:pathData="M4,6.8C4,5.25 5.25,4 6.8,4H10.2C11.75,4 13,5.25 13,6.8V10.2C13,11.75 11.75,13 10.2,13H6.8C5.25,13 4,11.75 4,10.2Z" />
+    <path
+        android:fillColor="#38FFFFFF"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.2"
+        android:pathData="M11,13.8C11,12.25 12.25,11 13.8,11H17.2C18.75,11 20,12.25 20,13.8V17.2C20,18.75 18.75,20 17.2,20H13.8C12.25,20 11,18.75 11,17.2Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M17.5,4.5A2,2 0,1 0,17.5 8.5A2,2 0,1 0,17.5 4.5" />
+</vector>
