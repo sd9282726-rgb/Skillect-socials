@@ -159,7 +159,7 @@ fun ShortsScreen(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "@${videoPost.author?.username ?: "creator"}",
+                                text = videoPost.author?.displayName?.ifBlank { "Creator" } ?: "Creator",
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
