@@ -169,7 +169,7 @@ Deno.serve(async (request: Request) => {
     }
   }
 
-  const maxLength = type === "post" || type === "media_caption" ? 5000 : type === "comment" ? 1500 : type === "profile" ? 2500 : type === "project" ? 2500 : type === "community" ? 400 : 2000;
+  const maxLength = type === "post" || type === "media_caption" ? 5000 : type === "comment" ? 1500 : type === "profile" ? 5000 : type === "project" ? 2500 : type === "community" ? 400 : 2000;
   if (!moderationText || moderationText.length > maxLength) return json(400, { error: "Text is empty or exceeds the allowed length" });
 
   // Profile eligibility and account restrictions are independent checks.

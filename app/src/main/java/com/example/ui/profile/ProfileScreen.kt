@@ -1106,7 +1106,12 @@ fun ProfileScreen(
                                             )
                                         },
                                         onClick = {
-                                            selectedSkills = if (skill in selectedSkills) selectedSkills - skill else selectedSkills + skill
+                                            selectedSkills = when {
+                                                skill in selectedSkills -> selectedSkills - skill
+                                                selectedSkills.size < 60 -> selectedSkills + skill
+                                                else -> selectedSkills
+                                            }
+                                            if (selectedSkills.size >= 60 && skill !in selectedSkills) mediaStatus = "You can select up to 60 skills."
                                         },
                                     )
                                 }
@@ -1122,19 +1127,32 @@ fun ProfileScreen(
                                         text = { Text(skill) },
                                         leadingIcon = { Checkbox(checked = skill in selectedSkills, onCheckedChange = null) },
                                         onClick = {
-                                            selectedSkills = if (skill in selectedSkills) selectedSkills - skill else selectedSkills + skill
+                                            selectedSkills = when {
+                                                skill in selectedSkills -> selectedSkills - skill
+                                                selectedSkills.size < 60 -> selectedSkills + skill
+                                                else -> selectedSkills
+                                            }
+                                            if (selectedSkills.size >= 60 && skill !in selectedSkills) mediaStatus = "You can select up to 60 skills."
                                         },
                                     )
                                 }
                             }
                         }
                     }
+                    Text("SKILLS (up to 60)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     Text("OTHER / ADD YOUR OWN SKILL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(value = customSkillInput, onValueChange = { customSkillInput = it.take(40) }, placeholder = { Text("Type any skill not listed") }, singleLine = true, modifier = Modifier.weight(1f))
                         TextButton(onClick = {
                             val custom = customSkillInput.trim()
-                            if (custom.isNotBlank()) { selectedSkills = selectedSkills + custom; customSkillInput = "" }
+                            if (custom.isNotBlank()) {
+                                if (selectedSkills.size < 60 || custom in selectedSkills) {
+                                    selectedSkills = selectedSkills + custom
+                                    customSkillInput = ""
+                                } else {
+                                    mediaStatus = "You can select up to 60 skills."
+                                }
+                            }
                         }, enabled = customSkillInput.isNotBlank()) { Text("Add") }
                     }
                     Text("PUBLIC PROFILE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
