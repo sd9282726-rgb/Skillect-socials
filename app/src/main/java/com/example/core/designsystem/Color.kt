@@ -2,41 +2,49 @@ package com.example.core.designsystem
 
 import androidx.compose.ui.graphics.Color
 
-// Skillect Brand Palette — Dark-First Charcoal, Graphite & Electric Violet
-val SkillectNearBlack = Color(0xFF09090D)
-val SkillectCharcoal = Color(0xFF111118)
-val SkillectGraphite = Color(0xFF181822)
-val SkillectGraphiteElevated = Color(0xFF222230)
-val SkillectBorderDark = Color(0xFF272736)
-val SkillectHairlineDark = Color(0xFF1A1A26)
+// Skillect Studio palette — graphite surfaces with a vivid orange identity.
+val SkillectNearBlack = Color(0xFF0D1017)
+val SkillectCharcoal = Color(0xFF151A24)
+val SkillectGraphite = Color(0xFF1C2230)
+val SkillectGraphiteElevated = Color(0xFF242B3D)
+val SkillectBorderDark = Color(0x26FFFFFF)
+val SkillectHairlineDark = Color(0x14FFFFFF)
 
-val SkillectViolet = Color(0xFF7C3AED)
-val SkillectVioletBright = Color(0xFF8B5CF6)
-val SkillectPurple = Color(0xFF9D6BFF)
-val SkillectLavender = Color(0xFFC4B5FD)
-val SkillectVioletContainer = Color(0xFF311B6B)
-val SkillectVioletDim = Color(0xFF5B21B6)
+val SkillectOrange = Color(0xFFFF6B2B)
+val SkillectOrangeDeep = Color(0xFFE8441A)
+val SkillectOrangeSoft = Color(0xFFFF8E5C)
+val SkillectOrangeContainer = Color(0xFF3A2119)
+val SkillectOrangeDim = Color(0xFFB9431B)
 
-// Signature Brand Accent Gradient Stops (Warm Amber -> Rose -> Electric Violet)
-val SkillectAccentAmber = Color(0xFFF59E0B)
-val SkillectAccentCoral = Color(0xFFEC4899)
-val SkillectAccentViolet = Color(0xFF7C3AED)
+// Retained names keep existing UI call sites source-compatible; values now follow
+// the orange Skillect identity rather than the previous violet palette.
+val SkillectViolet = SkillectOrange
+val SkillectVioletBright = SkillectOrange
+val SkillectPurple = SkillectOrangeSoft
+val SkillectLavender = Color(0xFFFFC1A5)
+val SkillectVioletContainer = SkillectOrangeContainer
+val SkillectVioletDim = SkillectOrangeDim
 
-val SkillectWhite = Color(0xFFF8FAFC)
-val SkillectMutedGrey = Color(0xFF94A3B8)
-val SkillectSubtleGrey = Color(0xFF64748B)
+// Signature tile gradient: warm highlight -> Skillect orange -> deep orange.
+val SkillectAccentAmber = Color(0xFFFF834F)
+val SkillectAccentCoral = Color(0xFFFF6B2B)
+val SkillectAccentViolet = Color(0xFFE8441A)
 
-// Semantic Status Colors
-val SkillectEmerald = Color(0xFF10B981)
-val SkillectAmber = Color(0xFFF59E0B)
+val SkillectWhite = Color(0xFFF2F4F8)
+val SkillectMutedGrey = Color(0xFF929BAE)
+val SkillectSubtleGrey = Color(0xFF5C657A)
+
+// Semantic status colors.
+val SkillectEmerald = Color(0xFF4ADE80)
+val SkillectAmber = Color(0xFFFBBF24)
 val SkillectCrimson = Color(0xFFEF4444)
 
-// Light Mode Counterparts
-val SkillectLightBg = Color(0xFFF7F7FB)
+// Warm paper light theme.
+val SkillectLightBg = Color(0xFFF2EFE9)
 val SkillectLightSurface = Color(0xFFFFFFFF)
-val SkillectLightCard = Color(0xFFF0EFF7)
-val SkillectLightBorder = Color(0xFFE0DFF0)
-val SkillectLightPrimary = Color(0xFF5B21B6)
-val SkillectLightPrimaryContainer = Color(0xFFEDE9FE)
-val SkillectLightOnText = Color(0xFF111118)
-val SkillectLightMutedText = Color(0xFF2A2A3A)
+val SkillectLightCard = Color(0xFFEAE6DE)
+val SkillectLightBorder = Color(0x26202228)
+val SkillectLightPrimary = Color(0xFFEA581C)
+val SkillectLightPrimaryContainer = Color(0xFFFCE4D8)
+val SkillectLightOnText = Color(0xFF14161B)
+val SkillectLightMutedText = Color(0xFF5E6470)
