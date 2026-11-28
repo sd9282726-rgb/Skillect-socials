@@ -388,9 +388,9 @@ class FeedViewModel(
                 return@launch
             }
             val isQuote = !quoteText.isNullOrBlank()
-            val authorHandle = post.author?.username?.takeIf { it.isNotBlank() } ?: "creator"
+            val authorName = post.author?.displayName?.takeIf { it.isNotBlank() } ?: "a creator"
             val resolvedContent = quoteText?.trim()
-                ?: post.content.ifBlank { "Shared a post from @$authorHandle" }
+                ?: post.content.ifBlank { "Shared a post from $authorName" }
             val resolvedImage = if (!isQuote) post.imageUrl ?: post.mediaUrls.firstOrNull() else null
             val req = CreatePostRequest(
                 authorId = uid,
