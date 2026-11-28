@@ -2,6 +2,7 @@ package com.example.core.designsystem
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -96,9 +97,9 @@ val SkillectHorizontalBrandGradient: Brush
 fun Modifier.skillectAtmosphericBackground(): Modifier {
     val bgColor = MaterialTheme.colorScheme.background
     val isDark = bgColor.luminance() < 0.5f
-    val dotColor = if (isDark) Color.White.copy(alpha = 0.055f) else SkillectViolet.copy(alpha = 0.08f)
-    val glowPrimary = SkillectViolet.copy(alpha = if (isDark) 0.14f else 0.08f)
-    val glowSecondary = SkillectAccentCoral.copy(alpha = if (isDark) 0.06f else 0.04f)
+    val dotColor = if (isDark) Color.White.copy(alpha = 0.045f) else SkillectOrange.copy(alpha = 0.06f)
+    val glowPrimary = SkillectOrange.copy(alpha = if (isDark) 0.15f else 0.075f)
+    val glowSecondary = SkillectAccentAmber.copy(alpha = if (isDark) 0.055f else 0.035f)
 
     return this
         .background(bgColor)
@@ -144,27 +145,52 @@ fun SkillectBrandBadge(
     size: Dp = 34.dp,
     modifier: Modifier = Modifier,
 ) {
+    val tileShape = RoundedCornerShape(size * 0.30f)
     Box(
         modifier = modifier
             .size(size)
             .shadow(
                 elevation = 8.dp,
-                shape = CircleShape,
-                ambientColor = SkillectAccentCoral.copy(alpha = 0.4f),
-                spotColor = SkillectViolet.copy(alpha = 0.45f),
+                shape = tileShape,
+                ambientColor = SkillectOrange.copy(alpha = 0.34f),
+                spotColor = SkillectOrangeDeep.copy(alpha = 0.30f),
             )
-            .clip(CircleShape)
-            .background(SkillectBrandGradient),
+            .clip(tileShape)
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(SkillectAccentAmber, SkillectOrange, SkillectOrangeDeep),
+                ),
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "s",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = (size.value * 0.48f).sp,
-            ),
-            color = Color.White,
-        )
+        Canvas(modifier = Modifier.fillMaxSize().padding(size * 0.13f)) {
+            val scale = this.size.minDimension / 24f
+            val white = Color.White
+            drawRoundRect(
+                color = white.copy(alpha = 0.96f),
+                topLeft = Offset(4f * scale, 4f * scale),
+                size = androidx.compose.ui.geometry.Size(9f * scale, 9f * scale),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.8f * scale),
+            )
+            drawRoundRect(
+                color = white.copy(alpha = 0.22f),
+                topLeft = Offset(11f * scale, 11f * scale),
+                size = androidx.compose.ui.geometry.Size(9f * scale, 9f * scale),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.8f * scale),
+            )
+            drawRoundRect(
+                color = white,
+                topLeft = Offset(11f * scale, 11f * scale),
+                size = androidx.compose.ui.geometry.Size(9f * scale, 9f * scale),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.8f * scale),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.2f * scale),
+            )
+            drawCircle(
+                color = white,
+                radius = 2f * scale,
+                center = Offset(17.5f * scale, 6.5f * scale),
+            )
+        }
     }
 }
 
