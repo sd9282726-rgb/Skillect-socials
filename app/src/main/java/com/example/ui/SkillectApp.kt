@@ -323,8 +323,8 @@ fun SkillectApp(
                                         selected = selected,
                                         onClick = { onSelectNavItem(item) },
                                         colors = NavigationBarItemDefaults.colors(
-                                            selectedIconColor = MaterialTheme.colorScheme.onBackground,
-                                            selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
                                             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                             indicatorColor = Color.Transparent,
@@ -342,7 +342,7 @@ fun SkillectApp(
                                                 style = MaterialTheme.typography.labelSmall,
                                             )
                                         },
-                                        alwaysShowLabel = false,
+                                        alwaysShowLabel = true,
                                         modifier = Modifier.testTag(item.tag),
                                     )
                                 }
@@ -376,8 +376,8 @@ fun SkillectApp(
                                     selected = selected,
                                     onClick = { onSelectNavItem(item) },
                                     colors = NavigationRailItemDefaults.colors(
-                                        selectedIconColor = MaterialTheme.colorScheme.onBackground,
-                                        selectedTextColor = MaterialTheme.colorScheme.onBackground,
+                                        selectedIconColor = MaterialTheme.colorScheme.primary,
+                                        selectedTextColor = MaterialTheme.colorScheme.primary,
                                         unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                         unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                         indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
