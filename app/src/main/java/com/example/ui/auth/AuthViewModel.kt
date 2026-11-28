@@ -463,9 +463,6 @@ class AuthViewModel(
                         countryCode = state.selectedCountry.isoCode,
                     ).fold(
                         onSuccess = { session ->
-                            val msg = if (!session.isAuthenticated) {
-                                "Account created, but email confirmation is still enabled on this Supabase project. Disable 'Confirm email' in Supabase Auth settings for instant sign-in."
-                            } else null
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
