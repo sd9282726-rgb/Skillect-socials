@@ -362,7 +362,7 @@ fun ProfileScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = profile?.displayName ?: "Skillect Member",
+                                    text = (profile?.displayName ?: "Skillect Member").withProfileLineBreaks(),
                                     style = MaterialTheme.typography.titleLarge,
                                 )
                                 if (profile?.isVerified == true) {
@@ -371,7 +371,7 @@ fun ProfileScreen(
                                 }
                             }
                             Text(
-                                text = "@${profile?.username ?: "skillect_user"}",
+                                text = "@${profile?.username ?: "skillect_user"}".withProfileLineBreaks(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -433,7 +433,7 @@ fun ProfileScreen(
                     if (profile?.headline?.isNotBlank() == true) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = profile.headline,
+                            text = profile.headline.withProfileLineBreaks(),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.tertiary,
                         )
@@ -441,7 +441,7 @@ fun ProfileScreen(
 
                     if (profile?.bio?.isNotBlank() == true) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = profile.bio, style = MaterialTheme.typography.bodyMedium)
+                        Text(text = profile.bio.withProfileLineBreaks(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), softWrap = true)
                     }
 
                     if (profile?.website?.isNotBlank() == true) {
@@ -459,7 +459,7 @@ fun ProfileScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Icon(Icons.Rounded.WorkOutline, contentDescription = "Website", tint = MaterialTheme.colorScheme.primary)
-                            Text(profile.website, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Text(profile.website.withProfileLineBreaks(), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, softWrap = true)
                         }
                     }
 
@@ -477,7 +477,7 @@ fun ProfileScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "${profile.regionLabel.ifBlank { profile.countryCode }} · ${profile.timezone}",
+                                    text = "${profile.regionLabel.ifBlank { profile.countryCode }} · ${profile.timezone}".withProfileLineBreaks(),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -534,39 +534,45 @@ fun ProfileScreen(
             item {
                 Spacer(modifier = Modifier.height(14.dp))
                 val tabs = if (isOwnProfile) listOf("Posts", "Quotes", "Projects", "Career", "Saved") else listOf("Posts", "Quotes", "Projects", "Career")
-                SecondaryTabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentColor = MaterialTheme.colorScheme.onBackground,
-                    indicator = {
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(selectedTab, matchContentSize = false),
-                            height = 2.dp,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                    },
-                    divider = {
-                        HorizontalDivider(
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                        )
-                    },
+                // Intrinsic-width tabs prevent labels from wrapping into fragments on phones.
+                // The row scrolls horizontally on narrow screens instead of compressing text.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(22.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     tabs.forEachIndexed { idx, label ->
                         val isSel = selectedTab == idx
-                        Tab(
-                            selected = isSel,
-                            onClick = { selectedTab = idx },
-                            text = {
-                                Text(
-                                    text = label,
-                                    color = if (isSel) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Medium,
-                                )
-                            },
-                        )
+                        Column(
+                            modifier = Modifier
+                                .widthIn(min = 42.dp)
+                                .clickable { selectedTab = idx }
+                                .padding(top = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = label,
+                                maxLines = 1,
+                                softWrap = false,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = if (isSel) FontWeight.SemiBold else FontWeight.Medium,
+                            )
+                            Spacer(modifier = Modifier.height(9.dp))
+                            Box(
+                                modifier = Modifier
+                                    .width(28.dp)
+                                    .height(2.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent),
+                            )
+                        }
                     }
                 }
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
             }
 
             when (selectedTab) {
@@ -621,7 +627,7 @@ fun ProfileScreen(
                                 }
                                 if (post.content.isNotBlank()) {
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(post.content, style = MaterialTheme.typography.bodyMedium)
+                                    Text(post.content.withProfileLineBreaks(), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), softWrap = true, maxLines = Int.MAX_VALUE)
                                 }
                                 if (post.mediaUrls.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -912,14 +918,14 @@ fun ProfileScreen(
                     } else {
                         items(uiState.savedCollections, key = { it.id }) { col ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth()) {
-                                Text(col.name, style = MaterialTheme.typography.titleSmall)
+                                Text(col.name.withProfileLineBreaks(), style = MaterialTheme.typography.titleSmall, modifier = Modifier.fillMaxWidth(), softWrap = true)
                                 Text("Private collection", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         items(uiState.savedPosts, key = { it.postId }) { saved ->
                             SkillectCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth()) {
                                 Text(
-                                    text = saved.post?.content ?: "Saved post ${saved.postId}",
+                                    text = (saved.post?.content ?: "Saved post ${saved.postId}").withProfileLineBreaks(),
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
