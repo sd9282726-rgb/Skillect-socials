@@ -37,6 +37,7 @@ import com.example.core.network.ProfileDto
 import com.example.core.network.ProfileUpsertDto
 import com.example.core.network.ProjectDto
 import com.example.core.network.RecoverPasswordRequest
+import com.example.core.network.VerifyOtpRequest
 import com.example.core.network.RefreshTokenRequest
 import com.example.core.network.ReportDto
 import com.example.core.network.ResolveModerationAppealRequest
