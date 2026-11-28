@@ -419,12 +419,14 @@ fun AuthScreen(
                         .testTag("auth_submit_button"),
                 )
 
-                if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.VERIFY_SIGNUP_OTP || uiState.mode == AuthMode.RESET_PASSWORD) {
+                if (uiState.mode == AuthMode.VERIFY_SIGNUP_OTP) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(
-                        onClick = { viewModel.setMode(AuthMode.RECOVER) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
+                    TextButton(onClick = viewModel::resendSignupOtp, modifier = Modifier.fillMaxWidth()) {
+                        Text("Resend signup code")
+                    }
+                } else if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.RESET_PASSWORD) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = { viewModel.setMode(AuthMode.RECOVER) }, modifier = Modifier.fillMaxWidth()) {
                         Text("Need a new code? Change email or resend")
                     }
                 }

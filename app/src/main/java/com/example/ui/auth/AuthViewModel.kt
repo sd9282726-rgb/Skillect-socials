@@ -540,8 +540,23 @@ class AuthViewModel(
     fun toggleSkill(skill: String) {
         _uiState.update { state ->
             val updated = state.selectedSkills.toMutableSet()
-            if (!updated.add(skill)) updated.remove(skill)
-            state.copy(selectedSkills = updated)
+            if (skill in updated) updated.remove(skill)
+            else if (updated.size < 60) updated.add(skill)
+            state.copy(
+                selectedSkills = updated,
+                errorMessage = if (skill !in state.selectedSkills && state.selectedSkills.size >= 60)
+                    "You can select up to 60 skills. Remove one to add another." else state.errorMessage,
+            )
+        }
+    }
+
+    fun resendSignupOtp() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.resendSignupOtp(_uiState.value.email).fold(
+                onSuccess = { _uiState.update { it.copy(isLoading = false, infoMessage = "A new 6-digit signup code has been sent.") } },
+                onFailure = { err -> _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Could not resend the code.") } },
+            )
         }
     }
 

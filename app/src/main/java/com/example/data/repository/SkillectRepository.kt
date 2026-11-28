@@ -205,6 +205,13 @@ class SkillectRepository(
         Result.success(session)
     }
 
+    suspend fun resendSignupOtp(email: String): Result<Unit> = guardConfigured {
+        val cleanEmail = email.trim()
+        if (cleanEmail.isBlank() || !cleanEmail.contains("@")) return@guardConfigured Result.failure(IllegalArgumentException("Enter a valid email address."))
+        val response = authApi.resendSignupOtp(RecoverPasswordRequest(email = cleanEmail))
+        if (response.isSuccessful) Result.success(Unit) else Result.failure(IllegalStateException(response.parseError()))
+    }
+
     suspend fun verifySignupOtp(email: String, token: String): Result<PersistedSession> = guardConfigured {
         val cleanEmail = email.trim()
         val cleanToken = token.filter(Char::isDigit)
