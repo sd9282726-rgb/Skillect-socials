@@ -237,7 +237,7 @@ fun AuthScreen(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.94f),
                 contentPadding = PaddingValues(20.dp),
             ) {
-                if (uiState.mode != AuthMode.RESET_PASSWORD && uiState.mode != AuthMode.VERIFY_RECOVERY_OTP) {
+                if (uiState.mode != AuthMode.RESET_PASSWORD && uiState.mode != AuthMode.VERIFY_RECOVERY_OTP && uiState.mode != AuthMode.VERIFY_SIGNUP_OTP) {
                     // Pill Segmented Mode Selector
                     Surface(
                         shape = RoundedCornerShape(14.dp),
@@ -277,6 +277,11 @@ fun AuthScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(18.dp))
+                } else if (uiState.mode == AuthMode.VERIFY_SIGNUP_OTP) {
+                    Text("Verify your email", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("We sent a 6-digit signup code to ${uiState.email}. Enter it below to activate your account.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(14.dp))
                 } else if (uiState.mode == AuthMode.RESET_PASSWORD) {
                     Text("Set a New Password", style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -317,7 +322,7 @@ fun AuthScreen(
                         visualTransformation = PasswordVisualTransformation(),
                         fieldModifier = Modifier.testTag("reset_confirm_password_input"),
                     )
-                } else if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP) {
+                } else if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.VERIFY_SIGNUP_OTP) {
                     SkillectLabeledField(
                         label = "6-digit verification code",
                         value = uiState.recoveryToken,
@@ -403,6 +408,7 @@ fun AuthScreen(
                         AuthMode.SIGN_IN -> "Sign In to Skillect"
                         AuthMode.SIGN_UP -> "Create Account"
                         AuthMode.RECOVER -> "Send Reset Code"
+                        AuthMode.VERIFY_SIGNUP_OTP -> "Verify Email"
                         AuthMode.VERIFY_RECOVERY_OTP -> "Verify Code"
                         AuthMode.RESET_PASSWORD -> "Update Password"
                     },
@@ -413,7 +419,7 @@ fun AuthScreen(
                         .testTag("auth_submit_button"),
                 )
 
-                if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.RESET_PASSWORD) {
+                if (uiState.mode == AuthMode.VERIFY_RECOVERY_OTP || uiState.mode == AuthMode.VERIFY_SIGNUP_OTP || uiState.mode == AuthMode.RESET_PASSWORD) {
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(
                         onClick = { viewModel.setMode(AuthMode.RECOVER) },
@@ -495,7 +501,8 @@ fun OnboardingScreen(
 ) {
     val scope = rememberCoroutineScope()
     var currentStep by remember { mutableIntStateOf(1) }
-    var avatarUrl by remember { mutableStateOf<String?>(null) }
+    var avatarUrl by remember { mutableStateOf<String?>("avatar-1") }
+    var customSkillInput by remember { mutableStateOf("") }
     var localPreviewUri by remember { mutableStateOf<Uri?>(null) }
     var uploadMessage by remember { mutableStateOf<String?>(null) }
     var skillSearch by remember { mutableStateOf("") }
@@ -689,6 +696,10 @@ fun OnboardingScreen(
                                     },
                                 )
                             }
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                TextButton(onClick = { avatarUrl = "avatar-1"; localPreviewUri = null; uploadMessage = "Boy avatar selected." }) { Text("Boy avatar") }
+                                TextButton(onClick = { avatarUrl = "avatar-6"; localPreviewUri = null; uploadMessage = "Girl avatar selected." }) { Text("Girl avatar") }
+                            }
                             if (uploadMessage != null) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
@@ -831,6 +842,15 @@ fun OnboardingScreen(
                                         }
                                         Spacer(modifier = Modifier.height(20.dp))
                                     }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("OTHER / ADD YOUR OWN SKILL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(value = customSkillInput, onValueChange = { customSkillInput = it.take(40) }, placeholder = { Text("Type any skill not listed") }, singleLine = true, modifier = Modifier.weight(1f))
+                                    TextButton(onClick = {
+                                        val custom = customSkillInput.trim()
+                                        if (custom.isNotBlank()) { viewModel.toggleSkill(custom); customSkillInput = "" }
+                                    }, enabled = customSkillInput.isNotBlank()) { Text("Add") }
                                 }
                             }
 

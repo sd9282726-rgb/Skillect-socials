@@ -205,6 +205,21 @@ class SkillectRepository(
         Result.success(session)
     }
 
+    suspend fun verifySignupOtp(email: String, token: String): Result<PersistedSession> = guardConfigured {
+        val cleanEmail = email.trim()
+        val cleanToken = token.filter(Char::isDigit)
+        if (cleanEmail.isBlank() || !cleanEmail.contains("@") || cleanToken.length != 6) {
+            return@guardConfigured Result.failure(IllegalArgumentException("Enter the 6-digit code sent to your email."))
+        }
+        val response = authApi.verifyOtp(VerifyOtpRequest(email = cleanEmail, token = cleanToken, type = "email"))
+        if (!response.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(response.parseError()))
+        val body = response.body() ?: return@guardConfigured Result.failure(IllegalStateException("Supabase returned an empty verification response."))
+        val session = PersistedSession(accessToken = body.accessToken.orEmpty(), refreshToken = body.refreshToken.orEmpty(), userId = body.user?.id.orEmpty(), email = cleanEmail)
+        if (!session.isAuthenticated) return@guardConfigured Result.failure(IllegalStateException("Email code was accepted but Supabase did not return a sign-in session."))
+        sessionStore.saveSession(session)
+        Result.success(session)
+    }
+
     suspend fun signIn(email: String, password: String): Result<PersistedSession> = guardConfigured {
         val response = authApi.signInWithPassword(
             PasswordSignInRequest(email = email.trim(), password = password),
@@ -432,25 +447,8 @@ class SkillectRepository(
             return@guardConfigured Result.failure(IllegalStateException("Profile save could not be confirmed by Skillect safety screening."))
         }
 
-        val followUpFields = mutableMapOf<String, Any?>(
-            "type" to "profile",
-            "display_name" to profile.displayName.trim().take(80),
-            "username" to cleanUsername,
-            "bio" to profile.bio.trim().take(AppConfig.MAX_BIO_LENGTH),
-            "location" to countryName,
-            "website" to resolvedWebsite,
-            "skills" to profile.skills,
-            "interests" to profile.interests,
-            "country" to countryCode,
-            "is_private" to profile.isPrivate,
-            "content" to listOf(profile.displayName, cleanUsername, profile.bio, countryName, resolvedWebsite, profile.skills.joinToString(", "), profile.interests.joinToString(", ")).filter { it.isNotBlank() }.joinToString("\n"),
-        )
-        profile.avatarUrl?.takeIf { it.isNotBlank() }?.let { followUpFields["avatar_url"] = it }
-        val followUp = postgrestApi.moderateText(followUpFields)
-        if (!followUp.isSuccessful || followUp.body()?.profileSaved != true) {
-            return@guardConfigured Result.failure(IllegalStateException(followUp.parseError().ifBlank { "Profile details could not be saved." }))
-        }
-
+        // The first moderation-gateway request already persists all profile fields.
+        // A second profile request returned a false 503 after the successful save.
         val savedResponse = postgrestApi.getProfiles(idFilter = "eq.$uid", limit = 1)
         if (!savedResponse.isSuccessful) {
             return@guardConfigured Result.failure(IllegalStateException(savedResponse.parseError()))

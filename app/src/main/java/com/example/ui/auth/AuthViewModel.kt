@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class AuthMode { SIGN_IN, SIGN_UP, RECOVER, VERIFY_RECOVERY_OTP, RESET_PASSWORD }
+enum class AuthMode { SIGN_IN, SIGN_UP, RECOVER, VERIFY_SIGNUP_OTP, VERIFY_RECOVERY_OTP, RESET_PASSWORD }
 
 data class RecoveryDeepLinkPayload(
     val accessToken: String? = null,
@@ -343,6 +343,22 @@ class AuthViewModel(
 
     fun submitAuth() {
         val state = _uiState.value
+        if (state.mode == AuthMode.VERIFY_SIGNUP_OTP) {
+            if (state.recoveryToken.length != 6) {
+                _uiState.update { it.copy(errorMessage = "Enter the 6-digit code sent to your email.") }
+                return
+            }
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+                repository.verifySignupOtp(state.email, state.recoveryToken).fold(
+                    onSuccess = { session ->
+                        _uiState.update { it.copy(isLoading = false, mode = AuthMode.SIGN_IN, isAuthenticated = true, currentUserId = session.userId, needsOnboarding = true, authSheetOpen = false, recoveryToken = "", errorMessage = null, infoMessage = "Email verified. Finish setting up your Skillect profile.") }
+                    },
+                    onFailure = { err -> _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "The code is invalid or expired.") } },
+                )
+            }
+            return
+        }
         if (state.mode == AuthMode.VERIFY_RECOVERY_OTP) {
             if (state.recoveryToken.length != 6) {
                 _uiState.update { it.copy(errorMessage = "Enter the 6-digit code sent to your email.") }
@@ -469,11 +485,13 @@ class AuthViewModel(
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
+                                    mode = if (session.isAuthenticated) AuthMode.SIGN_IN else AuthMode.VERIFY_SIGNUP_OTP,
+                                    recoveryToken = "",
                                     isAuthenticated = session.isAuthenticated,
                                     currentUserId = session.userId,
                                     needsOnboarding = session.isAuthenticated,
                                     authSheetOpen = !session.isAuthenticated,
-                                    infoMessage = msg,
+                                    infoMessage = if (session.isAuthenticated) msg else "We sent a 6-digit verification code to ${state.email}. Enter it to activate your account.",
                                 )
                             }
                         },
@@ -499,7 +517,7 @@ class AuthViewModel(
                         },
                     )
                 }
-                AuthMode.VERIFY_RECOVERY_OTP, AuthMode.RESET_PASSWORD -> Unit
+                AuthMode.VERIFY_SIGNUP_OTP, AuthMode.VERIFY_RECOVERY_OTP, AuthMode.RESET_PASSWORD -> Unit
             }
         }
     }

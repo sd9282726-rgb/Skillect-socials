@@ -289,13 +289,18 @@ fun SkillectAvatar(
         }
 
         Box(modifier = frameModifier, contentAlignment = Alignment.Center) {
-            if (avatarUrl.isNullOrBlank()) {
+            if (avatarUrl.isNullOrBlank() || avatarUrl == "avatar-1") {
                 Image(
                     painter = painterResource(id = R.drawable.img_avatar_placeholder),
                     contentDescription = contentDescription,
-                    modifier = Modifier
-                        .size(size)
-                        .clip(CircleShape),
+                    modifier = Modifier.size(size).clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                )
+            } else if (avatarUrl == "avatar-6") {
+                Image(
+                    painter = painterResource(id = R.drawable.img_avatar_girl),
+                    contentDescription = contentDescription,
+                    modifier = Modifier.size(size).clip(CircleShape),
                     contentScale = ContentScale.Crop,
                 )
             } else {

@@ -1033,6 +1033,7 @@ fun ProfileScreen(
         var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.map { it.trim() }?.filter { it.isNotBlank() }?.toSet().orEmpty()) }
         var skillsMenuExpanded by remember { mutableStateOf(false) }
         var skillSearch by remember { mutableStateOf("") }
+        var customSkillInput by remember { mutableStateOf("") }
         val savedSkillsOutsideCatalog = selectedSkills.filterNot { it in OnboardingSkillCatalog.all }.sorted()
         var selectedCountry by remember(profile?.id) {
             mutableStateOf(AppConfig.supportedCountries.firstOrNull { it.isoCode.equals(profile?.countryCode, true) } ?: AppConfig.supportedCountries.first())
@@ -1127,6 +1128,14 @@ fun ProfileScreen(
                                 }
                             }
                         }
+                    }
+                    Text("OTHER / ADD YOUR OWN SKILL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(value = customSkillInput, onValueChange = { customSkillInput = it.take(40) }, placeholder = { Text("Type any skill not listed") }, singleLine = true, modifier = Modifier.weight(1f))
+                        TextButton(onClick = {
+                            val custom = customSkillInput.trim()
+                            if (custom.isNotBlank()) { selectedSkills = selectedSkills + custom; customSkillInput = "" }
+                        }, enabled = customSkillInput.isNotBlank()) { Text("Add") }
                     }
                     Text("PUBLIC PROFILE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     OutlinedTextField(
@@ -1235,6 +1244,10 @@ fun ProfileScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { avatarUrlForEdit = "avatar-1"; mediaStatus = "Boy avatar selected." }) { Text("Boy avatar") }
+                        TextButton(onClick = { avatarUrlForEdit = "avatar-6"; mediaStatus = "Girl avatar selected." }) { Text("Girl avatar") }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SkillectOutlinedButton(

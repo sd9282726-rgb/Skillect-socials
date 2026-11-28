@@ -213,8 +213,8 @@ Deno.serve(async (request: Request) => {
       display_name: displayName,
       username,
       bio: String(input.bio || "").trim().slice(0, 500),
-      skills: Array.isArray(input.skills) ? input.skills.map((item: unknown) => String(item).trim().slice(0, 40)).filter(Boolean).slice(0, 20) : [],
-      interests: Array.isArray(input.interests) ? input.interests.map((item: unknown) => String(item).trim().slice(0, 40)).filter(Boolean).slice(0, 20) : [],
+      skills: Array.isArray(input.skills) ? input.skills.map((item: unknown) => String(item).trim().slice(0, 40)).filter(Boolean).slice(0, 60) : [],
+      interests: Array.isArray(input.interests) ? input.interests.map((item: unknown) => String(item).trim().slice(0, 40)).filter(Boolean).slice(0, 60) : [],
       onboarded: true,
     };
     if (Object.prototype.hasOwnProperty.call(input, "location")) record.location = String(input.location || "").trim().slice(0, 100);
@@ -240,7 +240,7 @@ Deno.serve(async (request: Request) => {
     }
     if (Object.prototype.hasOwnProperty.call(input, "avatar_url")) {
       const avatar = String(input.avatar_url || "").trim();
-      const validPreset = ["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5"].includes(avatar);
+      const validPreset = ["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5", "avatar-6"].includes(avatar);
       const validPhoto = avatar.toLowerCase().startsWith("https://") && avatar.length <= 500;
       if (!validPreset && !validPhoto) return json(400, { error: "Choose an available Skillect avatar or a secure profile photo URL." });
       record.avatar_url = avatar;
@@ -394,7 +394,7 @@ Deno.serve(async (request: Request) => {
     if (Object.prototype.hasOwnProperty.call(input, "country")) record.country = String(input.country || "").trim().slice(0, 100);
     if (Object.prototype.hasOwnProperty.call(input, "avatar_url")) {
       const avatar = String(input.avatar_url || "");
-      const isPresetAvatar = ["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5"].includes(avatar);
+      const isPresetAvatar = ["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5", "avatar-6"].includes(avatar);
       const isSecurePhoto = avatar.toLowerCase().startsWith("https://") && avatar.length <= 500;
       if (!isPresetAvatar && !isSecurePhoto) return json(400, { error: "Choose one of the available Skillect avatars or a secure profile photo URL" });
       record.avatar_url = avatar;
@@ -408,7 +408,7 @@ Deno.serve(async (request: Request) => {
     const category = String(input.category || "general").trim().slice(0, 64);
     const avatar = String(input.avatar_url || "avatar-1");
     if (!name) return json(400, { error: "Community name is required" });
-    if (!["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5"].includes(avatar)) return json(400, { error: "Choose one of the available Skillect community avatars" });
+    if (!["avatar-1", "avatar-2", "avatar-3", "avatar-4", "avatar-5", "avatar-6"].includes(avatar)) return json(400, { error: "Choose one of the available Skillect community avatars" });
     record = { name, description, category, avatar_url: avatar, created_by: userId };
   } else if (type === "project") {
     const title = String(input.title || "").trim().slice(0, 100);
