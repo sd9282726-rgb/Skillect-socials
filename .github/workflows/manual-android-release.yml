@@ -25,9 +25,9 @@ jobs:
       - name: Verify release version
         run: |
           set -euo pipefail
-          grep -q 'versionCode = 34' app/build.gradle.kts
-          grep -q 'versionName = "2.2.2"' app/build.gradle.kts
-          echo "Building Skillect 2.2.2 (34) from the checked-out source without replacing app files."
+          grep -q 'versionCode = 35' app/build.gradle.kts
+          grep -q 'versionName = "2.2.3"' app/build.gradle.kts
+          echo "Building Skillect 2.2.3 (35) from the checked-out source without replacing app files."
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

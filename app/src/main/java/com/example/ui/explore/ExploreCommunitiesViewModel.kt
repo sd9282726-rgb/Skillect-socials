@@ -65,7 +65,7 @@ class ExploreCommunitiesViewModel(
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             // Debounce typing so Explore searches once the user pauses, not on every keystroke.
-            delay(350)
+            delay(180)
             refreshExplore()
         }
     }

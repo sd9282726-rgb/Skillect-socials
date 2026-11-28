@@ -279,7 +279,7 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Text("@${block.blocked?.username ?: block.blockedId}")
+                                    Text(block.blocked?.displayName?.ifBlank { "Skillect Member" } ?: "Skillect Member")
                                     TextButton(onClick = { viewModel.unblockUser(block.blockedId) }) {
                                         Text(stringResource(R.string.settings_unblock))
                                     }
