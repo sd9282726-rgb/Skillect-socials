@@ -473,8 +473,7 @@ fun FeedScreen(
                                     }
                                     Spacer(Modifier.height(6.dp))
                                     Text(
-                                        text = memory.author?.username?.takeIf { it.isNotBlank() }
-                                            ?: memory.author?.displayName ?: "Member",
+                                        text = memory.author?.displayName?.takeIf { it.isNotBlank() } ?: "Skillect Member",
                                         style = MaterialTheme.typography.labelSmall,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,

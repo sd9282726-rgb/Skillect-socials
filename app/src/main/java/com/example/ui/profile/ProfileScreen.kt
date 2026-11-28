@@ -272,7 +272,7 @@ fun ProfileScreen(
                                                 menuExpanded = false
                                                 val intent = Intent(Intent.ACTION_SEND).apply {
                                                     type = "text/plain"
-                                                    putExtra(Intent.EXTRA_TEXT, "Connect with @${profile?.username ?: "member"} on Skillect")
+                                                    putExtra(Intent.EXTRA_TEXT, "Connect with ${profile?.displayName?.ifBlank { "a Skillect member" } ?: "a Skillect member"} on Skillect")
                                                 }
                                                 context.startActivity(Intent.createChooser(intent, "Share Profile"))
                                             },
@@ -370,11 +370,6 @@ fun ProfileScreen(
                                     VerifiedCreatorBadge()
                                 }
                             }
-                            Text(
-                                text = "@${profile?.username ?: "skillect_user"}".withProfileLineBreaks(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
 
                         if (isOwnProfile) {
@@ -607,16 +602,9 @@ fun ProfileScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             post.author?.displayName?.takeIf { it.isNotBlank() }
-                                                ?: post.author?.username?.takeIf { it.isNotBlank() }
                                                 ?: profile?.displayName?.takeIf { it.isNotBlank() }
-                                                ?: profile?.username?.takeIf { it.isNotBlank() }
-                                                ?: "Member",
+                                                ?: "Skillect Member",
                                             style = MaterialTheme.typography.titleSmall,
-                                        )
-                                        Text(
-                                            "@" + (post.author?.username?.takeIf { it.isNotBlank() } ?: profile?.username.orEmpty()),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
                                 }
@@ -1040,7 +1028,6 @@ fun ProfileScreen(
 
     if (showEditDialog) {
         var displayName by remember { mutableStateOf(profile?.displayName.orEmpty()) }
-        var username by remember { mutableStateOf(profile?.username.orEmpty()) }
         // Keep every saved profile skill, including values from older catalog versions.
         // Otherwise editing a profile silently drops skills that are not in today's picker.
         var selectedSkills by remember(profile?.id) { mutableStateOf(profile?.skills?.map { it.trim() }?.filter { it.isNotBlank() }?.toSet().orEmpty()) }
@@ -1072,7 +1059,6 @@ fun ProfileScreen(
                 ) {
                     Text("BASIC INFORMATION", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Display Name") })
-                    OutlinedTextField(value = username, onValueChange = { username = it.lowercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' } }, label = { Text("Username") }, supportingText = { Text("3–24 letters, numbers or underscores") })
                     Text("SKILLS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     Box(modifier = Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1280,7 +1266,7 @@ fun ProfileScreen(
                     onClick = {
                         isSavingProfile = true
                         viewModel.updateProfile(
-                            displayName, website, bio, selectedCountry.isoCode, selectedCountry.name, selectedInterests.sorted().joinToString(", "), username, selectedSkills.sorted().joinToString(", "), avatarUrlForEdit, coverUrlForEdit,
+                            displayName, website, bio, selectedCountry.isoCode, selectedCountry.name, selectedInterests.sorted().joinToString(", "), selectedSkills.sorted().joinToString(", "), avatarUrlForEdit, coverUrlForEdit,
                         ) { saved ->
                             isSavingProfile = false
                             if (saved) showEditDialog = false
@@ -1437,8 +1423,7 @@ fun ProfileScreen(
                                 SkillectAvatar(avatarUrl = member.avatarUrl, contentDescription = member.displayName + " avatar", size = 44.dp)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text(member.displayName.ifBlank { member.username }, style = MaterialTheme.typography.titleSmall)
-                                    Text("@" + member.username, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(member.displayName.ifBlank { "Skillect Member" }, style = MaterialTheme.typography.titleSmall)
                                 }
                             }
                         }

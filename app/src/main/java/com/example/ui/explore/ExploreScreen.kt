@@ -122,7 +122,7 @@ fun ExploreScreen(
                 OutlinedTextField(
                     value = uiState.query,
                     onValueChange = viewModel::updateQuery,
-                    placeholder = { Text("Search people, @usernames, #tags, skills, projects...") },
+                    placeholder = { Text("Search people, #tags, skills, projects...") },
                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                     trailingIcon = {
                         IconButton(onClick = viewModel::searchNow) {

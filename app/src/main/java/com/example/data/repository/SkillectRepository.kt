@@ -1042,7 +1042,7 @@ class SkillectRepository(
 
     suspend fun searchProfiles(query: String): Result<List<ProfileDto>> = guardConfigured {
         val sanitized = query.trim().replace(",", "").replace("(", "").replace(")", "")
-        val filter = if (sanitized.isBlank()) null else "(username.ilike.*$sanitized*,display_name.ilike.*$sanitized*,bio.ilike.*$sanitized*)"
+        val filter = if (sanitized.isBlank()) null else "(display_name.ilike.*$sanitized*,bio.ilike.*$sanitized*)"
         val resp = postgrestApi.getProfiles(orFilter = filter, limit = 25)
         if (!resp.isSuccessful) return@guardConfigured Result.failure(IllegalStateException(resp.parseError()))
         val profiles = resp.body().orEmpty()

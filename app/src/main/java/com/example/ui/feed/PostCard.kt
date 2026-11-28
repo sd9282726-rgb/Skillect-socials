@@ -170,8 +170,7 @@ fun PostCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = author?.username?.takeIf { it.isNotBlank() }
-                            ?: author?.displayName ?: "skillect_member",
+                        text = author?.displayName?.takeIf { it.isNotBlank() } ?: "Skillect Member",
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

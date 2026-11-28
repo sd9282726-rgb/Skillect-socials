@@ -195,8 +195,8 @@ fun MessagesInboxScreen(
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(sender?.let { it.displayName.ifBlank { it.username } } ?: "Skillect member", style = MaterialTheme.typography.titleSmall)
-                                    Text("@${sender?.username ?: "member"} tried to contact you", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(sender?.displayName?.ifBlank { "Skillect member" } ?: "Skillect member", style = MaterialTheme.typography.titleSmall)
+                                    Text("Sent you a message request", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                             if (request.initialMessage.isNotBlank()) {
@@ -280,11 +280,6 @@ fun MessagesInboxScreen(
                                             }
                                         }
                                     }
-                                    Text(
-                                        text = "@${peer?.username ?: "member"}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
                                 }
                             }
                             HorizontalDivider(
